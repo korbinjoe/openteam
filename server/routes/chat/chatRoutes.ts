@@ -7,6 +7,7 @@ import type { ChatService } from '../../services/chat/ChatService'
 import type { TokenUsageStore } from '../../stores/TokenUsageStore'
 import type { Chat } from '../../config/types'
 import type { SessionRegistry } from '../../terminal/SessionRegistry'
+import { MemberAggregator } from '../../stores/MemberAggregator'
 import { WorktreeManager } from '../../git/WorktreeManager'
 import { createLogger } from '../../lib/logger'
 import { cwdToClaudeProjectKey } from '../../../shared/projectKey'
@@ -45,6 +46,11 @@ const pickUpdatableFields = (body: Record<string, unknown>): Partial<Chat> => {
 
 export const createChatRoutes = ({ chatStore, chatService, tokenUsageStore, sessionRegistry }: ChatRouteDeps): Router => {
   const router = Router()
+  const memberAggregator = new MemberAggregator(sessionRegistry)
+
+  const enrichWithMembers = <T extends Chat>(chats: T[]): T[] => {
+    return chats.map((chat) => ({ ...chat, members: memberAggregator.enrich(chat) }))
+  }
 
   const enrichWithTokenUsage = <T extends Chat>(chats: T[]): (T & { usedModels?: string[] })[] => {
     if (!tokenUsageStore || chats.length === 0) return chats
@@ -67,7 +73,7 @@ export const createChatRoutes = ({ chatStore, chatService, tokenUsageStore, sess
   router.get('/api/chats/recent', (req, res) => {
     const limit = Number(req.query.limit) || 10
     const chats = chatStore.listRecent(limit)
-    const enriched = enrichWithTokenUsage(chats)
+    const enriched = enrichWithMembers(enrichWithTokenUsage(chats))
 
     if (sessionRegistry) {
       const activities = sessionRegistry.getActiveActivities()
@@ -83,7 +89,7 @@ export const createChatRoutes = ({ chatStore, chatService, tokenUsageStore, sess
 
   router.get('/api/workspaces/:id/chats', (req, res) => {
     const chats = chatStore.listByWorkspace(req.params.id)
-    res.json(enrichWithTokenUsage(chats))
+    res.json(enrichWithMembers(enrichWithTokenUsage(chats)))
   })
 
   /** worktreePath → chat  PendingChangesPanel  */
@@ -116,7 +122,7 @@ export const createChatRoutes = ({ chatStore, chatService, tokenUsageStore, sess
   router.get('/api/chats/:id', (req, res) => {
     const chat = chatStore.get(req.params.id)
     if (!chat) return res.status(404).json({ error: 'Chat not found' })
-    const [enriched] = enrichWithTokenUsage([chat])
+    const [enriched] = enrichWithMembers(enrichWithTokenUsage([chat]))
     res.json(enriched)
   })
 

@@ -79,7 +79,20 @@ const formatTokens = (n: number): string => {
   return `${n}`
 }
 
-const ChatHistoryPage = () => {
+interface ChatHistoryPageProps {
+  /** Prefix used to build chat-open links. Defaults to V1 root. */
+  workspaceRoutePrefix?: string
+  /** Path navigated to when the breadcrumb Home icon is clicked. Defaults to V1 home. */
+  homePath?: string
+  /** URL segment for the chat/task id. Defaults to "chat" (V1); V2 passes "task". */
+  chatSegment?: string
+}
+
+const ChatHistoryPage = ({
+  workspaceRoutePrefix = '/workspace',
+  homePath = '/',
+  chatSegment = 'chat',
+}: ChatHistoryPageProps = {}) => {
   const { t } = useTranslation(['chat', 'common'])
   const navigate = useNavigate()
   const { closeTab, closeCompletedTabs } = useChatTabs()
@@ -132,6 +145,20 @@ const ChatHistoryPage = () => {
 
   const timeGroups = useMemo(() => groupByTime(filtered), [filtered])
 
+  // V2 task URL with no `?agent=` lands on task-overview (whiteboard timeline),
+  // which is empty for chats that never wrote whiteboard entries. Single-agent
+  // chats (the vast majority) should drop straight into the agent 1:1 view so
+  // the real JSONL conversation renders. Multi-agent chats keep the overview.
+  const buildOpenUrl = useCallback((chat: ChatRecord): string => {
+    const base = `${workspaceRoutePrefix}/${chat.workspaceId}/${chatSegment}/${chat.id}`
+    const isV2 = chatSegment === 'task'
+    const singleAgent = !chat.teamAgentIds || chat.teamAgentIds.length === 0
+    if (isV2 && singleAgent && chat.primaryAgentId) {
+      return `${base}?agent=${encodeURIComponent(chat.primaryAgentId)}`
+    }
+    return base
+  }, [workspaceRoutePrefix, chatSegment])
+
   const timeGroupLabels: Record<TimeGroup, string> = {
     today: t('chat:history.today', { defaultValue: 'Today' }),
     yesterday: t('chat:history.yesterday', { defaultValue: 'Yesterday' }),
@@ -163,7 +190,7 @@ const ChatHistoryPage = () => {
       >
         <nav className="flex items-center gap-1 text-xs -webkit-app-region-no-drag">
           <button
-            onClick={() => navigate('/')}
+            onClick={() => navigate(homePath)}
             tabIndex={0}
             aria-label="Home"
             className="bg-transparent border-none cursor-pointer text-text-secondary hover:text-text-emphasis transition-colors p-0 flex items-center"
@@ -260,8 +287,8 @@ const ChatHistoryPage = () => {
                     {items.map((chat) => (
                       <div
                         key={chat.id}
-                        onClick={() => navigate(`/workspace/${chat.workspaceId}/chat/${chat.id}`)}
-                        onKeyDown={(e) => { if (e.key === 'Enter') navigate(`/workspace/${chat.workspaceId}/chat/${chat.id}`) }}
+                        onClick={() => navigate(buildOpenUrl(chat))}
+                        onKeyDown={(e) => { if (e.key === 'Enter') navigate(buildOpenUrl(chat)) }}
                         tabIndex={0}
                         role="button"
                         aria-label={t('chat:history.openChat', { title: chat.title })}

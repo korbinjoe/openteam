@@ -34,7 +34,7 @@ const GroupChatMessage = ({ msg }: GroupChatMessageProps) => {
           <path d="M5 12h14" /><polyline points="12 5 19 12 12 19" />
         </svg>
         <span className="text-[10px] text-accent-brand-light flex-1">{msg.text}</span>
-        {msg.time && <span className="font-mono text-[9px] text-text-muted">{msg.time}</span>}
+        {msg.time && <span className="font-mono text-[10px] text-text-muted">{msg.time}</span>}
       </div>
     )
   }
@@ -111,7 +111,7 @@ const GroupChatMessage = ({ msg }: GroupChatMessageProps) => {
         <AgentAvatar agent={msg.agent} role={msg.agentRole} onClick={() => msg.agentId && selectAgent(msg.agentId)} />
         <div className="flex-1 p-2 px-2.5 rounded-md bg-accent-yellow/[0.04] border border-accent-yellow/[0.12]">
           <div className="text-[10px] font-semibold text-text-secondary mb-[3px]">
-            {msg.agent} <span className="text-[9px] font-normal text-accent-yellow">needs your input</span>
+            {msg.agent} <span className="text-[10px] font-normal text-accent-yellow">needs your input</span>
           </div>
           <div className="text-[11px] text-text-primary">"{msg.text}"</div>
           <div className="flex gap-1.5 mt-1.5">
@@ -147,11 +147,11 @@ const AgentAvatar = ({ agent, role, onClick }: { agent?: string; role?: string; 
   const isLead = role === 'lead'
   return (
     <div
-      className={`w-[18px] h-[18px] rounded flex items-center justify-center cursor-pointer mt-0.5 flex-shrink-0 ${isLead ? 'bg-accent-purple/10' : 'bg-accent-brand/[0.08]'}`}
+      className={`w-[22px] h-[22px] rounded flex items-center justify-center cursor-pointer mt-0.5 flex-shrink-0 ${isLead ? 'bg-accent-purple/10' : 'bg-accent-brand/[0.08]'}`}
       onClick={onClick}
     >
-      <span className={`text-[7px] font-bold ${isLead ? 'text-accent-purple' : 'text-accent-brand-light'}`}>
-        {(agent || '?').charAt(0)}
+      <span className={`text-[11px] font-bold ${isLead ? 'text-accent-purple' : 'text-accent-brand-light'}`}>
+        {(agent || '?').charAt(0).toUpperCase()}
       </span>
     </div>
   )

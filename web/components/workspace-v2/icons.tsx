@@ -3,6 +3,15 @@ interface IconProps {
   className?: string
 }
 
+export const Maximize = ({ size = 16, className }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <polyline points="15 3 21 3 21 9" />
+    <polyline points="9 21 3 21 3 15" />
+    <line x1="21" y1="3" x2="14" y2="10" />
+    <line x1="3" y1="21" x2="10" y2="14" />
+  </svg>
+)
+
 export const ChevronLeft = ({ size = 16, className }: IconProps) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className={className}>
     <polyline points="15 18 9 12 15 6" />
@@ -76,6 +85,20 @@ export const Moon = ({ size = 16, className }: IconProps) => (
   </svg>
 )
 
+export const Sun = ({ size = 16, className }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <circle cx="12" cy="12" r="4" />
+    <path d="M12 2v2" />
+    <path d="M12 20v2" />
+    <path d="m4.93 4.93 1.41 1.41" />
+    <path d="m17.66 17.66 1.41 1.41" />
+    <path d="M2 12h2" />
+    <path d="M20 12h2" />
+    <path d="m6.34 17.66-1.41 1.41" />
+    <path d="m19.07 4.93-1.41 1.41" />
+  </svg>
+)
+
 export const Bell = ({ size = 16, className }: IconProps) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" className={className}>
     <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
@@ -129,5 +152,78 @@ export const UsersGroup = ({ size = 16, className }: IconProps) => (
 export const Square = ({ size = 16, className }: IconProps) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" className={className}>
     <rect x="4" y="4" width="16" height="16" rx="2" />
+  </svg>
+)
+
+export const History = ({ size = 16, className }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M3 12a9 9 0 1 0 3-6.7L3 8" />
+    <path d="M3 3v5h5" />
+    <path d="M12 7v5l4 2" />
+  </svg>
+)
+
+export const Handshake = ({ size = 16, className }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="m11 17 2 2a1 1 0 1 0 3-3" />
+    <path d="m14 14 2.5 2.5a1 1 0 1 0 3-3l-3.88-3.88a3 3 0 0 0-4.24 0l-.88.88a1 1 0 1 1-3-3l2.81-2.81a5.79 5.79 0 0 1 7.06-.87l.47.28a2 2 0 0 0 1.42.25L21 4" />
+    <path d="m21 3 1 11h-2" />
+    <path d="M3 3 2 14l6.5 6.5a1 1 0 1 0 3-3" />
+    <path d="M3 4h8" />
+  </svg>
+)
+
+export const Zap = ({ size = 16, className }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z" />
+  </svg>
+)
+
+export const Repeat = ({ size = 16, className }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="m17 2 4 4-4 4" />
+    <path d="M3 11v-1a4 4 0 0 1 4-4h14" />
+    <path d="m7 22-4-4 4-4" />
+    <path d="M21 13v1a4 4 0 0 1-4 4H3" />
+  </svg>
+)
+
+export const PanelRight = ({ size = 16, className }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <rect width="18" height="18" x="3" y="3" rx="2" />
+    <path d="M15 3v18" />
+  </svg>
+)
+
+export const Flag = ({ size = 16, className }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
+    <line x1="4" x2="4" y1="22" y2="15" />
+  </svg>
+)
+
+export const Archive = ({ size = 16, className }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <rect width="20" height="5" x="2" y="3" rx="1" />
+    <path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8" />
+    <path d="M10 12h4" />
+  </svg>
+)
+
+export const PinOff = ({ size = 16, className }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M12 17v5" />
+    <path d="M15 9.34V6h1a2 2 0 0 0 0-4H7.89" />
+    <path d="m2 2 20 20" />
+    <path d="M9 6v.34L5 12.01a4 4 0 0 0 .91 1.65L17 17h-7.66" />
+  </svg>
+)
+
+export const FolderGit = ({ size = 16, className }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M9 20a1 1 0 0 1-1-1v-1a2 2 0 0 0-2-2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H20a2 2 0 0 1 2 2" />
+    <circle cx="13" cy="17" r="2" />
+    <path d="M22 17h-3" />
+    <circle cx="21" cy="19" r="2" />
   </svg>
 )

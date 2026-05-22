@@ -14,15 +14,19 @@
   "chatsSection": "Chats",
   "noChats": "No chats yet. Create one to get started.",
   "newChat": {
-    "button": "New Chat",
-    "title": "New Chat",
-    "desc": "Configure a new chat.",
+    "button": "New Task",
+    "title": "New Task",
+    "desc": "Configure a new task.",
     "titleLabel": "Title",
-    "titlePlaceholder": "New Chat",
+    "titlePlaceholder": "New Task",
     "modelLabel": "Model",
     "creating": "Creating...",
-    "createFailed": "Failed to create chat",
-    "sessionName": "Session name"
+    "createFailed": "Failed to create task",
+    "sessionName": "Task name",
+    "quickStart": "Quick Start",
+    "continueLast": "Continue with last setup",
+    "configureNew": "Or configure new task",
+    "shortcutHint": "Open this dialog"
   },
   "chatCard": {
     "open": "Open",

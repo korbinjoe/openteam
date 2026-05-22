@@ -274,7 +274,12 @@ const loadFromStorage = (): ChatTabState | null => {
 
 // ── URL sync helper ──
 
+// V2 owns its own URL contract (/v2/workspace/:wid/task/:tid[?agent=...]). When
+// the user is in V2, openTab / activateTab / closeTab must NOT silently replace
+// the URL with the V1 shape — that wipes both the /v2 prefix and the ?agent=
+// query, breaking the dual-view (task overview ↔ agent 1:1) interaction.
 const updateUrl = (chatId: string, workspaceId: string) => {
+  if (window.location.pathname.startsWith('/v2/')) return
   const newPath = `/workspace/${workspaceId}/chat/${chatId}`
   if (window.location.pathname !== newPath) {
     window.history.replaceState(null, '', newPath)

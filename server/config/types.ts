@@ -118,6 +118,19 @@ export interface ExpertSessionInfo {
   exitCode?: number
 }
 
+export type ChatMemberStatus = 'running' | 'waiting' | 'error' | 'idle' | 'done'
+
+export type ChatMemberRole = 'lead' | 'worker'
+
+export interface ChatMember {
+  agentId: string
+  role: ChatMemberRole
+  status: ChatMemberStatus
+  lastMessageAt: string
+  lastMessage?: string
+  cliSessionId?: string
+}
+
 export type TaskStatus =
   | 'running'
   | 'waiting_input'
@@ -153,6 +166,10 @@ export interface Chat {
   totalToolCalls?: number
   participantAgents?: string[]
   lastAgentId?: string
+  /** Per-agent live state, derived by MemberAggregator on read. Optional because
+   *  it is enrichment, not persistence — every API surface that returns Chat
+   *  to the client SHOULD populate this via enrichWithMembers(). */
+  members?: ChatMember[]
   createdAt: string
   lastMessageAt: string
 }

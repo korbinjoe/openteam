@@ -14,15 +14,19 @@
   "chatsSection": "Chats",
   "noChats": "Sin chats aún. Cree uno para empezar.",
   "newChat": {
-    "button": "Nuevo chat",
-    "title": "Nuevo Chat",
-    "desc": "Configurar un nuevo chat.",
+    "button": "Nueva tarea",
+    "title": "Nueva tarea",
+    "desc": "Configurar una nueva tarea.",
     "titleLabel": "Título",
-    "titlePlaceholder": "Nuevo chat",
+    "titlePlaceholder": "Nueva tarea",
     "modelLabel": "Modelo",
     "creating": "Creando...",
-    "createFailed": "Error al crear chat",
-    "sessionName": "Nombre de sesión"
+    "createFailed": "Error al crear la tarea",
+    "sessionName": "Nombre de la tarea",
+    "quickStart": "Inicio rápido",
+    "continueLast": "Continuar con la última configuración",
+    "configureNew": "O configurar una nueva tarea",
+    "shortcutHint": "Abrir este diálogo"
   },
   "chatCard": {
     "open": "Abrir",

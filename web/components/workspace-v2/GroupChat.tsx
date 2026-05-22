@@ -1,39 +1,96 @@
+import { useMemo } from 'react'
+import { useWorkspace } from '../../contexts/WorkspaceContext'
+import { useV2Task } from '../../hooks/useV2Task'
+import { useAgents } from '../../hooks/useAgents'
+import { useWhiteboard } from '../../hooks/useWhiteboard'
 import GroupChatMessage, { type GroupMessage } from './GroupChatMessage'
 import GroupChatInput from './GroupChatInput'
+import type { ChatMember } from '../workspace/types'
+import type { WhiteboardEntry } from '@shared/whiteboard-types'
 
-const MOCK_MESSAGES: GroupMessage[] = [
-  { type: 'system', text: 'Task created: Implement user auth flow', time: '14:20' },
-  { type: 'start', agent: 'Fullstack', agentId: 'agent-1', agentRole: 'lead', text: 'Agent Fullstack started at 14:20' },
-  { type: 'msg', agent: 'Fullstack', agentId: 'agent-1', agentRole: 'lead', text: "I'll implement the user authentication flow with login, register, and session management." },
-  { type: 'done', agent: 'Fullstack', agentId: 'agent-1', agentRole: 'lead', text: 'Write server/routes/auth.ts', meta: 'new' },
-  { type: 'done', agent: 'Fullstack', agentId: 'agent-1', agentRole: 'lead', text: 'Write web/hooks/useAuth.ts', meta: 'new' },
-  { type: 'handoff', text: 'Fullstack → Reviewer (handoff: review auth code)', time: '14:28' },
-  { type: 'handoff', text: 'Fullstack → Shield (handoff: security audit)', time: '14:28' },
-  { type: 'start', agent: 'Reviewer', agentId: 'agent-2', agentRole: 'worker', text: 'Agent Reviewer started at 14:33' },
-  { type: 'tool', agent: 'Reviewer', agentId: 'agent-2', agentRole: 'worker', text: 'Read server/routes/auth.ts', meta: '128 lines' },
-  { type: 'tool', agent: 'Reviewer', agentId: 'agent-2', agentRole: 'worker', text: 'Grep "password" in src/', meta: '3 matches' },
-  { type: 'progress', agent: 'Reviewer', agentId: 'agent-2', agentRole: 'worker', text: 'Analyzing security patterns...' },
-  { type: 'start', agent: 'Shield', agentId: 'agent-3', agentRole: 'worker', text: 'Agent Shield started at 14:20' },
-  { type: 'tool', agent: 'Shield', agentId: 'agent-3', agentRole: 'worker', text: 'Read Dockerfile', meta: '42 lines' },
-  { type: 'error', agent: 'Shield', agentId: 'agent-3', agentRole: 'worker', text: 'Permission denied: /etc/docker/daemon.json' },
-  { type: 'waiting', agent: 'Fullstack', agentId: 'agent-1', agentRole: 'lead', text: 'Should I use JWT or session-based auth?' },
-]
+// v0 group timeline: map whiteboard entries → GroupMessage. We're not (yet)
+// merging per-member JSONL streams here — that's a separate hook (deferred per
+// design risk R1). Whiteboard already aggregates the "what matters" signals
+// (handoff / progress / decision / error / open_question) across all members
+// of a chat, so it gives the group view real content immediately.
+const formatTime = (iso: string): string => {
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
+  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+}
 
-const MOCK_AGENTS = [
-  { id: 'agent-1', agent: 'Fullstack' },
-  { id: 'agent-2', agent: 'Reviewer' },
-  { id: 'agent-3', agent: 'Shield' },
-]
+const entryToGroupMessage = (
+  entry: WhiteboardEntry,
+  membersByAgent: Record<string, ChatMember>,
+  agentNames: Record<string, string>,
+): GroupMessage | null => {
+  const member = membersByAgent[entry.by]
+  const agentName = agentNames[entry.by] ?? entry.by
+  const agentRole: 'lead' | 'worker' | undefined = member?.role
+  const time = formatTime(entry.timestamp)
+  switch (entry.type) {
+    case 'goal':
+      return { type: 'system', text: `Goal: ${entry.summary}`, time }
+    case 'handoff':
+      return { type: 'handoff', text: entry.summary, time }
+    case 'progress':
+      return { type: 'progress', agent: agentName, agentId: entry.by, agentRole, text: entry.summary }
+    case 'decision':
+      return { type: 'msg', agent: agentName, agentId: entry.by, agentRole, text: `Decision: ${entry.summary}` }
+    case 'open_question':
+      return { type: 'waiting', agent: agentName, agentId: entry.by, agentRole, text: entry.summary }
+    case 'artifact':
+      return { type: 'done', agent: agentName, agentId: entry.by, agentRole, text: entry.summary, meta: 'artifact' }
+    case 'constraint':
+      return { type: 'msg', agent: agentName, agentId: entry.by, agentRole, text: `Constraint: ${entry.summary}` }
+    default:
+      return null
+  }
+}
 
-const GroupChat = () => (
-  <div className="flex-1 flex flex-col overflow-hidden">
-    <div className="flex-1 overflow-y-auto px-4 py-3">
-      {MOCK_MESSAGES.map((msg, i) => (
-        <GroupChatMessage key={i} msg={msg} />
-      ))}
+const GroupChat = () => {
+  const { activeChatId } = useWorkspace()
+  const { chat, members } = useV2Task(activeChatId)
+  const { agentNames } = useAgents()
+  const { goal, active: whiteboardEntries } = useWhiteboard(activeChatId ?? undefined)
+
+  const membersByAgent = useMemo<Record<string, ChatMember>>(
+    () => Object.fromEntries(members.map((m) => [m.agentId, m])),
+    [members],
+  )
+
+  const messages = useMemo<GroupMessage[]>(() => {
+    const ordered = goal ? [goal, ...whiteboardEntries] : whiteboardEntries
+    const sorted = ordered.slice().sort((a, b) => (a.timestamp < b.timestamp ? -1 : 1))
+    return sorted
+      .map((e) => entryToGroupMessage(e, membersByAgent, agentNames))
+      .filter((m): m is GroupMessage => m !== null)
+  }, [goal, whiteboardEntries, membersByAgent, agentNames])
+
+  if (!chat) {
+    return (
+      <div className="flex-1 flex items-center justify-center text-[11px] text-text-muted">
+        No task selected.
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 overflow-y-auto px-4 py-3">
+        {messages.length === 0 ? (
+          <div className="text-center text-[10px] text-text-muted py-6">
+            No activity yet. Send a message below to start.
+          </div>
+        ) : (
+          messages.map((msg, i) => (
+            <GroupChatMessage key={i} msg={msg} />
+          ))
+        )}
+      </div>
+      <GroupChatInput members={members} agentNames={agentNames} />
     </div>
-    <GroupChatInput agents={MOCK_AGENTS} />
-  </div>
-)
+  )
+}
 
 export default GroupChat

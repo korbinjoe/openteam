@@ -1,30 +1,77 @@
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { WorkspaceProvider, useWorkspace } from '../contexts/WorkspaceContext'
+import { buildTaskUrl } from '../components/workspace-v2/urls'
+import { isSingleAgent } from '../components/workspace-v2/TaskSessionRows'
+import { useChatTabs } from '../contexts/ChatTabContext'
+import { useV2WorkspaceChats } from '../hooks/useV2WorkspaceChats'
 import TaskSidebar from '../components/workspace-v2/TaskSidebar'
 import WorkspaceToolbar from '../components/workspace-v2/WorkspaceToolbar'
 import WorkspaceContent from '../components/workspace-v2/WorkspaceContent'
-import WorkspaceStatusBar from '../components/workspace-v2/WorkspaceStatusBar'
 import CommandPalette from '../components/workspace-v2/CommandPalette'
 import AddAgentPicker from '../components/workspace-v2/AddAgentPicker'
+import NewChatFullDialog from '../components/chat/modals/NewChatFullDialog'
+import { persistLastV2Workspace } from '../components/workspace-v2/V2WorkspaceRedirect'
 import useResponsiveLayout from '../components/workspace-v2/useResponsiveLayout'
-
-const MOCK_AGENT_IDS = ['agent-1', 'agent-2', 'agent-3', 'agent-4']
 
 const WorkspaceLayoutInner = () => {
   const {
+    workspaceId,
+    activeChatId,
+    selectedAgentId,
     panelCollapsed,
     commandPaletteOpen,
     addAgentOpen,
+    newTaskOpen,
     openCommandPalette,
     closeCommandPalette,
     closeAddAgent,
+    openNewTask,
+    closeNewTask,
     cycleLayoutMode,
-    selectAgent,
     togglePanel,
     toggleTerminal,
+    toggleIde,
   } = useWorkspace()
+  const { openTab } = useChatTabs()
+  const navigate = useNavigate()
+  const { chats, running, awaitingReview } = useV2WorkspaceChats(workspaceId)
 
   useResponsiveLayout()
+
+  // Mirror /chat/:chatId into the global ChatTabContext so ChatInstance can mount
+  // when V2 chat-aware panes (S2/S3) start consuming activeTabId.
+  useEffect(() => {
+    if (workspaceId && activeChatId) openTab(activeChatId, workspaceId)
+  }, [workspaceId, activeChatId, openTab])
+
+  // URL normalization: a task URL without ?agent= renders task-overview (whiteboard).
+  // For single-agent chats the whiteboard is empty by design, so the page looks
+  // blank when arrived at via direct link / bookmark / refresh. Redirect to the
+  // agent 1:1 view so JSONL replay kicks in. Navigation entry points apply the
+  // same rule; this catches the URL-as-entrypoint case.
+  useEffect(() => {
+    if (!workspaceId || !activeChatId || selectedAgentId) return
+    const chat = chats.find((c) => c.id === activeChatId)
+    if (!chat || !isSingleAgent(chat)) return
+    navigate(buildTaskUrl(workspaceId, activeChatId, chat.primaryAgentId), { replace: true })
+  }, [workspaceId, activeChatId, selectedAgentId, chats, navigate])
+
+  useEffect(() => {
+    if (workspaceId) persistLastV2Workspace(workspaceId)
+  }, [workspaceId])
+
+  // ⌘1-4 jumps to the quad chats (active first, then awaiting, then running)
+  const quickJumpChats = useMemo(() => {
+    const ordered: string[] = []
+    const seen = new Set<string>()
+    const push = (id: string) => { if (!seen.has(id)) { seen.add(id); ordered.push(id) } }
+    if (activeChatId) push(activeChatId)
+    awaitingReview.forEach((c) => push(c.id))
+    running.forEach((c) => push(c.id))
+    chats.forEach((c) => push(c.id))
+    return ordered.slice(0, 4)
+  }, [activeChatId, awaitingReview, running, chats])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -32,6 +79,7 @@ const WorkspaceLayoutInner = () => {
 
       if (e.key === 'Escape') {
         if (commandPaletteOpen) closeCommandPalette()
+        else if (newTaskOpen) closeNewTask()
         else if (addAgentOpen) closeAddAgent()
         return
       }
@@ -41,6 +89,9 @@ const WorkspaceLayoutInner = () => {
       if (e.key === 'k') {
         e.preventDefault()
         openCommandPalette()
+      } else if (e.key === 'n') {
+        e.preventDefault()
+        openNewTask()
       } else if (e.key === '\\') {
         e.preventDefault()
         cycleLayoutMode()
@@ -50,10 +101,16 @@ const WorkspaceLayoutInner = () => {
       } else if (e.key === '`') {
         e.preventDefault()
         toggleTerminal()
-      } else if (e.key >= '1' && e.key <= '4') {
+      } else if (e.key === 'j') {
         e.preventDefault()
+        toggleIde()
+      } else if (e.key >= '1' && e.key <= '4') {
         const idx = parseInt(e.key) - 1
-        if (MOCK_AGENT_IDS[idx]) selectAgent(MOCK_AGENT_IDS[idx])
+        const chatId = quickJumpChats[idx]
+        if (chatId && workspaceId) {
+          e.preventDefault()
+          navigate(buildTaskUrl(workspaceId, chatId))
+        }
       }
     }
 
@@ -62,13 +119,19 @@ const WorkspaceLayoutInner = () => {
   }, [
     commandPaletteOpen,
     addAgentOpen,
+    newTaskOpen,
     openCommandPalette,
     closeCommandPalette,
     closeAddAgent,
+    openNewTask,
+    closeNewTask,
     cycleLayoutMode,
-    selectAgent,
     togglePanel,
     toggleTerminal,
+    toggleIde,
+    quickJumpChats,
+    workspaceId,
+    navigate,
   ])
 
   return (
@@ -77,18 +140,33 @@ const WorkspaceLayoutInner = () => {
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <WorkspaceToolbar />
         <WorkspaceContent />
-        <WorkspaceStatusBar />
       </div>
       <CommandPalette />
       <AddAgentPicker />
+      <NewChatFullDialog
+        open={newTaskOpen}
+        onOpenChange={(open) => (open ? openNewTask() : closeNewTask())}
+        currentWorkspaceId={workspaceId ?? undefined}
+        routePrefix="/v2/workspace"
+        chatSegment="task"
+      />
     </div>
   )
 }
 
-const WorkspaceLayout = () => (
-  <WorkspaceProvider>
-    <WorkspaceLayoutInner />
-  </WorkspaceProvider>
-)
+const WorkspaceLayout = () => {
+  const { workspaceId, taskId } = useParams<{ workspaceId?: string; taskId?: string }>()
+  const [searchParams] = useSearchParams()
+  const agentId = searchParams.get('agent')
+  return (
+    <WorkspaceProvider
+      workspaceId={workspaceId ?? null}
+      activeChatId={taskId ?? null}
+      selectedAgentId={agentId}
+    >
+      <WorkspaceLayoutInner />
+    </WorkspaceProvider>
+  )
+}
 
 export default WorkspaceLayout

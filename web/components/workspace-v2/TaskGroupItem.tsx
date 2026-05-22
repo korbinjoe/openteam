@@ -88,7 +88,7 @@ const TaskGroupItem = ({ task, isSelected }: TaskGroupItemProps) => {
 
         {/* Agent count badge */}
         {task.agents.length > 1 && (
-          <span className="text-[9px] px-[5px] py-px rounded-[3px] bg-accent-brand/10 text-accent-brand-light font-semibold">
+          <span className="text-[10px] px-[5px] py-px rounded-[3px] bg-accent-brand/10 text-accent-brand-light font-semibold">
             {task.agents.length}
           </span>
         )}

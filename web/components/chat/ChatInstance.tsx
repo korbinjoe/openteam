@@ -6,6 +6,7 @@
  */
 
 import { useState, useRef, useEffect, useCallback, useMemo, lazy, Suspense } from 'react'
+import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
@@ -66,9 +67,17 @@ export interface ChatInstanceProps {
   isNewChat?: boolean
   initAgentId?: string | null
   initialMessage?: string | null
+  /** When true, hide the chat <-> RightPanel divider and the embedded RightPanel.
+   *  Used by V2 workspace where IDEPanel lives at the layout level, so the chat
+   *  pane shouldn't host a second one. */
+  hideRightPanel?: boolean
+  /** When provided, render RightPanel into this DOM node via React Portal instead of
+   *  inline. Lets V2 IDEPanel host the real IDE in its own column without
+   *  re-instantiating the chat-bound data hooks. */
+  rightPanelMountNode?: HTMLElement | null
 }
 
-const ChatInstance = ({ chatId, workspaceId, isActive, isNewChat = false, initAgentId = null, initialMessage = null }: ChatInstanceProps) => {
+const ChatInstance = ({ chatId, workspaceId, isActive, isNewChat = false, initAgentId = null, initialMessage = null, hideRightPanel = false, rightPanelMountNode = null }: ChatInstanceProps) => {
   const msgSeqRef = useRef(0)
   const uid = useCallback((prefix: string) => `${prefix}-${Date.now()}-${++msgSeqRef.current}`, [])
 
@@ -339,11 +348,13 @@ const ChatInstance = ({ chatId, workspaceId, isActive, isNewChat = false, initAg
 
   const canSend = connected && !!currentSessionId && cwdReady
 
+  // When portal mode is active, chat owns the full pane just like hideRightPanel.
+  const rightPanelExternal = hideRightPanel || rightPanelMountNode !== null
   const chatPanelStyle = useMemo<React.CSSProperties>(() => ({
-    width: chatCollapsed ? 0 : `${100 - terminalWidth}%`,
+    width: rightPanelExternal ? '100%' : (chatCollapsed ? 0 : `${100 - terminalWidth}%`),
     display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden',
     transition: isResizing ? 'none' : 'width 0.2s ease',
-  }), [chatCollapsed, terminalWidth, isResizing])
+  }), [chatCollapsed, terminalWidth, isResizing, rightPanelExternal])
   const terminalPanelStyle = useMemo<React.CSSProperties>(() => ({
     width: chatCollapsed ? '100%' : `${terminalWidth}%`,
     height: '100%', minWidth: 0, overflow: 'hidden',
@@ -405,24 +416,7 @@ const ChatInstance = ({ chatId, workspaceId, isActive, isNewChat = false, initAg
           </>)}
         </div>
 
-        <div style={DIVIDER_BAR_STYLE}>
-          <div
-            onMouseDown={chatCollapsed ? undefined : handleResizeMouseDown}
-            style={{ width: '100%', height: '100%', background: 'rgb(var(--border-color))', cursor: chatCollapsed ? 'default' : 'col-resize', transition: 'background 0.15s' }}
-            onMouseEnter={(e) => { if (!chatCollapsed) e.currentTarget.style.background = 'rgb(var(--accent-brand))' }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = 'rgb(var(--border-color))' }}
-          />
-          <button
-            onClick={() => setChatCollapsed((v) => !v)}
-            tabIndex={0}
-            aria-label={chatCollapsed ? t('chat:expandPanel') : t('chat:collapsePanel')}
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 flex items-center justify-center w-5 h-8 rounded-full border border-border-subtle bg-bg-primary text-text-secondary cursor-pointer transition-colors duration-150 hover:bg-bg-secondary hover:text-text-primary"
-          >
-            {chatCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
-          </button>
-        </div>
-
-        <div style={terminalPanelStyle}>
+        {rightPanelMountNode && createPortal(
           <Suspense fallback={<div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgb(var(--text-muted))', fontSize: 12 }}>Loading...</div>}>
             <RightPanel
               chatId={chatId}
@@ -436,8 +430,47 @@ const ChatInstance = ({ chatId, workspaceId, isActive, isNewChat = false, initAg
               worktreePath={allWorktreeSessions[0]?.worktreePath}
               changesTabRequest={changesTabRequest}
             />
-          </Suspense>
-        </div>
+          </Suspense>,
+          rightPanelMountNode,
+        )}
+
+        {!hideRightPanel && !rightPanelMountNode && (
+          <>
+            <div style={DIVIDER_BAR_STYLE}>
+              <div
+                onMouseDown={chatCollapsed ? undefined : handleResizeMouseDown}
+                style={{ width: '100%', height: '100%', background: 'rgb(var(--border-color))', cursor: chatCollapsed ? 'default' : 'col-resize', transition: 'background 0.15s' }}
+                onMouseEnter={(e) => { if (!chatCollapsed) e.currentTarget.style.background = 'rgb(var(--accent-brand))' }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'rgb(var(--border-color))' }}
+              />
+              <button
+                onClick={() => setChatCollapsed((v) => !v)}
+                tabIndex={0}
+                aria-label={chatCollapsed ? t('chat:expandPanel') : t('chat:collapsePanel')}
+                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 flex items-center justify-center w-5 h-8 rounded-full border border-border-subtle bg-bg-primary text-text-secondary cursor-pointer transition-colors duration-150 hover:bg-bg-secondary hover:text-text-primary"
+              >
+                {chatCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+              </button>
+            </div>
+
+            <div style={terminalPanelStyle}>
+              <Suspense fallback={<div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgb(var(--text-muted))', fontSize: 12 }}>Loading...</div>}>
+                <RightPanel
+                  chatId={chatId}
+                  gitStatus={primaryGitStatus}
+                  multiGitStatus={multiGitStatus}
+                  onMultiOptimisticUpdate={multiOptimisticUpdate}
+                  agentActive={!!currentMergedActivity && !['completed', 'waiting_input', 'error', 'initializing'].includes(currentMergedActivity.phase)}
+                  connected={connected}
+                  workingDirectory={currentWorkingDirectory}
+                  repositories={wsRepositories}
+                  worktreePath={allWorktreeSessions[0]?.worktreePath}
+                  changesTabRequest={changesTabRequest}
+                />
+              </Suspense>
+            </div>
+          </>
+        )}
       </div>
 
       {isActive && (

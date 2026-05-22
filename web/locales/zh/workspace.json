@@ -14,15 +14,19 @@
   "chatsSection": "对话",
   "noChats": "暂无对话，创建一个开始吧。",
   "newChat": {
-    "button": "新建对话",
-    "title": "新建 Chat",
-    "desc": "配置新对话。",
+    "button": "新建任务",
+    "title": "新建任务",
+    "desc": "配置新任务。",
     "titleLabel": "标题",
-    "titlePlaceholder": "新对话",
+    "titlePlaceholder": "新任务",
     "modelLabel": "模型",
     "creating": "创建中...",
-    "createFailed": "创建对话失败",
-    "sessionName": "会话名称"
+    "createFailed": "创建任务失败",
+    "sessionName": "任务名称",
+    "quickStart": "快速开始",
+    "continueLast": "沿用上次配置继续",
+    "configureNew": "或配置新任务",
+    "shortcutHint": "打开此对话框"
   },
   "chatCard": {
     "open": "打开",

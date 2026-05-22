@@ -55,7 +55,12 @@ const parseNameAnimal = (identityMd: string) => {
   return { name: parsed.name?.trim() || '', animal: parsed.animal?.trim() || '' }
 }
 
-const AgentEditorPage = () => {
+interface AgentEditorPageProps {
+  /** URL prefix used to build agent-edit links. Defaults to V1 root. */
+  agentsRoutePrefix?: string
+}
+
+const AgentEditorPage = ({ agentsRoutePrefix = '/agents' }: AgentEditorPageProps = {}) => {
   const { t } = useTranslation(['agents'])
   const navigate = useNavigate()
   const location = useLocation()
@@ -153,7 +158,7 @@ const AgentEditorPage = () => {
     if (!st?.[AGENT_NEW_OPEN_AI_GENERATE_STATE_KEY]) return
     recruitAiGenerateOpenedRef.current = true
     setGenerateDialogOpen(true)
-    navigate('/agents/new/edit', { replace: true, state: {} })
+    navigate(`${agentsRoutePrefix}/new/edit`, { replace: true, state: {} })
   }, [isNew, loading, location.state, navigate])
 
   const launchAvatarOnly = () => {
@@ -260,7 +265,7 @@ const AgentEditorPage = () => {
         } as React.CSSProperties}
       >
         <button
-          onClick={() => navigate('/agents')}
+          onClick={() => navigate(agentsRoutePrefix)}
           aria-label="Back to agents"
           className="p-1 flex items-center rounded-sm text-text-secondary hover:text-text-primary transition-colors"
           style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}

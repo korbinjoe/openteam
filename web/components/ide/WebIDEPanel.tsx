@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useEffect, useMemo, lazy, Suspense } from 'react'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
-import { Files, GitBranch, Terminal, ChevronDown, ChevronUp, X, ClipboardList, Globe } from 'lucide-react'
+import { Files, GitBranch, Terminal, ChevronDown, ClipboardList, Globe } from 'lucide-react'
 import FileTree from './FileTree'
 import { useWebIDEState } from '@/hooks/useWebIDEState'
 import { getWebSocketClient } from '@/services/WebSocketClient'
@@ -150,6 +150,22 @@ const WebIDEPanel = ({ chatId, roots, gitStatus, multiGitStatus, onMultiOptimist
     })
   }, [terminalMounted])
 
+  // Bridges: V2 CollapsedStrip / keyboard shortcuts / CommandPalette drive
+  // inner state without coupling React contexts across the portal boundary.
+  useEffect(() => {
+    const onSetTab = (e: Event) => {
+      const detail = (e as CustomEvent<{ tab?: ViewTab }>).detail
+      if (detail?.tab) setViewTab(detail.tab)
+    }
+    const onToggleTerminal = () => handleToggleTerminal()
+    window.addEventListener('ide:set-tab', onSetTab)
+    window.addEventListener('ide:toggle-terminal', onToggleTerminal)
+    return () => {
+      window.removeEventListener('ide:set-tab', onSetTab)
+      window.removeEventListener('ide:toggle-terminal', onToggleTerminal)
+    }
+  }, [handleToggleTerminal])
+
   const handleDragStart = (e: React.MouseEvent) => {
     e.preventDefault()
     draggingRef.current = true
@@ -242,19 +258,6 @@ const WebIDEPanel = ({ chatId, roots, gitStatus, multiGitStatus, onMultiOptimist
               {changesCount}
             </span>
           )}
-        </button>
-
-        <span className="flex-1" />
-
-        {/* Terminal toggle */}
-        <button
-          onClick={handleToggleTerminal}
-          onMouseEnter={() => preloadTerminal()}
-          className={tabClass(terminalOpen)}
-        >
-          <Terminal size={13} />
-          <span>Terminal</span>
-          {terminalOpen ? <ChevronDown size={11} /> : <ChevronUp size={11} />}
         </button>
       </div>
 
@@ -372,27 +375,39 @@ const WebIDEPanel = ({ chatId, roots, gitStatus, multiGitStatus, onMultiOptimist
         </div>
 
         {terminalMounted && (
-          <>
-            {/* Terminal header: resize handle + close button */}
-            <div
-              className="flex items-center shrink-0 border-t border-border"
-              style={{ display: terminalOpen ? undefined : 'none' }}
-            >
+          <div
+            className="border-t border-border-subtle shrink-0 flex flex-col overflow-hidden"
+            style={{ height: terminalOpen ? `${terminalHeight}%` : '26px' }}
+          >
+            {terminalOpen && (
               <div
                 onMouseDown={handleTerminalDragStart}
-                className="flex-1 h-1 cursor-row-resize hover:bg-accent-brand/50 transition-colors"
+                className="h-1 shrink-0 cursor-row-resize hover:bg-accent-brand/50 transition-colors"
               />
-              <button
-                onClick={handleToggleTerminal}
-                className="flex items-center justify-center w-6 h-5 text-text-secondary hover:text-text-primary hover:bg-bg-hover transition-colors"
-                aria-label="CloseTerminal"
-              >
-                <X size={12} />
-              </button>
-            </div>
+            )}
+            <button
+              type="button"
+              onClick={handleToggleTerminal}
+              onMouseEnter={() => preloadTerminal()}
+              className="h-[26px] shrink-0 flex items-center px-2 gap-1.5 bg-bg-secondary hover:bg-bg-hover text-left transition-colors"
+              aria-label={terminalOpen ? 'CloseTerminal' : 'OpenTerminal'}
+              aria-expanded={terminalOpen}
+            >
+              <Terminal size={11} className="text-text-secondary" />
+              <span className="text-[10px] font-medium text-text-secondary">Terminal</span>
+              <span className="text-[9px] font-mono text-text-muted">zsh</span>
+              <span className="flex-1" />
+              <ChevronDown
+                size={10}
+                className={cn(
+                  'text-text-muted transition-transform',
+                  !terminalOpen && 'rotate-180',
+                )}
+              />
+            </button>
             <div
               style={terminalOpen
-                ? { height: `${terminalHeight}%` }
+                ? undefined
                 : {
                     position: 'fixed' as const,
                     left: '-9999px',
@@ -400,16 +415,13 @@ const WebIDEPanel = ({ chatId, roots, gitStatus, multiGitStatus, onMultiOptimist
                     height: '300px',
                   }
               }
-              className={cn(
-                'min-h-0 overflow-hidden',
-                terminalOpen && 'shrink-0',
-              )}
+              className={cn(terminalOpen && 'flex-1 min-h-0 overflow-hidden')}
             >
               <Suspense fallback={<TerminalSkeleton />}>
                 <IDETerminalTabs cwd={primaryRoot} hidden={!terminalOpen} />
               </Suspense>
             </div>
-          </>
+          </div>
         )}
       </div>
     </div>

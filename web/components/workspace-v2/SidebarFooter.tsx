@@ -1,30 +1,73 @@
-import { Clock, Users, Folder, Star, Calendar, Moon, Bell, Settings } from './icons'
+import { useNavigate } from 'react-router-dom'
+import { useWorkspace } from '../../contexts/WorkspaceContext'
+import { useTheme } from '../../contexts/ThemeContext'
+import { History, Handshake, Zap, Repeat, FolderGit, Moon, Sun, Bell, Settings } from './icons'
 
-const SidebarFooter = () => (
-  <div className="px-2 py-1.5 border-t border-border-subtle flex items-center gap-px">
-    <IconBtn title="History"><Clock size={14} /></IconBtn>
-    <IconBtn title="Agents"><Users size={14} /></IconBtn>
-    <IconBtn title="Workspaces"><Folder size={14} /></IconBtn>
-    <IconBtn title="Skills"><Star size={14} /></IconBtn>
-    <IconBtn title="Cron Jobs"><Calendar size={14} /></IconBtn>
-    <div className="w-px h-3.5 bg-border mx-[3px]" />
-    <IconBtn title="Theme"><Moon size={14} /></IconBtn>
-    <IconBtn title="Notifications" badge>
-      <Bell size={14} />
-    </IconBtn>
-    <IconBtn title="Settings"><Settings size={14} /></IconBtn>
-  </div>
+/** Build a V2 URL that stays inside the workspace context when available,
+ *  falling back to the top-level /v2 resource routes when no workspace is
+ *  loaded (e.g. on the empty-workspace landing page). */
+const useV2Prefix = (): string => {
+  const { workspaceId } = useWorkspace()
+  return workspaceId ? `/v2/workspace/${workspaceId}` : '/v2'
+}
+
+export const ResourcesSection = () => {
+  const navigate = useNavigate()
+  const prefix = useV2Prefix()
+  return (
+    <div className="px-1.5 py-1.5 border-t border-border-subtle">
+      <ResourceItem icon={<Handshake size={14} />} label="Team"       onClick={() => navigate(`${prefix}/agents`)} />
+      <ResourceItem icon={<Zap size={14} />}       label="Skills"     onClick={() => navigate(`${prefix}/skills`)} />
+      <ResourceItem icon={<Repeat size={14} />}    label="Schedules"  onClick={() => navigate(`${prefix}/cron-jobs`)} />
+      <ResourceItem icon={<FolderGit size={14} />} label="Workspaces" onClick={() => navigate(`${prefix}/workspaces`)} />
+    </div>
+  )
+}
+
+const ResourceItem = ({ icon, label, onClick }: {
+  icon: React.ReactNode
+  label: string
+  onClick?: () => void
+}) => (
+  <button
+    onClick={onClick}
+    className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md hover:bg-bg-hover transition-colors group"
+  >
+    <span className="text-text-muted group-hover:text-text-secondary transition-colors">{icon}</span>
+    <span className="text-[12px] text-text-primary flex-1 text-left">{label}</span>
+  </button>
 )
 
-const IconBtn = ({ children, title, badge }: { children: React.ReactNode; title: string; badge?: boolean }) => (
+const SidebarFooter = () => {
+  const navigate = useNavigate()
+  const prefix = useV2Prefix()
+  const { theme, toggleTheme } = useTheme()
+  return (
+    <div className="px-2 py-1.5 border-t border-border-subtle flex items-center gap-1">
+      <IconBtn title="History" onClick={() => navigate(`${prefix}/chats`)}><History size={14} /></IconBtn>
+      <span className="flex-1" />
+      <IconBtn
+        title={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+        onClick={toggleTheme}
+      >
+        {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
+      </IconBtn>
+      <IconBtn title="Notifications">
+        <Bell size={14} />
+      </IconBtn>
+      <IconBtn title="Settings" onClick={() => navigate(`${prefix}/settings`)}><Settings size={14} /></IconBtn>
+    </div>
+  )
+}
+
+const IconBtn = ({ children, title, onClick }: { children: React.ReactNode; title: string; onClick?: () => void }) => (
   <button
-    className="w-7 h-7 rounded-md flex items-center justify-center cursor-pointer text-text-muted hover:bg-bg-hover hover:text-text-secondary transition-colors relative"
+    onClick={onClick}
+    className="w-8 h-8 rounded-md flex items-center justify-center cursor-pointer text-text-muted hover:bg-bg-hover hover:text-text-secondary transition-colors relative"
     title={title}
+    aria-label={title}
   >
     {children}
-    {badge && (
-      <span className="absolute top-[3px] right-[3px] w-1.5 h-1.5 rounded-full bg-accent-red border-[1.5px] border-bg-secondary" />
-    )}
   </button>
 )
 

@@ -23,12 +23,12 @@ interface AgentAvatarProps {
   version?: number
 }
 
-const SIZE_MAP: Record<AgentAvatarSize, { px: number; cls: string; emoji: string }> = {
-  xs: { px: 20, cls: 'h-5 w-5', emoji: 'text-xs' },
-  sm: { px: 28, cls: 'h-7 w-7', emoji: 'text-sm' },
-  md: { px: 36, cls: 'h-9 w-9', emoji: 'text-lg' },
-  lg: { px: 48, cls: 'h-12 w-12', emoji: 'text-2xl' },
-  xl: { px: 64, cls: 'h-16 w-16', emoji: 'text-[32px]' },
+const SIZE_MAP: Record<AgentAvatarSize, { px: number; cls: string; text: string }> = {
+  xs: { px: 16, cls: 'h-4 w-4', text: 'text-[8px]' },
+  sm: { px: 20, cls: 'h-5 w-5', text: 'text-[9px]' },
+  md: { px: 28, cls: 'h-7 w-7', text: 'text-[11px]' },
+  lg: { px: 40, cls: 'h-10 w-10', text: 'text-base' },
+  xl: { px: 56, cls: 'h-14 w-14', text: 'text-xl' },
 }
 
 const DEFAULT_COLORS = ['#F59E0B', '#6366F1', '#10B981', '#F472B6', '#38BDF8']
@@ -41,12 +41,30 @@ const ANIMATION_CLASS_MAP: Record<AvatarAnimationState, string> = {
   completed: 'animate-avatar-bounce',
 }
 
+// Muted, restrained palette — replaces the loud marble gradient fallback.
+// Hue chosen by name hash, saturation/lightness fixed for consistency.
+const MONOGRAM_HUES = [210, 250, 280, 320, 0, 25, 45, 90, 160, 190]
+
+const hashName = (s: string): number => {
+  let h = 0
+  for (let i = 0; i < s.length; i += 1) h = ((h << 5) - h + s.charCodeAt(i)) | 0
+  return Math.abs(h)
+}
+
+const initialsOf = (name: string): string => {
+  const cleaned = name.replace(/[_\-]+/g, ' ').trim()
+  if (!cleaned) return '?'
+  const parts = cleaned.split(/\s+/).filter(Boolean)
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase()
+  return cleaned.slice(0, 2).toUpperCase()
+}
+
 const AgentAvatar = ({
   name,
   agentId,
   icon: _icon,
   avatarId: _avatarId,
-  avatarVariant = 'marble',
+  avatarVariant,
   avatarColors,
   size = 'md',
   className,
@@ -63,10 +81,19 @@ const AgentAvatar = ({
   const avatarUrl = baseUrl && version ? `${baseUrl}?v=${version}` : baseUrl
   useEffect(() => setImgError(false), [avatarUrl])
   const showImage = avatarUrl && !imgError
+  // Only fall back to boring-avatars when the caller explicitly asks for a
+  // decorative variant (e.g. brush style detail page). The default fallback
+  // is a quiet monogram so lists/chat don't drown in colorful gradients.
+  const showDecorative = !showImage && !!avatarVariant
 
   const animClass = animationState
     ? ANIMATION_CLASS_MAP[animationState]
     : (active ? 'animate-breathe' : '')
+
+  const monogramKey = agentId || name
+  const hue = MONOGRAM_HUES[hashName(monogramKey) % MONOGRAM_HUES.length]
+  const monogramBg = `hsl(${hue} 30% 92%)`
+  const monogramFg = `hsl(${hue} 55% 32%)`
 
   return (
     <div
@@ -85,13 +112,23 @@ const AgentAvatar = ({
           className="w-full h-full rounded-full object-cover"
           onError={() => setImgError(true)}
         />
-      ) : (
+      ) : showDecorative ? (
         <Avatar
           size={sizeConfig.px}
           name={name}
           variant={avatarVariant}
           colors={colors}
         />
+      ) : (
+        <span
+          className={cn(
+            'flex h-full w-full items-center justify-center font-semibold tracking-tight select-none',
+            sizeConfig.text,
+          )}
+          style={{ background: monogramBg, color: monogramFg }}
+        >
+          {initialsOf(name)}
+        </span>
       )}
     </div>
   )

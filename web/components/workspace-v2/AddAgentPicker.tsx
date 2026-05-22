@@ -55,7 +55,7 @@ const AddAgentPicker = () => {
 
         {/* Agent list */}
         <div className="p-2 max-h-[320px] overflow-y-auto">
-          <div className="text-[9px] font-bold uppercase tracking-wider text-text-muted px-2.5 py-1.5">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-text-muted px-2.5 py-1.5">
             Select Agent Type
           </div>
           {AVAILABLE_AGENTS.map((ag) => (

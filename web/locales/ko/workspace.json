@@ -14,15 +14,19 @@
   "chatsSection": "채팅",
   "noChats": "채팅이 없습니다. 하나를 생성하여 시작하세요.",
   "newChat": {
-    "button": "새 채팅",
-    "title": "새 채팅",
-    "desc": "새 채팅을 구성합니다.",
+    "button": "새 작업",
+    "title": "새 작업",
+    "desc": "새 작업을 구성합니다.",
     "titleLabel": "제목",
-    "titlePlaceholder": "새 채팅",
+    "titlePlaceholder": "새 작업",
     "modelLabel": "모델",
     "creating": "생성 중...",
-    "createFailed": "채팅 생성 실패",
-    "sessionName": "세션 이름"
+    "createFailed": "작업 생성 실패",
+    "sessionName": "작업 이름",
+    "quickStart": "빠른 시작",
+    "continueLast": "마지막 설정으로 계속하기",
+    "configureNew": "또는 새 작업 구성",
+    "shortcutHint": "이 대화상자 열기"
   },
   "chatCard": {
     "open": "열기",

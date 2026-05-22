@@ -14,15 +14,19 @@
   "chatsSection": "チャット",
   "noChats": "チャットがありません。作成して始めましょう。",
   "newChat": {
-    "button": "新しいチャット",
-    "title": "新規チャット",
-    "desc": "新しいチャットを設定します。",
+    "button": "新しいタスク",
+    "title": "新規タスク",
+    "desc": "新しいタスクを設定します。",
     "titleLabel": "タイトル",
-    "titlePlaceholder": "新しいチャット",
+    "titlePlaceholder": "新しいタスク",
     "modelLabel": "モデル",
     "creating": "作成中...",
-    "createFailed": "チャットの作成に失敗しました",
-    "sessionName": "セッション名"
+    "createFailed": "タスクの作成に失敗しました",
+    "sessionName": "タスク名",
+    "quickStart": "クイックスタート",
+    "continueLast": "前回の設定で続行",
+    "configureNew": "または新しいタスクを設定",
+    "shortcutHint": "このダイアログを開く"
   },
   "chatCard": {
     "open": "開く",

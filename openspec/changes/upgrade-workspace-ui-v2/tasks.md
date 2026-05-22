@@ -52,8 +52,8 @@
 - [x] **Wire toolbar to selection state** — AgentInfoBar shows selected agent name/status/task. TaskInfoBar shows selected task name with GROUP badge.
 - [x] **Responsive behavior** — Panel auto-collapses at < 1024px viewport. Quad mode falls back to split at < 1024px. Single forced at < 768px.
 - [x] **Implement sidebar collapsed interactions** — In 52px mode: show expand chevron. Click expands. ⌘B toggles.
-- [ ] **Connect to real data** — Replace mock data with actual WebSocket task/agent state. Subscribe to heartbeat updates for status changes. Map existing `ChatSession` → `TaskAgent` at store level.
-- [ ] **Implement Pinned section persistence** — Allow users to pin tasks. Pin state persisted to localStorage. Pinned items show at top of sidebar with pin icon + age label.
+- [x] **Connect to real data** — _Superseded by `fix-workspace-v2-task-agent-routing` (Phases 1 + 4)._ Server-side `MemberAggregator` enriches every chat with `members[]` carrying per-agent `status` + `lastMessageAt` derived from `SessionRegistry` activity. V2 TaskInfoSidebar / GroupChat / WorkspaceToolbar / MiniAgentPane read via `useV2Task` + `useWhiteboard` instead of mocks. WS heartbeat reuse pending (poll-based for now, see Phase 1 deferral note).
+- [x] **Implement Pinned section persistence** — Allow users to pin tasks. Pin state persisted to localStorage. Pinned items show at top of sidebar with pin icon + age label. Includes manual archive/unarchive.
 - [ ] **Performance: virtualize long agent lists** — If > 20 tasks visible in sidebar, use virtual scrolling. Debounce status update renders to 100ms.
 - [ ] **Terminal resize handling** — On panel collapse/expand, layout mode change, and window resize: debounce xterm `fit()` at 100ms. Handle the 4 scenarios: initial load, refresh, resize, session restore.
 

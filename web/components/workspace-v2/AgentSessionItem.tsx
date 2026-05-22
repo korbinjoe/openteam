@@ -44,7 +44,7 @@ const AgentSessionItem = ({ agent }: AgentSessionItemProps) => {
 
       {/* Handoff indicator */}
       {agent.handoffFrom && (
-        <span className="text-[8px] text-text-muted -mr-0.5">↳</span>
+        <span className="text-[10px] text-text-muted -mr-0.5">↳</span>
       )}
 
       {/* Status dot */}
@@ -55,7 +55,7 @@ const AgentSessionItem = ({ agent }: AgentSessionItemProps) => {
       {/* Agent name */}
       <span
         className={cn(
-          'text-[11px] flex-1 truncate',
+          'text-[12px] flex-1 truncate',
           isSelected ? 'text-accent-brand-light font-medium' : 'text-text-secondary',
         )}
       >
@@ -64,20 +64,20 @@ const AgentSessionItem = ({ agent }: AgentSessionItemProps) => {
 
       {/* Role badge - LEAD */}
       {agent.role === 'lead' && (
-        <span className="text-[8px] px-1 rounded-sm bg-accent-purple/10 text-accent-purple font-semibold">
+        <span className="text-[10px] px-1 rounded-sm bg-accent-purple/10 text-accent-purple font-semibold">
           LEAD
         </span>
       )}
 
       {/* Auto dispatch badge */}
       {isAutoDispatch && (
-        <span className="text-[8px] px-1 rounded-sm bg-accent-green/[0.08] text-accent-green">
+        <span className="text-[10px] px-1 rounded-sm bg-accent-green/[0.08] text-accent-green">
           auto
         </span>
       )}
 
       {/* Duration */}
-      <span className="font-mono text-[9px] text-text-muted">{agent.time}</span>
+      <span className="font-mono text-[11px] text-text-muted">{agent.time}</span>
     </div>
   )
 }

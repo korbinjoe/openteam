@@ -31,7 +31,12 @@ interface WorkspaceInfo {
   createdAt: string
 }
 
-const WorkspacesPage = () => {
+interface WorkspacesPageProps {
+  /** Prefix used to build "open workspace" links. Defaults to V1 root. */
+  workspaceRoutePrefix?: string
+}
+
+const WorkspacesPage = ({ workspaceRoutePrefix = '/workspace' }: WorkspacesPageProps = {}) => {
   const navigate = useNavigate()
   const { t } = useTranslation(['workspace', 'common'])
   const [workspaces, setWorkspaces] = useState<WorkspaceInfo[]>([])
@@ -121,7 +126,7 @@ const WorkspacesPage = () => {
       toast.success(t('workspace:list.created'))
       setCreateOpen(false)
       if (andStart) {
-        navigate(`/workspace/${ws.id}`)
+        navigate(`${workspaceRoutePrefix}/${ws.id}`)
       } else {
         fetchData()
       }
@@ -243,7 +248,7 @@ const WorkspacesPage = () => {
                       <WorkspaceCard
                         key={ws.id}
                         workspace={ws}
-                        onOpen={() => navigate(`/workspace/${ws.id}`)}
+                        onOpen={() => navigate(`${workspaceRoutePrefix}/${ws.id}`)}
                         onDelete={() => handleDelete(ws)}
                         onRename={(newName) => handleRename(ws, newName)}
                       />

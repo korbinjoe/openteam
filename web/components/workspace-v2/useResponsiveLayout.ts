@@ -5,7 +5,7 @@ const BREAKPOINT_SM = 768
 const BREAKPOINT_MD = 1024
 
 const useResponsiveLayout = () => {
-  const { layoutMode, panelCollapsed, setLayoutMode, togglePanel } = useWorkspace()
+  const { layoutMode, setLayoutMode, collapsePanel } = useWorkspace()
 
   useEffect(() => {
     const handleResize = () => {
@@ -17,14 +17,14 @@ const useResponsiveLayout = () => {
         setLayoutMode('split')
       }
 
-      if (w < BREAKPOINT_MD && !panelCollapsed) {
-        togglePanel()
+      if (w < BREAKPOINT_MD) {
+        collapsePanel()
       }
     }
 
     window.addEventListener('resize', handleResize)
     return () => window.removeEventListener('resize', handleResize)
-  }, [layoutMode, panelCollapsed, setLayoutMode, togglePanel])
+  }, [layoutMode, setLayoutMode, collapsePanel])
 }
 
 export default useResponsiveLayout

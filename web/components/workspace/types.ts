@@ -17,6 +17,19 @@ export interface Workspace {
   createdAt: string
 }
 
+export type ChatMemberStatus = 'running' | 'waiting' | 'error' | 'idle' | 'done'
+
+export type ChatMemberRole = 'lead' | 'worker'
+
+export interface ChatMember {
+  agentId: string
+  role: ChatMemberRole
+  status: ChatMemberStatus
+  lastMessageAt: string
+  lastMessage?: string
+  cliSessionId?: string
+}
+
 export interface Chat {
   id: string
   workspaceId: string
@@ -30,6 +43,9 @@ export interface Chat {
   totalTokens?: { input: number; output: number; cacheRead?: number; cacheCreation?: number }
   totalToolCalls?: number
   worktreeSessions?: WorktreeSession[]
+  /** Per-agent live state enriched by the server. Optional because legacy
+   *  read paths may not yet pass through enrichWithMembers. */
+  members?: ChatMember[]
   createdAt: string
   lastMessageAt: string
 }

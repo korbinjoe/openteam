@@ -22,7 +22,14 @@ interface Agent {
   role: string
 }
 
-const CronJobsPage = () => {
+interface CronJobsPageProps {
+  /** Prefix used to build chat-open links. Defaults to V1 root. */
+  workspaceRoutePrefix?: string
+  /** URL segment for the chat/task id. Defaults to "chat" (V1); V2 passes "task". */
+  chatSegment?: string
+}
+
+const CronJobsPage = ({ workspaceRoutePrefix = '/workspace', chatSegment = 'chat' }: CronJobsPageProps = {}) => {
   const { t } = useTranslation(['cron', 'common'])
   const navigate = useNavigate()
 
@@ -297,17 +304,27 @@ const CronJobsPage = () => {
                           {exec.errorMessage && (
                             <span className="text-red-400 truncate flex-1">{exec.errorMessage}</span>
                           )}
-                          {exec.chatId && (
+                          {exec.chatId && (() => {
+                            // Cron-spawned chats are always single-agent (one job → one agentId).
+                            // V2 task URL without `?agent=` lands on the empty whiteboard
+                            // overview; append the cron's agentId so it routes into the
+                            // 1:1 ChatInstance where the real JSONL conversation renders.
+                            const base = `${workspaceRoutePrefix}/${job.workspaceId}/${chatSegment}/${exec.chatId}`
+                            const target = chatSegment === 'task' && job.agentId
+                              ? `${base}?agent=${encodeURIComponent(job.agentId)}`
+                              : base
+                            return (
                             <button
-                              onClick={() => navigate(`/workspace/${jobs.find((j) => j.executions.some((e) => e.id === exec.id))?.workspaceId}/chat/${exec.chatId}`)}
-                              onKeyDown={(e) => { if (e.key === 'Enter') navigate(`/workspace/${jobs.find((j) => j.executions.some((e) => e.id === exec.id))?.workspaceId}/chat/${exec.chatId}`) }}
+                              onClick={() => navigate(target)}
+                              onKeyDown={(e) => { if (e.key === 'Enter') navigate(target) }}
                               tabIndex={0}
                               aria-label="View chat"
                               className="text-accent-brand hover:underline shrink-0"
                             >
                               {t('notifications:viewChat', { defaultValue: 'View chat' })}
                             </button>
-                          )}
+                            )
+                          })()}
                         </div>
                       ))
                     )}

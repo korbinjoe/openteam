@@ -14,15 +14,19 @@
   "chatsSection": "Discussions",
   "noChats": "Aucune discussion. Créez-en une pour commencer.",
   "newChat": {
-    "button": "Nouvelle discussion",
-    "title": "Nouveau Chat",
-    "desc": "Configurer une nouvelle discussion.",
+    "button": "Nouvelle tâche",
+    "title": "Nouvelle tâche",
+    "desc": "Configurer une nouvelle tâche.",
     "titleLabel": "Titre",
-    "titlePlaceholder": "Nouvelle discussion",
+    "titlePlaceholder": "Nouvelle tâche",
     "modelLabel": "Modèle",
     "creating": "Création...",
     "createFailed": "Échec de la création",
-    "sessionName": "Nom de session"
+    "sessionName": "Nom de la tâche",
+    "quickStart": "Démarrage rapide",
+    "continueLast": "Continuer avec la dernière configuration",
+    "configureNew": "Ou configurer une nouvelle tâche",
+    "shortcutHint": "Ouvrir cette boîte de dialogue"
   },
   "chatCard": {
     "open": "Ouvrir",

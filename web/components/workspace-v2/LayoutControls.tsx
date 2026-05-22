@@ -6,18 +6,18 @@ const LayoutControls = () => {
 
   return (
     <div className="flex items-center gap-px p-0.5 rounded-[5px] bg-white/[0.03] border border-border">
-      <LayoutBtn active={layoutMode === 'single'} onClick={() => setLayoutMode('single')} title="Chat only">
+      <LayoutBtn active={layoutMode === 'single'} onClick={() => setLayoutMode('single')} title="Chat only (⌘\\)">
         <svg width={10} height={10} viewBox="0 0 16 16" fill="none">
           <rect x="1" y="1" width="14" height="14" rx="2" stroke="currentColor" strokeWidth="1.5" />
         </svg>
       </LayoutBtn>
-      <LayoutBtn active={layoutMode === 'split'} onClick={() => setLayoutMode('split')} title="Chat + IDE">
+      <LayoutBtn active={layoutMode === 'split'} onClick={() => setLayoutMode('split')} title="Chat + IDE (⌘\\)">
         <svg width={10} height={10} viewBox="0 0 16 16" fill="none">
           <rect x="1" y="1" width="14" height="14" rx="2" stroke="currentColor" strokeWidth="1.5" />
           <line x1="9" y1="1" x2="9" y2="15" stroke="currentColor" strokeWidth="1.5" />
         </svg>
       </LayoutBtn>
-      <LayoutBtn active={layoutMode === 'quad'} onClick={() => setLayoutMode('quad')} title="Quad">
+      <LayoutBtn active={layoutMode === 'quad'} onClick={() => setLayoutMode('quad')} title="Quad (⌘\\)">
         <svg width={10} height={10} viewBox="0 0 16 16" fill="none">
           <rect x="1" y="1" width="14" height="14" rx="2" stroke="currentColor" strokeWidth="1.5" />
           <line x1="8" y1="1" x2="8" y2="15" stroke="currentColor" strokeWidth="1.5" />

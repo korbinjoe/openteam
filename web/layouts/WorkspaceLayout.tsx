@@ -1,18 +1,18 @@
 import { useEffect, useMemo } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { WorkspaceProvider, useWorkspace } from '../contexts/WorkspaceContext'
-import { buildTaskUrl } from '../components/workspace-v2/urls'
-import { isSingleAgent } from '../components/workspace-v2/TaskSessionRows'
+import { buildTaskUrl } from '../components/workspace/urls'
+import { isSingleAgent } from '../components/workspace/TaskSessionRows'
 import { useChatTabs } from '../contexts/ChatTabContext'
-import { useV2WorkspaceChats } from '../hooks/useV2WorkspaceChats'
-import TaskSidebar from '../components/workspace-v2/TaskSidebar'
-import WorkspaceToolbar from '../components/workspace-v2/WorkspaceToolbar'
-import WorkspaceContent from '../components/workspace-v2/WorkspaceContent'
-import CommandPalette from '../components/workspace-v2/CommandPalette'
-import AddAgentPicker from '../components/workspace-v2/AddAgentPicker'
+import { useWorkspaceChats } from '../hooks/useWorkspaceChats'
+import TaskSidebar from '../components/workspace/TaskSidebar'
+import WorkspaceToolbar from '../components/workspace/WorkspaceToolbar'
+import WorkspaceContent from '../components/workspace/WorkspaceContent'
+import CommandPalette from '../components/workspace/CommandPalette'
+import AddAgentPicker from '../components/workspace/AddAgentPicker'
 import NewChatFullDialog from '../components/chat/modals/NewChatFullDialog'
-import { persistLastV2Workspace } from '../components/workspace-v2/V2WorkspaceRedirect'
-import useResponsiveLayout from '../components/workspace-v2/useResponsiveLayout'
+import { persistLastWorkspace } from '../components/workspace/WorkspaceRedirect'
+import useResponsiveLayout from '../components/workspace/useResponsiveLayout'
 
 const WorkspaceLayoutInner = () => {
   const {
@@ -35,7 +35,7 @@ const WorkspaceLayoutInner = () => {
   } = useWorkspace()
   const { openTab } = useChatTabs()
   const navigate = useNavigate()
-  const { chats, running, awaitingReview } = useV2WorkspaceChats(workspaceId)
+  const { chats, running, awaitingReview } = useWorkspaceChats(workspaceId)
 
   useResponsiveLayout()
 
@@ -58,7 +58,7 @@ const WorkspaceLayoutInner = () => {
   }, [workspaceId, activeChatId, selectedAgentId, chats, navigate])
 
   useEffect(() => {
-    if (workspaceId) persistLastV2Workspace(workspaceId)
+    if (workspaceId) persistLastWorkspace(workspaceId)
   }, [workspaceId])
 
   // ⌘1-4 jumps to the quad chats (active first, then awaiting, then running)
@@ -147,7 +147,7 @@ const WorkspaceLayoutInner = () => {
         open={newTaskOpen}
         onOpenChange={(open) => (open ? openNewTask() : closeNewTask())}
         currentWorkspaceId={workspaceId ?? undefined}
-        routePrefix="/v2/workspace"
+        routePrefix="/workspace"
         chatSegment="task"
       />
     </div>

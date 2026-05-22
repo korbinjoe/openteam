@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { useWorkspaceMeta } from '../../hooks/useWorkspaceMeta'
-import { useV2WorkspaceChats } from '../../hooks/useV2WorkspaceChats'
+import { useWorkspaceChats } from '../../hooks/useWorkspaceChats'
 import { useAgents } from '../../hooks/useAgents'
 import LayoutControls from './LayoutControls'
 import { UsersGroup, ChevronRight, FolderGit, PanelRight } from './icons'
@@ -17,7 +17,7 @@ import type { Chat, ChatMember } from '../workspace/types'
 const WorkspaceToolbar = () => {
   const { viewMode, workspaceId, activeChatId, selectedAgentId, ideCollapsed, toggleIde } = useWorkspace()
   const { meta } = useWorkspaceMeta(workspaceId)
-  const { chats } = useV2WorkspaceChats(workspaceId)
+  const { chats } = useWorkspaceChats(workspaceId)
   const chat = activeChatId ? chats.find((c) => c.id === activeChatId) : undefined
   // Pick the active member's lastMessageAt as the elapsed label, when in agent
   // mode and the server has enriched members.
@@ -125,7 +125,7 @@ const SIBLING_DOTS_MAX = 4
 
 const ActiveChatInfoBar = () => {
   const { workspaceId, activeChatId, selectedAgentId } = useWorkspace()
-  const { chats } = useV2WorkspaceChats(workspaceId)
+  const { chats } = useWorkspaceChats(workspaceId)
   const { agentNames } = useAgents()
   const navigate = useNavigate()
   const chat = activeChatId ? chats.find((c) => c.id === activeChatId) : undefined
@@ -247,7 +247,7 @@ const SiblingDots = ({ siblings, agentNames, onSelect }: {
 
 const TaskInfoBar = () => {
   const { workspaceId, selectedTaskId } = useWorkspace()
-  const { chats } = useV2WorkspaceChats(workspaceId)
+  const { chats } = useWorkspaceChats(workspaceId)
   const chat = selectedTaskId ? chats.find((c) => c.id === selectedTaskId) : undefined
   const title = chat?.title ?? selectedTaskId ?? 'No task selected'
 

@@ -272,20 +272,6 @@ const loadFromStorage = (): ChatTabState | null => {
   }
 }
 
-// ── URL sync helper ──
-
-// V2 owns its own URL contract (/v2/workspace/:wid/task/:tid[?agent=...]). When
-// the user is in V2, openTab / activateTab / closeTab must NOT silently replace
-// the URL with the V1 shape — that wipes both the /v2 prefix and the ?agent=
-// query, breaking the dual-view (task overview ↔ agent 1:1) interaction.
-const updateUrl = (chatId: string, workspaceId: string) => {
-  if (window.location.pathname.startsWith('/v2/')) return
-  const newPath = `/workspace/${workspaceId}/chat/${chatId}`
-  if (window.location.pathname !== newPath) {
-    window.history.replaceState(null, '', newPath)
-  }
-}
-
 // ── Ref-based actions getter for non-component code ──
 
 let globalActionsRef: { openTab: ChatTabContextValue['openTab'] } | null = null
@@ -317,26 +303,16 @@ export const ChatTabProvider = ({ children }: { children: ReactNode }) => {
       return
     }
     dispatch({ type: 'OPEN_TAB', chatId, workspaceId, title: title ?? '' })
-    updateUrl(chatId, workspaceId)
   }, [])
 
   const closeTab = useCallback((chatId: string) => {
-    const s = stateRef.current
     dispatch({ type: 'CLOSE_TAB', chatId })
-    requestAnimationFrame(() => {
-      const updated = stateRef.current
-      if (updated.activeTabId && updated.activeTabId !== s.activeTabId) {
-        const tab = updated.tabs.find((t) => t.chatId === updated.activeTabId)
-        if (tab) updateUrl(tab.chatId, tab.workspaceId)
-      }
-    })
   }, [])
 
   const activateTab = useCallback((chatId: string) => {
     const tab = stateRef.current.tabs.find((t) => t.chatId === chatId)
     if (!tab) return
     dispatch({ type: 'ACTIVATE_TAB', chatId })
-    updateUrl(chatId, tab.workspaceId)
   }, [])
 
   const closeOtherTabs = useCallback((keepChatId: string) => {

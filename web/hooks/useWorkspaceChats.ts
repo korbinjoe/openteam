@@ -1,6 +1,6 @@
 /**
- * useV2WorkspaceChats — Live list of chats belonging to a workspace, used as
- * the "tasks" data source in workspace-v2 sidebar/cards.
+ * useWorkspaceChats — Live list of chats belonging to a workspace, used as
+ * the "tasks" data source in workspace sidebar/cards.
  *
  * Subscribes to chat:status-changed and chat:activity WS events so counts and
  * statuses stay live without polling.
@@ -15,7 +15,7 @@ import type { Chat } from '@/components/workspace/types'
 const ACTIVE_PHASES = new Set(['thinking', 'tool_running', 'responding', 'initializing'])
 const WAITING_TASK_STATUSES = new Set(['waiting_input', 'waiting_confirm'])
 
-export interface V2WorkspaceChatsResult {
+export interface WorkspaceChatsResult {
   chats: Chat[]
   loading: boolean
   refresh: () => Promise<void>
@@ -27,7 +27,7 @@ export interface V2WorkspaceChatsResult {
   done: Chat[]
 }
 
-export const useV2WorkspaceChats = (workspaceId: string | null | undefined): V2WorkspaceChatsResult => {
+export const useWorkspaceChats = (workspaceId: string | null | undefined): WorkspaceChatsResult => {
   const [chats, setChats] = useState<Chat[]>([])
   const [loading, setLoading] = useState(false)
 

@@ -1,6 +1,6 @@
 import { createContext, useContext, useReducer, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { buildTaskUrl, buildWorkspaceUrl } from '../components/workspace-v2/urls'
+import { buildTaskUrl, buildWorkspaceUrl } from '../components/workspace/urls'
 
 // ── Types ──
 

@@ -23,13 +23,13 @@ interface Agent {
 }
 
 interface CronJobsPageProps {
-  /** Prefix used to build chat-open links. Defaults to V1 root. */
+  /** Prefix used to build chat-open links. */
   workspaceRoutePrefix?: string
-  /** URL segment for the chat/task id. Defaults to "chat" (V1); V2 passes "task". */
+  /** URL segment for the chat/task id. */
   chatSegment?: string
 }
 
-const CronJobsPage = ({ workspaceRoutePrefix = '/workspace', chatSegment = 'chat' }: CronJobsPageProps = {}) => {
+const CronJobsPage = ({ workspaceRoutePrefix = '/workspace', chatSegment = 'task' }: CronJobsPageProps = {}) => {
   const { t } = useTranslation(['cron', 'common'])
   const navigate = useNavigate()
 

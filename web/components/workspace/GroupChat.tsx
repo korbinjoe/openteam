@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
-import { useV2Task } from '../../hooks/useV2Task'
+import { useTask } from '../../hooks/useTask'
 import { useAgents } from '../../hooks/useAgents'
 import { useWhiteboard } from '../../hooks/useWhiteboard'
 import GroupChatMessage, { type GroupMessage } from './GroupChatMessage'
@@ -50,7 +50,7 @@ const entryToGroupMessage = (
 
 const GroupChat = () => {
   const { activeChatId } = useWorkspace()
-  const { chat, members } = useV2Task(activeChatId)
+  const { chat, members } = useTask(activeChatId)
   const { agentNames } = useAgents()
   const { goal, active: whiteboardEntries } = useWhiteboard(activeChatId ?? undefined)
 

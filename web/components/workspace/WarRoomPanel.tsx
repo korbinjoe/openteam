@@ -100,7 +100,7 @@ const WarRoomContent = () => {
                   <EntryRow
                     key={e.id}
                     entry={e}
-                    onArchive={() => archive(e.id, 'workspace-v2:user').catch(() => {})}
+                    onArchive={() => archive(e.id, 'workspace:user').catch(() => {})}
                   />
                 ))}
               </Section>

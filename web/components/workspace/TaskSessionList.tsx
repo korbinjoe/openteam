@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
-import { useV2AllChats } from '../../hooks/useV2AllChats'
+import { useAllChats } from '../../hooks/useAllChats'
 import { useAgents } from '../../hooks/useAgents'
 import { useTaskPinArchive } from '../../hooks/useTaskPinArchive'
 import { Clock, Check, Pin, ChevronDown, ChevronRight, FolderGit } from './icons'
@@ -14,7 +14,7 @@ const WORKSPACE_EXPANDED_KEY = 'openteam:v2-workspace-expanded'
 
 const TaskSessionList = () => {
   const { workspaceId, activeChatId, openAddAgent } = useWorkspace()
-  const { chats, workspaces, loading } = useV2AllChats()
+  const { chats, workspaces, loading } = useAllChats()
   const { agentNames } = useAgents()
 
   // Scope to current workspace; if no workspace selected, render workspace folders.

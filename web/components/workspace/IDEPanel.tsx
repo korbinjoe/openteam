@@ -39,7 +39,7 @@ const STRIP_BADGE_TONE: Record<NonNullable<StripMeta['badge']>['tone'], string> 
 
 const useStripMeta = (): Record<StripTab, StripMeta> => {
   const { open: warRoomOpen } = useWarRoomCounts()
-  const { totalChangedFiles } = useV2WorkspaceGitAggregate()
+  const { totalChangedFiles } = useWorkspaceGitAggregate()
   return {
     IDE:        { icon: Folder, badge: { count: totalChangedFiles, tone: 'green' } },
     'War Room': { icon: Flag, badge: { count: warRoomOpen, tone: 'warn' } },
@@ -48,7 +48,7 @@ const useStripMeta = (): Record<StripTab, StripMeta> => {
 
 /** Workspace-level git aggregate badge — uses workspace repos directly (no worktree).
  *  Per-chat worktree-aware diffs live inside the embedded WebIDEPanel. */
-const useV2WorkspaceGitAggregate = () => {
+const useWorkspaceGitAggregate = () => {
   const { workspaceId, activeChatId } = useWorkspace()
   const { meta } = useWorkspaceMeta(workspaceId)
   const repos = meta?.repositories ?? []

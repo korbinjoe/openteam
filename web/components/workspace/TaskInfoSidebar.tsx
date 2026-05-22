@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
-import { useV2Task } from '../../hooks/useV2Task'
+import { useTask } from '../../hooks/useTask'
 import { useAgents } from '../../hooks/useAgents'
 import { useWhiteboard } from '../../hooks/useWhiteboard'
 import { useWorkspaceMeta } from '../../hooks/useWorkspaceMeta'
@@ -32,7 +32,7 @@ const formatTime = (iso: string): string => {
 
 const TaskInfoSidebar = () => {
   const { workspaceId, activeChatId, selectAgent, openAddAgent } = useWorkspace()
-  const { chat, members } = useV2Task(activeChatId)
+  const { chat, members } = useTask(activeChatId)
   const { agentNames } = useAgents()
   const { meta } = useWorkspaceMeta(workspaceId)
   const { goal, active: whiteboardEntries } = useWhiteboard(activeChatId ?? undefined)

@@ -30,14 +30,13 @@ interface NewChatFormProps {
   currentWorkspaceId?: string
   currentAgentId?: string | null
   onCreated?: () => void
-  /** Route prefix the form should navigate to after create. Defaults to "/workspace" (V1).
-   *  Pass "/v2/workspace" from the V2 surface. */
+  /** Route prefix the form should navigate to after create. Defaults to "/workspace". */
   routePrefix?: string
-  /** URL segment for the chat/task id. Defaults to "chat" (V1). V2 passes "task". */
+  /** URL segment for the chat/task id. Defaults to "task". */
   chatSegment?: string
 }
 
-const NewChatForm = ({ currentWorkspaceId, currentAgentId, onCreated, routePrefix = '/workspace', chatSegment = 'chat' }: NewChatFormProps) => {
+const NewChatForm = ({ currentWorkspaceId, currentAgentId, onCreated, routePrefix = '/workspace', chatSegment = 'task' }: NewChatFormProps) => {
   const navigate = useNavigate()
   const { t } = useTranslation(['home', 'workspace', 'common'])
 

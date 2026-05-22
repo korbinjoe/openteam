@@ -1,5 +1,5 @@
 /**
- * useV2AllChats — Cross-workspace task list for the V2 sidebar.
+ * useAllChats — Cross-workspace task list for the V2 sidebar.
  *
  * Aggregates chats from every workspace and tags each with its workspace meta
  * (id + name) so the sidebar can group tasks by workspace. Stays live via the
@@ -27,7 +27,7 @@ export interface V2AllChatsResult {
   refresh: () => Promise<void>
 }
 
-export const useV2AllChats = (): V2AllChatsResult => {
+export const useAllChats = (): V2AllChatsResult => {
   const [chats, setChats] = useState<Chat[]>([])
   const [workspaces, setWorkspaces] = useState<WorkspaceLite[]>([])
   const [loading, setLoading] = useState(false)

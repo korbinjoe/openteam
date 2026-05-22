@@ -1,15 +1,15 @@
 /**
- * useV2Task — single-task slice of useV2AllChats.
+ * useTask — single-task slice of useAllChats.
  *
  * Returns the chat (with server-derived `members[]`) for a given taskId, plus
  * loading state. Used by V2 TaskOverview / GroupChat / WorkspaceToolbar to read
  * real data without each component refetching.
  *
- * Backed by useV2AllChats so cache + WS subscriptions are shared.
+ * Backed by useAllChats so cache + WS subscriptions are shared.
  */
 
 import { useMemo } from 'react'
-import { useV2AllChats } from './useV2AllChats'
+import { useAllChats } from './useAllChats'
 import type { Chat, ChatMember } from '@/components/workspace/types'
 
 export interface V2TaskResult {
@@ -18,8 +18,8 @@ export interface V2TaskResult {
   loading: boolean
 }
 
-export const useV2Task = (taskId: string | null | undefined): V2TaskResult => {
-  const { chats, loading } = useV2AllChats()
+export const useTask = (taskId: string | null | undefined): V2TaskResult => {
+  const { chats, loading } = useAllChats()
   return useMemo(() => {
     const chat = taskId ? chats.find((c) => c.id === taskId) ?? null : null
     return {

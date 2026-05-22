@@ -1,7 +1,7 @@
 import { useRef, useEffect, useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
-import { useV2WorkspaceChats } from '../../hooks/useV2WorkspaceChats'
+import { useWorkspaceChats } from '../../hooks/useWorkspaceChats'
 import { useAgents } from '../../hooks/useAgents'
 import { Search } from './icons'
 import { buildTaskUrl } from './urls'
@@ -59,7 +59,7 @@ const CommandPalette = () => {
     commandPaletteOpen, closeCommandPalette,
     openNewTask, togglePanel, toggleTerminal, cycleLayoutMode, toggleIde,
   } = useWorkspace()
-  const { chats } = useV2WorkspaceChats(workspaceId)
+  const { chats } = useWorkspaceChats(workspaceId)
   const { agentNames } = useAgents()
   const navigate = useNavigate()
   const inputRef = useRef<HTMLInputElement>(null)

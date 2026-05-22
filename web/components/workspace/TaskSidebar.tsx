@@ -13,7 +13,7 @@ const TaskSidebar = ({ collapsed }: TaskSidebarProps) => {
   const { togglePanel, sidebarWidth, setSidebarWidth, openNewTask, workspaceId } = useWorkspace()
   const navigate = useNavigate()
 
-  const resourcePrefix = workspaceId ? `/v2/workspace/${workspaceId}` : '/v2'
+  const resourcePrefix = workspaceId ? `/workspace/${workspaceId}` : ''
   const goResource = (slug: string) => () => navigate(`${resourcePrefix}/${slug}`)
 
   if (collapsed) {
@@ -22,7 +22,7 @@ const TaskSidebar = ({ collapsed }: TaskSidebarProps) => {
         {/* Header — logo + expand button */}
         <div className="pt-2 pb-1 flex flex-col items-center gap-1.5 border-b border-border-subtle">
           <button
-            onClick={() => navigate('/v2')}
+            onClick={() => navigate('/')}
             className="flex items-center justify-center w-8 h-8 rounded-md hover:bg-bg-hover transition-colors cursor-pointer"
             title="Back to home"
             aria-label="Back to home"
@@ -78,7 +78,7 @@ const TaskSidebar = ({ collapsed }: TaskSidebarProps) => {
       <div className="px-2.5 pt-2 pb-2 border-b border-border-subtle">
         <div className="flex items-center gap-2 px-2.5 pb-2">
           <button
-            onClick={() => navigate('/v2')}
+            onClick={() => navigate('/')}
             className="flex items-center gap-2 rounded-md -ml-1 px-1 py-0.5 hover:bg-bg-hover transition-colors cursor-pointer"
             title="Back to home"
             aria-label="Back to home"

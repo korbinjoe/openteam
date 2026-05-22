@@ -82,16 +82,16 @@ const formatTokens = (n: number): string => {
 interface ChatHistoryPageProps {
   /** Prefix used to build chat-open links. Defaults to V1 root. */
   workspaceRoutePrefix?: string
-  /** Path navigated to when the breadcrumb Home icon is clicked. Defaults to V1 home. */
+  /** Path navigated to when the breadcrumb Home icon is clicked. */
   homePath?: string
-  /** URL segment for the chat/task id. Defaults to "chat" (V1); V2 passes "task". */
+  /** URL segment for the chat/task id. */
   chatSegment?: string
 }
 
 const ChatHistoryPage = ({
   workspaceRoutePrefix = '/workspace',
   homePath = '/',
-  chatSegment = 'chat',
+  chatSegment = 'task',
 }: ChatHistoryPageProps = {}) => {
   const { t } = useTranslation(['chat', 'common'])
   const navigate = useNavigate()

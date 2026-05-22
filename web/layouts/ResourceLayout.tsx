@@ -1,12 +1,12 @@
 import { Outlet, useParams } from 'react-router-dom'
 import { WorkspaceProvider, useWorkspace } from '../contexts/WorkspaceContext'
-import TaskSidebar from '../components/workspace-v2/TaskSidebar'
+import TaskSidebar from '../components/workspace/TaskSidebar'
 import NewChatFullDialog from '../components/chat/modals/NewChatFullDialog'
 
-/** V2 resource shell — same TaskSidebar chrome as the workspace view, but with
- *  the right pane delegated to a nested page via <Outlet />. Used for /v2 routes
- *  that show settings/agents/skills/etc. without leaving V2 context. */
-const V2ResourceLayoutInner = () => {
+/** Resource shell — same TaskSidebar chrome as the workspace view, but with
+ *  the right pane delegated to a nested page via <Outlet />. Used for routes
+ *  that show settings/agents/skills/etc. without an active task. */
+const ResourceLayoutInner = () => {
   const { panelCollapsed, workspaceId, newTaskOpen, openNewTask, closeNewTask } = useWorkspace()
 
   return (
@@ -19,20 +19,20 @@ const V2ResourceLayoutInner = () => {
         open={newTaskOpen}
         onOpenChange={(open) => (open ? openNewTask() : closeNewTask())}
         currentWorkspaceId={workspaceId ?? undefined}
-        routePrefix="/v2/workspace"
+        routePrefix="/workspace"
         chatSegment="task"
       />
     </div>
   )
 }
 
-const V2ResourceLayout = () => {
+const ResourceLayout = () => {
   const { workspaceId } = useParams<{ workspaceId?: string }>()
   return (
     <WorkspaceProvider workspaceId={workspaceId ?? null} activeChatId={null}>
-      <V2ResourceLayoutInner />
+      <ResourceLayoutInner />
     </WorkspaceProvider>
   )
 }
 
-export default V2ResourceLayout
+export default ResourceLayout

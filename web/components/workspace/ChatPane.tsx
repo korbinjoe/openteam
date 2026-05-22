@@ -1,10 +1,10 @@
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import ChatInstance from '../chat/ChatInstance'
-import { useV2WorkspaceChats } from '../../hooks/useV2WorkspaceChats'
+import { useWorkspaceChats } from '../../hooks/useWorkspaceChats'
 
 const ChatPane = () => {
   const { workspaceId, activeChatId, ideMountNode } = useWorkspace()
-  const { chats } = useV2WorkspaceChats(workspaceId)
+  const { chats } = useWorkspaceChats(workspaceId)
 
   if (!workspaceId) {
     return <EmptyState title="No workspace" hint="Open a workspace to start working." />

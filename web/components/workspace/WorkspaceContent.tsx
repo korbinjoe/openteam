@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useWorkspace, IDE_WIDTH_DEFAULT } from '../../contexts/WorkspaceContext'
-import { useV2WorkspaceChats } from '../../hooks/useV2WorkspaceChats'
+import { useWorkspaceChats } from '../../hooks/useWorkspaceChats'
 import type { Chat } from '../workspace/types'
 import ChatPane from './ChatPane'
 import IDEPanel from './IDEPanel'
@@ -14,7 +14,7 @@ import { Plus } from './icons'
  * then running. Dedup, cap at 4. Empty quad → show add-agent placeholders. */
 const useQuadChats = (limit: number): Chat[] => {
   const { workspaceId, activeChatId } = useWorkspace()
-  const { chats, awaitingReview, running } = useV2WorkspaceChats(workspaceId)
+  const { chats, awaitingReview, running } = useWorkspaceChats(workspaceId)
   return useMemo(() => {
     const active = activeChatId ? chats.find((c) => c.id === activeChatId) : undefined
     const ordered: Chat[] = []
@@ -208,7 +208,7 @@ const TaskOverviewContent = ({ splitChatWidth }: { splitChatWidth: string }) => 
 const TaskOverviewQuadLayout = ({ ideCollapsed }: { ideCollapsed: boolean }) => {
   const QUAD_SIZE = 4
   const { workspaceId, activeChatId, openAddAgent } = useWorkspace()
-  const { chats } = useV2WorkspaceChats(workspaceId)
+  const { chats } = useWorkspaceChats(workspaceId)
   const chat = activeChatId ? chats.find((c) => c.id === activeChatId) : undefined
   const members = chat?.members ?? []
   const total = members.length

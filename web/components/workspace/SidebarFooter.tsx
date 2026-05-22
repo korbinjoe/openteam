@@ -3,17 +3,17 @@ import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { useTheme } from '../../contexts/ThemeContext'
 import { History, Handshake, Zap, Repeat, FolderGit, Moon, Sun, Bell, Settings } from './icons'
 
-/** Build a V2 URL that stays inside the workspace context when available,
- *  falling back to the top-level /v2 resource routes when no workspace is
+/** Build a URL that stays inside the workspace context when available,
+ *  falling back to the top-level resource routes when no workspace is
  *  loaded (e.g. on the empty-workspace landing page). */
-const useV2Prefix = (): string => {
+const useResourcePrefix = (): string => {
   const { workspaceId } = useWorkspace()
-  return workspaceId ? `/v2/workspace/${workspaceId}` : '/v2'
+  return workspaceId ? `/workspace/${workspaceId}` : ''
 }
 
 export const ResourcesSection = () => {
   const navigate = useNavigate()
-  const prefix = useV2Prefix()
+  const prefix = useResourcePrefix()
   return (
     <div className="px-1.5 py-1.5 border-t border-border-subtle">
       <ResourceItem icon={<Handshake size={14} />} label="Team"       onClick={() => navigate(`${prefix}/agents`)} />
@@ -40,7 +40,7 @@ const ResourceItem = ({ icon, label, onClick }: {
 
 const SidebarFooter = () => {
   const navigate = useNavigate()
-  const prefix = useV2Prefix()
+  const prefix = useResourcePrefix()
   const { theme, toggleTheme } = useTheme()
   return (
     <div className="px-2 py-1.5 border-t border-border-subtle flex items-center gap-1">

@@ -11,7 +11,7 @@ export const TASK_EXPANDED_KEY = 'openteam:v2-task-expanded'
 // Sidebar row indents. Task is root; all agents (lead + workers) sit as peers
 // directly beneath it. The data model has no parent/child relation between
 // agents — `role` only distinguishes lead from worker, so they must render at
-// the same indent. Lead is marked by the inline star, not by hierarchy.
+// the same indent.
 const INDENT_AGENT = 'pl-9'      // 36px — every agent row, peer of "Add Agent"
 const INDENT_ADD_AGENT = 'pl-9'  // 36px — peer of agent rows
 
@@ -240,9 +240,6 @@ export const AgentRow = ({ agentId, agentName, isLead, chat, member, isSelected 
       )}
     >
       <span className={cn('w-[6px] h-[6px] rounded-full flex-shrink-0', dotClass)} />
-      {isLead && (
-        <LeadStar className={cn('flex-shrink-0', isSelected ? 'text-accent-brand-light' : 'text-text-muted')} />
-      )}
       <span className={cn(
         'text-[12px] truncate flex-1',
         isSelected ? 'text-accent-brand-light font-medium' : 'text-text-secondary',
@@ -298,14 +295,6 @@ export interface RowAction {
   onClick: () => void
   children: React.ReactNode
 }
-
-// Filled 5-point star used as a quiet lead marker on AgentRow. Sits inline
-// before the agent name — replaces the old colorful LEAD/auto badges.
-const LeadStar = ({ className }: { className?: string }) => (
-  <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor" className={className} aria-label="Lead">
-    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-  </svg>
-)
 
 const ActionButtons = ({ actions }: { actions: RowAction[] }) => (
   <>

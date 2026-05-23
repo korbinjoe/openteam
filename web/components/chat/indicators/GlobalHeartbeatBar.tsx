@@ -10,7 +10,7 @@
 
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ChevronDown, ChevronRight, Square, Sparkles } from 'lucide-react'
+import { ChevronDown, ChevronRight, Square } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import AgentAvatar, { isActivePhase } from '@/components/ui/agent-avatar'
 import type { AgentActivity } from '@/types/chat'
@@ -135,14 +135,6 @@ const SingleAgentRow = ({ agentId, displayName, activity, elapsed, onClick }: {
       )}
       tabIndex={onClick ? 0 : -1}
     >
-      <Sparkles
-        size={11}
-        className="shrink-0"
-        style={{
-          color: config.color,
-          ...(config.pulse ? { animation: 'pulse 1.5s ease-in-out infinite' } : {}),
-        }}
-      />
       <AgentAvatar name={displayName} agentId={agentId} size="xs" active={isActivePhase(activity.phase)} />
       <span className="text-xs font-medium text-text-emphasis shrink-0 truncate max-w-[120px]">
         {displayName}
@@ -291,11 +283,6 @@ const GlobalHeartbeatBar = ({
           aria-label={expanded ? t('heartbeat.collapseAgentList') : t('heartbeat.expandAgentList')}
         >
           <Chevron size={11} className="text-text-muted opacity-60 shrink-0" />
-          <Sparkles
-            size={11}
-            className="text-accent-brand shrink-0"
-            style={{ animation: 'pulse 1.5s ease-in-out infinite' }}
-          />
           <span className="text-xs font-semibold text-text-emphasis shrink-0">
             {t('heartbeat.activeCount', { count: activeCount })}
           </span>

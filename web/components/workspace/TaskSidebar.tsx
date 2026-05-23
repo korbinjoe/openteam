@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useWorkspace, SIDEBAR_WIDTH_DEFAULT } from '../../contexts/WorkspaceContext'
-import { isMacElectron } from '../../utils/env'
+import { isElectron, isMacElectron } from '../../utils/env'
 import TaskSessionList from './TaskSessionList'
 import SidebarFooter, { ResourcesSection } from './SidebarFooter'
 import ResizeHandle from './ResizeHandle'
-import { ChevronLeft, ChevronRight, Plus, Handshake, Zap, Repeat, FolderGit, Settings, Search } from './icons'
+import { PanelLeftClose, PanelLeftOpen, Plus, Handshake, Zap, Repeat, FolderGit, Settings, Search } from './icons'
 
 interface TaskSidebarProps {
   collapsed: boolean
@@ -22,25 +22,27 @@ const TaskSidebar = ({ collapsed }: TaskSidebarProps) => {
   if (collapsed) {
     return (
       <div className="w-[52px] bg-bg-secondary border-r border-border-subtle flex flex-col flex-shrink-0 transition-[width] duration-200 ease-out">
-        {/* Header — logo + expand button */}
+        {/* Header — logo (web only) + expand button */}
         <div
           className={`${isMacElectron ? 'pt-[30px]' : 'pt-2'} pb-1 flex flex-col items-center gap-1.5 border-b border-border-subtle`}
         >
-          <button
-            onClick={() => navigate('/')}
-            className="flex items-center justify-center w-8 h-8 rounded-md hover:bg-bg-hover transition-colors cursor-pointer"
-            title="Back to home"
-            aria-label="Back to home"
-          >
-            <Logo size={20} />
-          </button>
+          {!isElectron && (
+            <button
+              onClick={() => navigate('/')}
+              className="flex items-center justify-center w-8 h-8 rounded-md hover:bg-bg-hover transition-colors cursor-pointer"
+              title="Back to home"
+              aria-label="Back to home"
+            >
+              <Logo size={20} />
+            </button>
+          )}
           <button
             onClick={togglePanel}
             className="w-7 h-7 rounded-md flex items-center justify-center text-text-muted hover:bg-bg-hover hover:text-text-secondary transition-colors"
             title="Expand sidebar (⌘B)"
             aria-label="Expand sidebar"
           >
-            <ChevronRight size={14} />
+            <PanelLeftOpen size={15} />
           </button>
         </div>
 
@@ -79,20 +81,22 @@ const TaskSidebar = ({ collapsed }: TaskSidebarProps) => {
       className="bg-bg-secondary border-r border-border-subtle flex flex-col flex-shrink-0 relative"
       style={{ width: sidebarWidth }}
     >
-      {/* Header — logo + collapse + new task button */}
+      {/* Header — logo (web only) + collapse + new task button */}
       <div className="px-2.5 pt-2 pb-2 border-b border-border-subtle">
         <div
           className={`flex items-center gap-2 pr-2.5 pb-2 ${isMacElectron ? 'pl-[78px]' : 'pl-2.5'}`}
         >
-          <button
-            onClick={() => navigate('/')}
-            className="flex items-center gap-2 rounded-md -ml-1 px-1 py-0.5 hover:bg-bg-hover transition-colors cursor-pointer"
-            title="Back to home"
-            aria-label="Back to home"
-          >
-            <Logo size={20} />
-            <span className="font-nunito text-[13px] font-extrabold text-text-primary">OpenTeam</span>
-          </button>
+          {!isElectron && (
+            <button
+              onClick={() => navigate('/')}
+              className="flex items-center gap-2 rounded-md -ml-1 px-1 py-0.5 hover:bg-bg-hover transition-colors cursor-pointer"
+              title="Back to home"
+              aria-label="Back to home"
+            >
+              <Logo size={20} />
+              <span className="font-nunito text-[13px] font-extrabold text-text-primary">OpenTeam</span>
+            </button>
+          )}
           <span className="flex-1" />
           <button
             onClick={togglePanel}
@@ -100,7 +104,7 @@ const TaskSidebar = ({ collapsed }: TaskSidebarProps) => {
             title="Collapse sidebar (⌘B)"
             aria-label="Collapse sidebar"
           >
-            <ChevronLeft size={12} />
+            <PanelLeftClose size={14} />
           </button>
         </div>
         <button

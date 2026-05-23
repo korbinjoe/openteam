@@ -46,6 +46,11 @@ export interface Chat {
   /** Per-agent live state enriched by the server. Optional because legacy
    *  read paths may not yet pass through enrichWithMembers. */
   members?: ChatMember[]
+  /** 'native' for chats created in OpenTeam, 'external' for adopted local
+   *  Claude/Codex jsonl sessions. Defaults to 'native' server-side. */
+  source?: 'native' | 'external'
+  /** Original cwd for adopted external chats. Always set when source='external'. */
+  externalCwd?: string
   createdAt: string
   lastMessageAt: string
 }

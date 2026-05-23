@@ -148,7 +148,7 @@ const TaskSessionList = () => {
       )}
 
       <Section icon={<Clock size={11} />} label="Active Tasks" count={active.length}>
-        <UnifiedSessionList
+        <WorkspaceCwdGroups
           wsId={workspaceId}
           chats={active}
           activeChatId={activeChatId}
@@ -242,6 +242,118 @@ const WorkspaceGroup = ({
           />
         </div>
       )}
+    </div>
+  )
+}
+
+// ── Single-workspace cwd grouping ───────────────────────────────────────────
+// Inside one workspace, a power user often has several cwds: the main repo,
+// adopted external dirs (e.g. /tmp/scratch sessions), worktrees branched off
+// the repo. WorkspaceCwdGroups buckets chats + external sessions by their cwd
+// so the sidebar inside a workspace mirrors the cross-workspace grouping one
+// level deeper. When there's only one cwd we skip the group layer to avoid
+// the "lone folder" antipattern.
+const WorkspaceCwdGroups = ({
+  wsId, chats, activeChatId, agentNames, onPin, onArchive, onAddAgent,
+}: {
+  wsId: string
+  chats: Chat[]
+  activeChatId: string | null
+  agentNames: Record<string, string>
+  onPin: (chatId: string) => void
+  onArchive: (chatId: string) => void
+  onAddAgent: (chatId: string) => void
+}) => {
+  const { sessions, hasMore, loading, loadMore, hide } = useWorkspaceExternalSessions(wsId, true)
+  const [cwdExpanded, setCwdExpanded] = useState<Record<string, boolean>>({})
+
+  const buckets = useMemo(() => groupByCwd(chats, sessions), [chats, sessions])
+
+  if (buckets.length === 0) {
+    return <div className="px-3 py-1 text-[10px] text-text-muted italic">No sessions</div>
+  }
+
+  // Single-cwd workspace: skip the extra folder layer and render flat. Keeps
+  // small/single-repo workspaces looking exactly like before this change.
+  if (buckets.length === 1) {
+    return (
+      <UnifiedSessionList
+        wsId={wsId}
+        chats={chats}
+        externalSessions={sessions}
+        externalHasMore={hasMore}
+        externalLoading={loading}
+        onLoadMore={loadMore}
+        onAdoptedSession={hide}
+        activeChatId={activeChatId}
+        agentNames={agentNames}
+        onPin={onPin}
+        onArchive={onArchive}
+        onAddAgent={onAddAgent}
+      />
+    )
+  }
+
+  const toggle = (cwd: string) =>
+    setCwdExpanded((prev) => ({ ...prev, [cwd]: !(prev[cwd] ?? true) }))
+
+  return (
+    <div className="flex flex-col gap-1">
+      {buckets.map((b, idx) => {
+        const expanded = cwdExpanded[b.cwd] ?? true
+        // "Load more" is workspace-wide pagination — only render it under the
+        // newest bucket to avoid ambiguity about which group will grow.
+        const isPrimary = idx === 0
+        return (
+          <div key={b.cwd}>
+            <button
+              onClick={() => toggle(b.cwd)}
+              className="w-full flex items-center gap-1.5 px-2 py-1 hover:bg-bg-hover/50 rounded-sm transition-colors"
+              aria-expanded={expanded}
+              title={b.cwd}
+            >
+              <span className="text-text-muted -ml-px">
+                {expanded ? <ChevronDown size={9} /> : <ChevronRight size={9} />}
+              </span>
+              <Folder size={11} className="text-text-muted" />
+              <span className="text-[11px] font-semibold tracking-wide uppercase text-text-muted truncate">{basename(b.cwd)}</span>
+              <span className="ml-auto font-mono text-[10px] text-text-muted tabular-nums">{b.items.length}</span>
+            </button>
+            {expanded && (
+              <div className="flex flex-col gap-0.5">
+                {b.items.map((it) => (
+                  it.kind === 'chat' ? (
+                    <TaskRow
+                      key={`c:${it.chat.id}`}
+                      chat={it.chat}
+                      isSelected={activeChatId === it.chat.id}
+                      agentNames={agentNames}
+                      onPin={() => onPin(it.chat.id)}
+                      onArchive={() => onArchive(it.chat.id)}
+                      onAddAgent={() => onAddAgent(it.chat.id)}
+                    />
+                  ) : (
+                    <ExternalSessionRow
+                      key={`e:${it.session.id}`}
+                      session={it.session}
+                      onAdopted={() => hide(it.session.id)}
+                    />
+                  )
+                ))}
+                {isPrimary && hasMore && (
+                  <button
+                    onClick={() => void loadMore()}
+                    disabled={loading}
+                    className="ml-3 mt-0.5 text-[10px] text-text-muted hover:text-text-primary underline self-start disabled:opacity-50"
+                  >
+                    {loading ? 'Loading…' : 'Load more'}
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        )
+      })}
     </div>
   )
 }
@@ -354,6 +466,41 @@ const buildMergedItems = (chats: Chat[], sessions: ExternalSession[]): MergedIte
   ]
   out.sort((a, b) => b.mtime - a.mtime)
   return out
+}
+
+// Per-cwd grouping for single-workspace view. Native chats inherit cwd from
+// the first worktree session (the chat's primary working directory) or fall
+// back to externalCwd for adopted chats. Chats with no resolvable cwd land in
+// a synthetic "(workspace)" bucket so they remain visible.
+const WORKSPACE_BUCKET = '(workspace)'
+
+const chatCwd = (c: Chat): string => {
+  if (c.externalCwd) return c.externalCwd
+  const wt = c.worktreeSessions?.[0]?.worktreePath
+  return wt ?? WORKSPACE_BUCKET
+}
+
+interface CwdBucket {
+  cwd: string
+  latestMtime: number
+  items: MergedItem[]
+}
+
+const groupByCwd = (chats: Chat[], sessions: ExternalSession[]): CwdBucket[] => {
+  const map = new Map<string, CwdBucket>()
+  const push = (cwd: string, item: MergedItem) => {
+    const existing = map.get(cwd)
+    if (existing) {
+      existing.items.push(item)
+      if (item.mtime > existing.latestMtime) existing.latestMtime = item.mtime
+    } else {
+      map.set(cwd, { cwd, latestMtime: item.mtime, items: [item] })
+    }
+  }
+  for (const c of chats) push(chatCwd(c), { kind: 'chat', mtime: chatMtime(c), chat: c })
+  for (const s of sessions) push(s.cwd, { kind: 'session', mtime: s.mtimeMs, session: s })
+  for (const b of map.values()) b.items.sort((a, b) => b.mtime - a.mtime)
+  return [...map.values()].sort((a, b) => b.latestMtime - a.latestMtime)
 }
 
 const Section = ({ icon, label, count, children }: {

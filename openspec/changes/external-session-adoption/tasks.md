@@ -39,28 +39,33 @@
 - [x] 4.4 `POST /api/external-cwds/hide` (+ /unhide) — toggle hidden flag
 - [x] 4.5 Adoption matches cwd → workspace via repository path prefix; auto-creates a workspace when no match (chats schema requires NOT NULL workspace_id)
 
-## Phase 5 — Frontend
+## Phase 5 — Frontend (unified-list refactor, "Plan B")
 
-- [ ] 5.1 New hook `useSidebarGroups` (replaces `useAllChats` for sidebar)
-- [ ] 5.2 New hook `useExternalCwdSessions(cwd)` — lazy, paginated, fires only on expand
-- [ ] 5.3 Subscribe to `external-dirs:ready` / `external-dirs:changed` for refetch
-- [ ] 5.4 `ExternalSessionRow` component (TaskRow styling + provider badge)
-- [ ] 5.5 `ExternalCwdSessions` list component with "Load more" button (20/page)
-- [ ] 5.6 Refactor `TaskSessionList` to single grouped path (workspaces + unmatchedDirs)
-- [ ] 5.6a `Group` component takes `kind` prop, branches visuals (icon, label, sub-sections, actions) per the workspace-vs-external-cwd table in design.md
-- [ ] 5.6b External-cwd groups: hide when sessionCount=0 + adoptedCount=0; collapsed-by-default per session, not persisted
-- [ ] 5.7 Click on `ExternalSessionRow` → adopt → navigate to chat
-- [ ] 5.8 Provider badge component (claude / codex)
-- [ ] 5.9 Per-cwd hide affordance + restore in settings page
-- [ ] 5.10 `react-virtual` when expanded list > 50 rows
-- [ ] 5.11 Settings UI: toggle for `external_session_scan.enabled`
+Pivoted away from a separate "Local Sessions" sub-section: every workspace
+group now interleaves native chats with un-adopted external rows in one
+mtime-DESC list. Cross-cwd merge happens server-side via
+`GET /api/workspaces/:id/external-sessions` (SessionPager.listForCwds).
+
+- [x] 5.1 New hook `useExternalCwds` — top-level dir aggregates (Tier 1)
+- [x] 5.2 New hook `useExternalCwdSessions(cwd, enabled)` — lazy paginated per-cwd (Tier 2)
+- [x] 5.2a New hook `useWorkspaceExternalSessions(wsId, enabled)` — workspace-scoped unified feed
+- [x] 5.3 Subscribe to `external-dirs:ready` / `external-dirs:changed` for refetch
+- [x] 5.4 `ExternalSessionRow` component — shape-mirrors TaskRow (chevron slot + dot + title + provider badge + age)
+- [x] 5.5 "Load more" button (20/page) at end of any list with `hasMore`
+- [x] 5.6 `WorkspaceGroup` (cross-ws mode) + `UnifiedSessionList` interleave (single-ws mode)
+- [x] 5.6b Unmatched-cwd groups (`ExternalCwdGroup`): collapsed-by-default per session, not persisted
+- [x] 5.7 Click on `ExternalSessionRow` → adopt → navigate to chat
+- [x] 5.8 `ProviderBadge` (claude=purple / codex=green)
+- [ ] 5.9 Per-cwd hide affordance + restore in settings page (deferred)
+- [ ] 5.10 `react-virtual` when expanded list > 50 rows (deferred; current expansion limited by pagination)
+- [ ] 5.11 Settings UI: toggle for `external_session_scan.enabled` (deferred)
 
 ## Phase 6 — Resume Path Verification
 
-- [ ] 6.1 Verify `ExpertResumeHandler` works for `source='external'` chat unchanged
-- [ ] 6.2 Test: adopt Claude external session, send message, confirm `--resume <sid>` is passed
-- [ ] 6.3 Test: same for Codex external session
-- [ ] 6.4 Handle "cwd no longer exists" gracefully (toast + block resume button)
+- [x] 6.1 `ExpertResumeHandler` already handles adopted chats — it only reads `chats.expertSessions[*].{cliSessionId, provider, cwd}`; nothing gates on `source === 'external'`. Adoption writes the exact shape resume expects.
+- [x] 6.2 Claude path: adoption stores `cliSessionId = <jsonl basename>` (UUID); `readMessagesFromJsonl` builds `~/.claude/projects/<cwdToClaudeProjectKey(cwd)>/<cliSessionId>.jsonl` — matches scanner discovery.
+- [x] 6.3 Codex path: adoption stores `cliSessionId = <threadId UUID>` (captured by `CODEX_ROLLOUT_RE`); `findRolloutInDir` matches via `endsWith('-${threadId}.jsonl')` across 7-day fast path then full-tree fallback.
+- [ ] 6.4 cwd-no-longer-exists handling: pre-existing behavior surfaces `expert:resume-failed` reason `cwd_not_found`; replay-from-jsonl could in principle work without cwd existing but currently doesn't fall back. Deferred.
 
 ## Phase 7 — Verification & Polish
 

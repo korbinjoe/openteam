@@ -146,7 +146,7 @@ const NewChatForm = ({ currentWorkspaceId, currentAgentId, onCreated, routePrefi
     setCreating(true)
     try {
       const paths = opts.ws.repositories.map((r) => r.path)
-      const finalTitle = opts.title.trim() || 'New Session'
+      const finalTitle = opts.title.trim() || t('workspace:newChat.title')
       const body = {
         ...(paths.length === 1 ? { repoPath: paths[0] } : { repoPaths: paths }),
         model: opts.modelValue,
@@ -189,8 +189,22 @@ const NewChatForm = ({ currentWorkspaceId, currentAgentId, onCreated, routePrefi
 
   const handleCreate = useCallback(() => {
     if (!selectedWs) return
-    return doCreate({ ws: selectedWs, agent: selectedAgent, modelValue: model, title: 'New Session', source: 'form' })
+    return doCreate({ ws: selectedWs, agent: selectedAgent, modelValue: model, title: '', source: 'form' })
   }, [doCreate, selectedWs, selectedAgent, model])
+
+  // Enter anywhere in the dialog submits when a workspace is selected. Skip while
+  // a dropdown owns the keyboard (Workspace/Agent search + Model select).
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key !== 'Enter' || e.isComposing) return
+      if (wsDropdownOpen || agentDropdownOpen) return
+      if (!selectedWs || creating) return
+      e.preventDefault()
+      handleCreate()
+    }
+    document.addEventListener('keydown', handler)
+    return () => document.removeEventListener('keydown', handler)
+  }, [handleCreate, selectedWs, creating, wsDropdownOpen, agentDropdownOpen])
 
   // Match lastSession to a concrete workspace + agent. If both resolve, we can offer
   // one-click "Continue with last setup". repos comparison is by sorted set since
@@ -215,7 +229,7 @@ const NewChatForm = ({ currentWorkspaceId, currentAgentId, onCreated, routePrefi
       ws: quickStart.ws,
       agent: quickStart.agent,
       modelValue: quickStart.model,
-      title: 'New Session',
+      title: '',
       source: 'quick-start',
     })
   }, [doCreate, quickStart])
@@ -274,11 +288,12 @@ const NewChatForm = ({ currentWorkspaceId, currentAgentId, onCreated, routePrefi
         </div>
       )}
 
-      {/* Inline 3-dropdown row: Workspace + Agent + Model. Matches the prototype's
-       * compact config block — no per-field labels above. */}
-      <div className="flex gap-2">
-        {/* Workspace */}
-        <div ref={comboboxRef} className="relative flex-1 min-w-0">
+      {/* Workspace */}
+      <div className="space-y-1.5">
+        <label className="block text-[11px] font-medium text-text-secondary">
+          {t('home:selectWorkspace')}
+        </label>
+        <div ref={comboboxRef} className="relative w-full">
           <button
             type="button"
             onClick={() => setWsDropdownOpen(!wsDropdownOpen)}
@@ -350,74 +365,85 @@ const NewChatForm = ({ currentWorkspaceId, currentAgentId, onCreated, routePrefi
             </div>
           )}
         </div>
+      </div>
 
-        {/* Agent */}
-        <div ref={agentBoxRef} className="relative flex-1 min-w-0">
-          <button
-            type="button"
-            onClick={() => agents.length > 0 && setAgentDropdownOpen(!agentDropdownOpen)}
-            disabled={agents.length === 0}
-            aria-haspopup="listbox"
-            aria-expanded={agentDropdownOpen}
-            className="flex items-center gap-1.5 h-9 w-full rounded-md border border-border bg-bg-input px-3 cursor-pointer hover:border-accent-brand/40 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {selectedAgent ? (
-              <>
-                <AgentAvatar name={selectedAgent.name} agentId={selectedAgent.id} size="sm" />
-                <span className="text-xs text-text-emphasis truncate flex-1 text-left">{selectedAgent.name}</span>
-              </>
-            ) : (
-              <span className="text-xs text-text-secondary truncate flex-1 text-left">
-                {agents.length === 0 ? t('home:noAgents') : t('home:selectAgent')}
-              </span>
-            )}
-            <ChevronDown size={10} className={cn(
-              'shrink-0 text-text-secondary transition-transform',
-              agentDropdownOpen && 'rotate-180',
-            )} />
-          </button>
+      {/* Agent + Model — paired row. Agent gets 2x width because its names are
+       * longer; Model labels are short and consistent so 1x is enough. */}
+      <div className="grid grid-cols-3 gap-2">
+        <div className="col-span-2 space-y-1.5">
+          <label className="block text-[11px] font-medium text-text-secondary">
+            {t('home:selectAgent')}
+          </label>
+          <div ref={agentBoxRef} className="relative w-full">
+            <button
+              type="button"
+              onClick={() => agents.length > 0 && setAgentDropdownOpen(!agentDropdownOpen)}
+              disabled={agents.length === 0}
+              aria-haspopup="listbox"
+              aria-expanded={agentDropdownOpen}
+              className="flex items-center gap-1.5 h-9 w-full rounded-md border border-border bg-bg-input px-3 cursor-pointer hover:border-accent-brand/40 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {selectedAgent ? (
+                <>
+                  <AgentAvatar name={selectedAgent.name} agentId={selectedAgent.id} size="sm" />
+                  <span className="text-xs text-text-emphasis truncate flex-1 text-left">{selectedAgent.name}</span>
+                </>
+              ) : (
+                <span className="text-xs text-text-secondary truncate flex-1 text-left">
+                  {agents.length === 0 ? t('home:noAgents') : t('home:selectAgent')}
+                </span>
+              )}
+              <ChevronDown size={10} className={cn(
+                'shrink-0 text-text-secondary transition-transform',
+                agentDropdownOpen && 'rotate-180',
+              )} />
+            </button>
 
-          {agentDropdownOpen && agents.length > 0 && (
-            <div className="absolute top-full left-0 right-0 mt-1 z-50 rounded-md border border-border bg-bg-elevated shadow-lg overflow-hidden">
-              <div className="max-h-56 overflow-y-auto py-1">
-                {agents.map((agent) => {
-                  const isSelected = selectedAgentIdState === agent.id
-                  return (
-                    <Tooltip key={agent.id} delayDuration={400}>
-                      <TooltipTrigger asChild>
-                        <button
-                          onClick={() => { handleAgentSelect(agent.id); setAgentDropdownOpen(false) }}
-                          className={cn(
-                            'flex items-center gap-2 w-full px-3 py-1.5 text-left transition-colors hover:bg-bg-hover-muted',
-                            isSelected && 'bg-bg-hover-muted',
-                          )}
-                        >
-                          <AgentAvatar name={agent.name} agentId={agent.id} size="sm" />
-                          <span className="text-xs text-text-primary truncate flex-1">{agent.name}</span>
-                          <span className={cn(
-                            'text-[10px] px-1 py-px rounded-sm font-mono shrink-0',
-                            agent.provider === 'codex'
-                              ? 'bg-accent-brand/10 text-accent-brand'
-                              : 'bg-accent-orange/10 text-accent-orange',
-                          )}>
-                            {agent.provider === 'codex' ? 'Codex' : 'CC'}
-                          </span>
-                          {isSelected && <Check size={12} className="shrink-0 text-accent-green" />}
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent side="right" className="max-w-[220px]">
-                        {agent.description || agent.name}
-                      </TooltipContent>
-                    </Tooltip>
-                  )
-                })}
+            {agentDropdownOpen && agents.length > 0 && (
+              <div className="absolute top-full left-0 right-0 mt-1 z-50 rounded-md border border-border bg-bg-elevated shadow-lg overflow-hidden">
+                <div className="max-h-56 overflow-y-auto py-1">
+                  {agents.map((agent) => {
+                    const isSelected = selectedAgentIdState === agent.id
+                    return (
+                      <Tooltip key={agent.id} delayDuration={400}>
+                        <TooltipTrigger asChild>
+                          <button
+                            onClick={() => { handleAgentSelect(agent.id); setAgentDropdownOpen(false) }}
+                            className={cn(
+                              'flex items-center gap-2 w-full px-3 py-1.5 text-left transition-colors hover:bg-bg-hover-muted',
+                              isSelected && 'bg-bg-hover-muted',
+                            )}
+                          >
+                            <AgentAvatar name={agent.name} agentId={agent.id} size="sm" />
+                            <span className="text-xs text-text-primary truncate flex-1">{agent.name}</span>
+                            <span className={cn(
+                              'text-[10px] px-1 py-px rounded-sm font-mono shrink-0',
+                              agent.provider === 'codex'
+                                ? 'bg-accent-brand/10 text-accent-brand'
+                                : 'bg-accent-orange/10 text-accent-orange',
+                            )}>
+                              {agent.provider === 'codex' ? 'Codex' : 'CC'}
+                            </span>
+                            {isSelected && <Check size={12} className="shrink-0 text-accent-green" />}
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="right" className="max-w-[220px]">
+                          {agent.description || agent.name}
+                        </TooltipContent>
+                      </Tooltip>
+                    )
+                  })}
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
         {/* Model */}
-        <div className="w-[130px] shrink-0">
+        <div className="space-y-1.5">
+          <label className="block text-[11px] font-medium text-text-secondary">
+            {t('workspace:newChat.modelLabel')}
+          </label>
           <Select value={model} onValueChange={setModel}>
             <SelectTrigger className="h-9 text-xs">
               <SelectValue />
@@ -431,7 +457,7 @@ const NewChatForm = ({ currentWorkspaceId, currentAgentId, onCreated, routePrefi
         </div>
       </div>
 
-      {/* Start — full-width primary CTA below the inline config row. */}
+      {/* Start — full-width primary CTA below the config rows. */}
       <button
         onClick={handleCreate}
         disabled={!selectedWs || creating}
@@ -445,11 +471,18 @@ const NewChatForm = ({ currentWorkspaceId, currentAgentId, onCreated, routePrefi
         {t('home:startChat')}
       </button>
 
-      {/* Keyboard shortcut hint — surfaces the ⌘N entry that mirrors this dialog. */}
-      <div className="flex items-center justify-center gap-1.5 pt-1 text-text-muted">
-        <kbd className="inline-flex items-center justify-center h-[18px] min-w-[18px] px-1 rounded border border-border bg-bg-input font-mono text-[10px]">⌘</kbd>
-        <kbd className="inline-flex items-center justify-center h-[18px] min-w-[18px] px-1 rounded border border-border bg-bg-input font-mono text-[10px]">N</kbd>
-        <span className="text-[11px] ml-1">{t('workspace:newChat.shortcutHint')}</span>
+      {/* Inline-action hints — reads as "↵ to start · Esc to cancel". The old
+       * "⌘N opens this dialog" copy was misleading inside an already-open dialog. */}
+      <div className="flex items-center justify-center gap-3 pt-1 text-text-muted">
+        <span className="inline-flex items-center gap-1 text-[11px]">
+          <kbd className="inline-flex items-center justify-center h-[18px] min-w-[18px] px-1 rounded border border-border bg-bg-input font-mono text-[10px]">↵</kbd>
+          {t('workspace:newChat.hintEnter')}
+        </span>
+        <span className="text-text-muted/60">·</span>
+        <span className="inline-flex items-center gap-1 text-[11px]">
+          <kbd className="inline-flex items-center justify-center h-[18px] px-1 rounded border border-border bg-bg-input font-mono text-[10px]">Esc</kbd>
+          {t('workspace:newChat.hintEsc')}
+        </span>
       </div>
     </div>
   )

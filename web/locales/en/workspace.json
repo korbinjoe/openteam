@@ -26,7 +26,9 @@
     "quickStart": "Quick Start",
     "continueLast": "Continue with last setup",
     "configureNew": "Or configure new task",
-    "shortcutHint": "Open this dialog"
+    "shortcutHint": "Open this dialog",
+    "hintEnter": "to start",
+    "hintEsc": "to cancel"
   },
   "chatCard": {
     "open": "Open",

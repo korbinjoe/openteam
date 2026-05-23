@@ -33,7 +33,7 @@ const TaskSessionList = ({ query = '' }: TaskSessionListProps) => {
   const q = query.trim().toLowerCase()
   const isSearching = q.length > 0
 
-  const { pinnedIds, pinnedAt, archivedIds, togglePin, toggleArchive } = useTaskPinArchive(workspaceId ?? '__all__')
+  const { pinnedIds, pinnedAt, archivedIds, togglePin, toggleArchive } = useTaskPinArchive(workspaceId ?? '__all__', chats)
   const [wsExpanded, setWsExpanded] = useState<Record<string, boolean>>(
     () => loadMap(WORKSPACE_EXPANDED_KEY),
   )

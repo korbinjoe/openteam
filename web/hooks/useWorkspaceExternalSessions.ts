@@ -52,7 +52,7 @@ export const useWorkspaceExternalSessions = (
     try {
       const params = new URLSearchParams()
       if (!resetCursor && cursor !== null) params.set('cursor', String(cursor))
-      params.set('limit', '20')
+      params.set('limit', '100')
       const url = `${API_BASE}/api/workspaces/${encodeURIComponent(workspaceId)}/external-sessions?${params}`
       const res = await authFetch(url)
       if (!res.ok) {
@@ -87,7 +87,7 @@ export const useWorkspaceExternalSessions = (
       inFlightRef.current = true
       setLoading(true)
       try {
-        const url = `${API_BASE}/api/workspaces/${encodeURIComponent(workspaceId)}/external-sessions?limit=20`
+        const url = `${API_BASE}/api/workspaces/${encodeURIComponent(workspaceId)}/external-sessions?limit=100`
         const res = await authFetch(url)
         if (!res.ok) { setError(`HTTP ${res.status}`); return }
         const body = (await res.json()) as PageResponse

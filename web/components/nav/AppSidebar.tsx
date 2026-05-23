@@ -4,7 +4,7 @@ import { Sparkles, Settings, Sun, Moon, CalendarClock, Bell, History, MessagesSq
 import { useTranslation } from 'react-i18next'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
-import { isElectron } from '../../utils/env'
+import { isElectron, isMacElectron } from '../../utils/env'
 import { useTheme } from '../../contexts/ThemeContext'
 import WorkspaceIcon from '../icons/WorkspaceIcon'
 import OpenTeamLogo from '../icons/OpenTeamLogo'
@@ -196,7 +196,7 @@ const AppSidebar = () => {
       )}
     >
       {/* Logo */}
-      {isElectron && <div className="h-5 shrink-0" />}
+      {isMacElectron && <div className="h-5 shrink-0" />}
       <Tooltip delayDuration={200}>
         <TooltipTrigger asChild>
           <button

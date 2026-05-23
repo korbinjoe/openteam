@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { useWorkspace, SIDEBAR_WIDTH_DEFAULT } from '../../contexts/WorkspaceContext'
+import { isMacElectron } from '../../utils/env'
 import TaskSessionList from './TaskSessionList'
 import SidebarFooter, { ResourcesSection } from './SidebarFooter'
 import ResizeHandle from './ResizeHandle'
@@ -20,7 +21,9 @@ const TaskSidebar = ({ collapsed }: TaskSidebarProps) => {
     return (
       <div className="w-[52px] bg-bg-secondary border-r border-border-subtle flex flex-col flex-shrink-0 transition-[width] duration-200 ease-out">
         {/* Header — logo + expand button */}
-        <div className="pt-2 pb-1 flex flex-col items-center gap-1.5 border-b border-border-subtle">
+        <div
+          className={`${isMacElectron ? 'pt-[30px]' : 'pt-2'} pb-1 flex flex-col items-center gap-1.5 border-b border-border-subtle`}
+        >
           <button
             onClick={() => navigate('/')}
             className="flex items-center justify-center w-8 h-8 rounded-md hover:bg-bg-hover transition-colors cursor-pointer"
@@ -76,7 +79,9 @@ const TaskSidebar = ({ collapsed }: TaskSidebarProps) => {
     >
       {/* Header — logo + collapse + new task button */}
       <div className="px-2.5 pt-2 pb-2 border-b border-border-subtle">
-        <div className="flex items-center gap-2 px-2.5 pb-2">
+        <div
+          className={`flex items-center gap-2 pr-2.5 pb-2 ${isMacElectron ? 'pl-[78px]' : 'pl-2.5'}`}
+        >
           <button
             onClick={() => navigate('/')}
             className="flex items-center gap-2 rounded-md -ml-1 px-1 py-0.5 hover:bg-bg-hover transition-colors cursor-pointer"

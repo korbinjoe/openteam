@@ -76,9 +76,14 @@ export interface ChatInstanceProps {
    *  inline. Lets V2 IDEPanel host the real IDE in its own column without
    *  re-instantiating the chat-bound data hooks. */
   rightPanelMountNode?: HTMLElement | null
+  /** Override the workspace-scoped selectedAgentId for this instance. Used by Quad
+   *  mode where multiple ChatInstance tiles share one chat but each locks to a
+   *  different agent. `undefined` = inherit from useWorkspace(); `null` = explicit
+   *  no-lock; a string locks the conversation to that agent. */
+  agentScopeOverride?: string | null
 }
 
-const ChatInstance = ({ chatId, workspaceId, isActive, isNewChat = false, initAgentId = null, initialMessage = null, hideRightPanel = false, rightPanelMountNode = null }: ChatInstanceProps) => {
+const ChatInstance = ({ chatId, workspaceId, isActive, isNewChat = false, initAgentId = null, initialMessage = null, hideRightPanel = false, rightPanelMountNode = null, agentScopeOverride }: ChatInstanceProps) => {
   const msgSeqRef = useRef(0)
   const uid = useCallback((prefix: string) => `${prefix}-${Date.now()}-${++msgSeqRef.current}`, [])
 
@@ -89,7 +94,10 @@ const ChatInstance = ({ chatId, workspaceId, isActive, isNewChat = false, initAg
   // active, the workspace pins the conversation to one agent. All cross-agent
   // affordances (mention menu, agent switcher, etc.) must be hidden inside this
   // view — talking to a different agent there means leaving the 1:1 surface.
-  const { selectedAgentId: lockedAgentId } = useWorkspace()
+  // agentScopeOverride takes precedence — Quad tiles use it so each tile pins
+  // to its own agent independent of the URL.
+  const { selectedAgentId: workspaceSelectedAgentId } = useWorkspace()
+  const lockedAgentId = agentScopeOverride !== undefined ? agentScopeOverride : workspaceSelectedAgentId
   // ── Hooks ──
   const {
     availableAgents, setAvailableAgents,

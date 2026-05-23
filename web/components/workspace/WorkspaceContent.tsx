@@ -1,18 +1,16 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useWorkspace, IDE_WIDTH_DEFAULT } from '../../contexts/WorkspaceContext'
 import { useWorkspaceChats } from '../../hooks/useWorkspaceChats'
-import type { Chat } from '../workspace/types'
 import ChatPane from './ChatPane'
 import IDEPanel from './IDEPanel'
-import MiniAgentPane from './MiniAgentPane'
+import QuadAgentTile from './QuadAgentTile'
 import TaskInfoSidebar from './TaskInfoSidebar'
 import ResizeHandle from './ResizeHandle'
 import { Plus } from './icons'
 
-// Quad task-overview tiles MiniAgentPanes (which don't mount ChatInstance),
-// so we still need an off-screen ChatPane to keep the IDE portal alive there.
-// Single/split layouts now render ChatPane + IdeRegion at stable React positions
-// (see UnifiedFrame), so the portal source never unmounts on view-mode toggle.
+// Quad tiles MiniAgentPanes (which don't mount ChatInstance), so we keep an
+// off-screen ChatPane to feed the IDE portal source. Single/split layouts render
+// ChatPane + IdeRegion at stable React positions (see UnifiedFrame).
 const HiddenChatPortalSource = () => (
   <div
     aria-hidden
@@ -29,27 +27,6 @@ const HiddenChatPortalSource = () => (
     <ChatPane />
   </div>
 )
-
-/** Pick the chats that earn quad slots: active chat first, then waiting (urgent),
- * then running. Dedup, cap at 4. Empty quad → show add-agent placeholders. */
-const useQuadChats = (limit: number): Chat[] => {
-  const { workspaceId, activeChatId } = useWorkspace()
-  const { chats, awaitingReview, running } = useWorkspaceChats(workspaceId)
-  return useMemo(() => {
-    const active = activeChatId ? chats.find((c) => c.id === activeChatId) : undefined
-    const ordered: Chat[] = []
-    const seen = new Set<string>()
-    const push = (c: Chat | undefined) => {
-      if (!c || seen.has(c.id)) return
-      seen.add(c.id)
-      ordered.push(c)
-    }
-    push(active)
-    awaitingReview.forEach(push)
-    running.forEach(push)
-    return ordered.slice(0, limit)
-  }, [chats, activeChatId, awaitingReview, running, limit])
-}
 
 // Split mode chat-width breakpoint:
 // 44% gives IDE room for code review at >=1280px; below that chat <400px wraps badly,
@@ -71,13 +48,11 @@ const useSplitChatWidth = (): string => {
 const WorkspaceContent = () => {
   const { viewMode, layoutMode, ideCollapsed } = useWorkspace()
 
-  // Quad layouts have different geometry (2x2 grid), keep their own branches.
-  // Their IDE area can reload across view-mode switches — acceptable trade-off
-  // since the dominant surface in quad is the agent grid, not the IDE.
+  // Quad always tiles members of the *active task* — never cross-task chats.
+  // Independent of viewMode: when an agent is selected we still show all task
+  // members and highlight the selected one (MemberBackedPane handles isActive).
   if (layoutMode === 'quad') {
-    return viewMode === 'task-overview'
-      ? <TaskOverviewQuadFrame ideCollapsed={ideCollapsed} />
-      : <QuadLayout ideCollapsed={ideCollapsed} />
+    return <QuadFrame ideCollapsed={ideCollapsed} />
   }
 
   // Single + split share one stable frame so ChatPane + IdeRegion keep their
@@ -138,23 +113,6 @@ const ChatColumn = ({
     <SplitChatContainer ideCollapsed={ideCollapsed} fallbackWidthClass={splitChatWidth}>
       {children}
     </SplitChatContainer>
-  )
-}
-
-const QuadLayout = ({ ideCollapsed }: { ideCollapsed: boolean }) => {
-  const quad = useQuadChats(4)
-  return (
-    <div className="flex-1 flex min-h-0 overflow-hidden">
-      <div className="flex-1 grid grid-cols-2 grid-rows-2 gap-px bg-border overflow-hidden min-w-0">
-        {quad.map((chat, i) => (
-          <MiniAgentPane key={chat.id} chat={chat} shortcutKey={String(i + 1)} />
-        ))}
-        {Array.from({ length: Math.max(0, 4 - quad.length) }).map((_, i) => (
-          <AddAgentSlot key={`add-${i}`} />
-        ))}
-      </div>
-      <IdeRegion mode="quad" collapsed={ideCollapsed} />
-    </div>
   )
 }
 
@@ -234,10 +192,10 @@ const IdeRegion = ({ mode, collapsed }: { mode: 'single' | 'split' | 'quad'; col
   )
 }
 
-/** Task-overview quad: tile the *members of the active task*, not cross-task chats.
- *  Empty slots → AddAgentSlot. >4 members → first 3 + "more" tile.
- *  HiddenChatPortalSource keeps the IDE portal alive (MiniAgentPanes don't mount ChatInstance). */
-const TaskOverviewQuadFrame = ({ ideCollapsed }: { ideCollapsed: boolean }) => {
+/** Quad: 2×2 of the active task's agent members.
+ *  No active task → guidance placeholder + empty IDE. >4 members → first 3 + "more".
+ *  HiddenChatPortalSource feeds the IDE portal (MiniAgentPanes don't mount ChatInstance). */
+const QuadFrame = ({ ideCollapsed }: { ideCollapsed: boolean }) => {
   const QUAD_SIZE = 4
   const { workspaceId, activeChatId, openAddAgent } = useWorkspace()
   const { chats } = useWorkspaceChats(workspaceId)
@@ -250,26 +208,24 @@ const TaskOverviewQuadFrame = ({ ideCollapsed }: { ideCollapsed: boolean }) => {
     <div className="flex-1 flex min-h-0 overflow-hidden relative">
       <div className="flex-1 flex min-h-0 overflow-hidden">
         <div className="flex-1 grid grid-cols-2 grid-rows-2 gap-px bg-border overflow-hidden min-w-0">
-          {chat && total >= QUAD_SIZE ? (
+          {!chat ? (
+            <NoTaskHint />
+          ) : total >= QUAD_SIZE ? (
             <>
               {members.slice(0, 3).map((m, i) => (
-                <MiniAgentPane key={m.agentId} member={m} parentChat={chat} shortcutKey={String(i + 1)} />
+                <QuadAgentTile key={m.agentId} member={m} parentChat={chat} shortcutKey={String(i + 1)} />
               ))}
               <MoreAgentsSlot count={total - 3} />
             </>
-          ) : chat ? (
+          ) : (
             <>
               {members.map((m, i) => (
-                <MiniAgentPane key={m.agentId} member={m} parentChat={chat} shortcutKey={String(i + 1)} />
+                <QuadAgentTile key={m.agentId} member={m} parentChat={chat} shortcutKey={String(i + 1)} />
               ))}
               {Array.from({ length: QUAD_SIZE - total }).map((_, i) => (
                 <AddAgentSlot key={`add-${i}`} onClick={handleAdd} />
               ))}
             </>
-          ) : (
-            Array.from({ length: QUAD_SIZE }).map((_, i) => (
-              <AddAgentSlot key={`add-${i}`} onClick={handleAdd} />
-            ))
           )}
         </div>
         <IdeRegion mode="quad" collapsed={ideCollapsed} />
@@ -278,6 +234,15 @@ const TaskOverviewQuadFrame = ({ ideCollapsed }: { ideCollapsed: boolean }) => {
     </div>
   )
 }
+
+const NoTaskHint = () => (
+  <div className="col-span-2 row-span-2 bg-bg-primary flex flex-col items-center justify-center gap-2 text-text-muted px-6 text-center">
+    <div className="text-xs text-text-secondary">No task selected</div>
+    <div className="text-[11px] text-text-muted max-w-[320px] leading-relaxed">
+      Quad shows the agents of the active task side-by-side. Pick a task from the sidebar to populate this view.
+    </div>
+  </div>
+)
 
 const AddAgentSlot = ({ onClick }: { onClick?: () => void }) => (
   <button

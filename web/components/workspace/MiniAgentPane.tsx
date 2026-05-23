@@ -310,10 +310,12 @@ const MemberBackedPane = ({ member, parentChat, isActive, shortcutKey }: {
             <span>Running…</span>
           </div>
         )}
-        {member.lastMessage && (
-          <div className="text-[11px] text-text-secondary line-clamp-2" title={member.lastMessage}>
+        {member.lastMessage ? (
+          <div className="text-[11px] text-text-secondary line-clamp-3" title={member.lastMessage}>
             {member.lastMessage}
           </div>
+        ) : (
+          <div className="text-[11px] text-text-muted italic">No activity yet</div>
         )}
         <div className="mt-auto flex items-center gap-2 text-[10px] text-text-muted font-mono tabular-nums">
           {lastActivity && <span>{lastActivity}</span>}

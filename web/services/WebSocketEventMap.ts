@@ -164,6 +164,10 @@ export interface WsReceiveEventMap {
   'git:changes': import('../../shared/ws/git').GitChangesEventPayload
   'git:tree-changed': { chatId: string; path: string }
 
+  // External session scanner (~/.claude, ~/.codex jsonl adoption)
+  'external-dirs:ready': { scannedFiles: number; cachedHits: number; durationMs: number; dirCount: number }
+  'external-dirs:changed': { providers: Array<'claude' | 'codex'>; dirCount: number; durationMs: number }
+
   '*': { type: string; payload: unknown }
 }
 

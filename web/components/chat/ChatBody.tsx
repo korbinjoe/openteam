@@ -15,7 +15,9 @@ const VIRTUOSO_STYLE: React.CSSProperties = { height: '100%' }
 export interface ChatBodyProps {
   messages: Message[]
   groups: MessageGroup[]
-  filterAgentId: string | null
+  /** Stable key for the current view (locked agent id, filter agent id, or
+   *  '__all__'). Drives Virtuoso remount + scroll reset on filter change. */
+  viewKey: string | null
   currentMergedActivity: AgentActivity | null | undefined
   groupActivities: Record<string, AgentActivity>
   expertActivities: Record<string, AgentActivity>
@@ -37,7 +39,7 @@ export interface ChatBodyProps {
 }
 
 const ChatBody = ({
-  messages, groups, filterAgentId, currentMergedActivity, groupActivities,
+  messages, groups, viewKey, currentMergedActivity, groupActivities,
   expertActivities, agentNames, agentPersonalities,
   thinking, currentAgentName, connected, currentSessionId,
   reconnecting, showReconnected, newMessageCount,
@@ -45,19 +47,7 @@ const ChatBody = ({
   handleScrollToBottom, handleAnswerQuestion, targetAgentId,
 }: ChatBodyProps) => {
   const { t } = useTranslation('chat')
-  const filteredGroups = useMemo(() => {
-    if (!filterAgentId) return groups
-    return groups.filter((g) => {
-      if (g.agentId) {
-        return g.agentId === filterAgentId
-      } else if (g.userMessage?.mentions) {
-        return g.userMessage.mentions.some((m) => m.id === filterAgentId)
-      }
-      return false
-    })
-  }, [groups, filterAgentId])
-
-  const totalGroups = filteredGroups.length
+  const totalGroups = groups.length
 
   const renderItem = useCallback((index: number, group: MessageGroup) => {
     const isLast = index === totalGroups - 1
@@ -123,10 +113,10 @@ const ChatBody = ({
         <EmptyState connected={connected} hasSession={!!currentSessionId} reconnecting={reconnecting} />
       ) : (
         <Virtuoso
-          key={filterAgentId ?? '__all__'}
+          key={viewKey ?? '__all__'}
           ref={virtuosoRef}
           style={VIRTUOSO_STYLE}
-          data={filteredGroups}
+          data={groups}
           computeItemKey={computeKey}
           itemContent={renderItem}
           followOutput={followOutput}

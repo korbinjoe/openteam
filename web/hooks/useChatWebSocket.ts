@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { toast } from 'sonner'
 import { getWebSocketClient, sendTelemetry } from '../services/WebSocketClient'
 import type { Message, AgentActivity, WorktreeSession } from '../types/chat'
@@ -6,6 +6,7 @@ import type { AgentSummary } from '../types/agentConfig'
 import { API_BASE, authFetch } from '@/config/api'
 import { createExpertEventHandlers, type ExpertEventHandlers } from './useExpertEvents'
 import { usePermissionEvents } from './usePermissionEvents'
+import { useAgentMessages, SYSTEM_MESSAGE_AGENT } from './useAgentMessages'
 
 interface UseChatWebSocketOptions {
   workspaceId?: string
@@ -13,11 +14,9 @@ interface UseChatWebSocketOptions {
   isNewChat: boolean
   initAgentId: string | null
   initialMessage?: string | null
-  addMessage: (msg: Message) => void
   uid: (prefix: string) => string
   t: (key: string, opts?: Record<string, unknown>) => string
   setExpertActivities: React.Dispatch<React.SetStateAction<Record<string, AgentActivity>>>
-  setMessages: React.Dispatch<React.SetStateAction<Message[]>>
   selectedAgentId: string | null
   availableAgents: AgentSummary[]
   handleSetSelectedAgentId: (id: string | null) => void
@@ -29,12 +28,17 @@ interface UseChatWebSocketOptions {
 
 /**
  * ChatPage  WebSocket Workspace
+ *
+ * Owns the per-agent message store. Callers (ChatInstance, useChatActions)
+ * read `agentMessages` and append via `addAgentMessage(agentId, msg)`. Each
+ * agent slot corresponds 1:1 to one CLI JSONL session, so no cross-agent
+ * merge/split happens at this layer.
  */
 export const useChatWebSocket = (opts: UseChatWebSocketOptions) => {
   const {
     workspaceId, chatId, isNewChat, initAgentId,
-    addMessage, uid, t,
-    setExpertActivities, setMessages,
+    uid, t,
+    setExpertActivities,
     selectedAgentId, availableAgents, handleSetSelectedAgentId, setAvailableAgents,
     isActive = true, onInitError,
   } = opts
@@ -45,6 +49,9 @@ export const useChatWebSocket = (opts: UseChatWebSocketOptions) => {
   const initialAgentSetRef = useRef(false)
   const selectedAgentIdRef = useRef(selectedAgentId)
   selectedAgentIdRef.current = selectedAgentId
+
+  const agentMessagesStore = useAgentMessages()
+  const { agentMessages, agentMessagesRef, setAgentMessages, mergedMessages } = agentMessagesStore
 
   const [connected, setConnected] = useState(false)
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null)
@@ -70,19 +77,41 @@ export const useChatWebSocket = (opts: UseChatWebSocketOptions) => {
   const chatIdRef = useRef(chatId)
   chatIdRef.current = chatId
   const autoInitFiredRef = useRef(false)
+  const selectedAgentIdRefForSystem = useRef(selectedAgentId)
+  selectedAgentIdRefForSystem.current = selectedAgentId
 
   const isCurrentChatEvent = (payload?: { chatId?: string }) => {
     const result = !!(payload?.chatId && chatIdRef.current && payload.chatId === chatIdRef.current)
     return result
   }
 
+  /** Route chat-level system messages (errors, banners) to a fallback agent slot
+   *  so they remain visible regardless of which agent the user is currently on. */
+  const addSystemMessage = useCallback((msg: Message) => {
+    const fallback = msg.agentId || selectedAgentIdRefForSystem.current || SYSTEM_MESSAGE_AGENT
+    const targetMsg: Message = msg.agentId ? msg : { ...msg, agentId: fallback }
+    setAgentMessages((prev) => {
+      const list = prev[fallback] ?? []
+      return { ...prev, [fallback]: [...list, targetMsg] }
+    })
+  }, [setAgentMessages])
+
+  /** Append a message to a specific agent slot. Public API for callers. */
+  const addAgentMessage = useCallback((agentId: string, msg: Message) => {
+    const targetMsg: Message = msg.agentId ? msg : { ...msg, agentId }
+    setAgentMessages((prev) => {
+      const list = prev[agentId] ?? []
+      return { ...prev, [agentId]: [...list, targetMsg] }
+    })
+  }, [setAgentMessages])
+
   const { permissionRequests, handleExpertPermissionRequest, handleChatPermissionResolved, dismissPermissionRequest } = usePermissionEvents(chatIdRef)
 
   const expertHandlersRef = useRef<ExpertEventHandlers | null>(null)
   if (!expertHandlersRef.current) {
     expertHandlersRef.current = createExpertEventHandlers({
-      isCurrentChatEvent, addMessage, uid, t,
-      setExpertActivities, setMessages, setLoading, setThinking,
+      isCurrentChatEvent, addSystemMessage, uid, t,
+      setExpertActivities, setAgentMessages, setLoading, setThinking,
       setAgentSlashCommands, setAgentPlans, setAgentModes,
       setAgentAvailableCommands, setAgentSessionInfo,
     })
@@ -95,7 +124,7 @@ export const useChatWebSocket = (opts: UseChatWebSocketOptions) => {
     handleError: (data: { message?: string; chatId?: string } | undefined) => {
       if (!isActiveRef.current) return
       if (data?.chatId && !isCurrentChatEvent(data)) return
-      addMessage({ id: uid('err'), role: 'agent', content: `Error: ${data?.message ?? 'unknown'}`, timestamp: Date.now(), type: 'error' })
+      addSystemMessage({ id: uid('err'), role: 'agent', content: `Error: ${data?.message ?? 'unknown'}`, timestamp: Date.now(), type: 'error' })
       setLoading(false); setThinking(false)
     },
     ...expertHandlers,
@@ -119,7 +148,7 @@ export const useChatWebSocket = (opts: UseChatWebSocketOptions) => {
   wsHandlersRef.current.handleError = (data) => {
     if (!isActiveRef.current) return
     if (data?.chatId && !isCurrentChatEvent(data)) return
-    addMessage({ id: uid('err'), role: 'agent', content: `Error: ${data?.message ?? 'unknown'}`, timestamp: Date.now(), type: 'error' })
+    addSystemMessage({ id: uid('err'), role: 'agent', content: `Error: ${data?.message ?? 'unknown'}`, timestamp: Date.now(), type: 'error' })
     setLoading(false); setThinking(false)
   }
   wsHandlersRef.current.sendChatContext = () => {
@@ -386,5 +415,12 @@ export const useChatWebSocket = (opts: UseChatWebSocketOptions) => {
     agentSessionInfo,
     permissionRequests,
     dismissPermissionRequest,
+    // Per-agent message store
+    agentMessages,
+    agentMessagesRef,
+    mergedMessages,
+    addAgentMessage,
+    addSystemMessage,
+    setAgentMessages,
   }
 }

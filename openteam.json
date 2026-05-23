@@ -32,7 +32,8 @@
           "code-reviewer",
           "architect",
           "sensei",
-          "image-creator"
+          "image-creator",
+          "product-strategist"
         ]
       },
       {
@@ -109,6 +110,15 @@
         "role": "expert",
         "skills": ["image-generator"],
         "allowedTools": ["Read", "Bash"]
+      },
+      {
+        "id": "product-strategist",
+        "name": "Product Strategist",
+        "description": "Competitive analysis, product research, and product design up to PRD and low-fidelity wireframes. Hands off implementation to engineering and high-fidelity visual design to ui-designer.",
+        "workspace": "./ai-assets/agents/product-strategist",
+        "role": "expert",
+        "skills": ["playwright-cli", "whiteboard"],
+        "allowedTools": ["Read", "Write", "Edit", "Glob", "Grep", "Bash", "WebFetch", "WebSearch", "AskUserQuestion"]
       }
     ]
   }

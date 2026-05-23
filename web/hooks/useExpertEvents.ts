@@ -2,14 +2,18 @@ import { toast } from 'sonner'
 import i18n from '@/i18n'
 import type { Message, AgentActivity } from '../types/chat'
 import { buildContentKey, buildMessageInstanceKey } from '../utils/messageDedup'
+import type { AgentMessagesMap } from './useAgentMessages'
+import { SYSTEM_MESSAGE_AGENT } from './useAgentMessages'
 
 export interface ExpertEventContext {
   isCurrentChatEvent: (payload?: { chatId?: string }) => boolean
-  addMessage: (msg: Message) => void
+  /** Append a chat-level message (errors, system notices) to a specific or default slot. */
+  addSystemMessage: (msg: Message) => void
   uid: (prefix: string) => string
   t: (key: string, opts?: Record<string, unknown>) => string
   setExpertActivities: React.Dispatch<React.SetStateAction<Record<string, AgentActivity>>>
-  setMessages: React.Dispatch<React.SetStateAction<Message[]>>
+  /** Per-agent message store updater. */
+  setAgentMessages: React.Dispatch<React.SetStateAction<AgentMessagesMap>>
   setLoading: React.Dispatch<React.SetStateAction<boolean>>
   setThinking: React.Dispatch<React.SetStateAction<boolean>>
   setAgentSlashCommands: React.Dispatch<React.SetStateAction<Record<string, string[]>>>
@@ -28,61 +32,119 @@ const isSameActivity = (a: AgentActivity, b: AgentActivity): boolean =>
   a.hasText === b.hasText &&
   a.cost === b.cost
 
+/** Merge a fresh batch into an existing per-agent list. */
+const mergeAgentBatch = (
+  base: Message[],
+  batch: Message[],
+  replacedIds: Set<string>,
+  dropStreamingForAgent: boolean,
+): Message[] => {
+  const filteredBase = base.filter((m) => {
+    if (replacedIds.size > 0 && replacedIds.has(m.id)) return false
+    if (dropStreamingForAgent && m.streaming) return false
+    return true
+  })
+
+  const existingInstanceKeys = new Set(filteredBase.map((m) => buildMessageInstanceKey(m)))
+  const existingContentKeys = new Set<string>()
+  for (const m of filteredBase) {
+    const ck = buildContentKey(m)
+    if (ck) existingContentKeys.add(ck)
+  }
+
+  const seenInBatch = new Set<string>()
+  const seenContentInBatch = new Set<string>()
+  const deduped = batch.filter((m) => {
+    const ik = buildMessageInstanceKey(m)
+    if (existingInstanceKeys.has(ik) || seenInBatch.has(ik)) return false
+    const ck = buildContentKey(m)
+    if (ck && (existingContentKeys.has(ck) || seenContentInBatch.has(ck))) return false
+    if (ck) seenContentInBatch.add(ck)
+    seenInBatch.add(ik)
+    return true
+  })
+
+  if (deduped.length === 0 && filteredBase.length === base.length) return base
+
+  const merged: Message[] = []
+  let i = 0, j = 0
+  while (i < filteredBase.length && j < deduped.length) {
+    if (filteredBase[i].timestamp <= deduped[j].timestamp) merged.push(filteredBase[i++])
+    else merged.push(deduped[j++])
+  }
+  while (i < filteredBase.length) merged.push(filteredBase[i++])
+  while (j < deduped.length) merged.push(deduped[j++])
+  return merged
+}
+
+/** Replay (full) into an existing per-agent list. */
+const applyAgentReplay = (base: Message[], tagged: Message[], agentId: string): Message[] => {
+  const replayUserIds = new Set(
+    tagged.filter((m) => m.role === 'user').map((m) => m.jsonlUuid || m.id),
+  )
+  const replayUserContents = new Set(
+    tagged.filter((m) => m.role === 'user').map((m) => m.content),
+  )
+  const maxReplayTs = tagged.reduce((max, m) => Math.max(max, m.timestamp), 0)
+
+  const others = base.filter((m) => {
+    if (m.role !== 'user') {
+      return m.timestamp > maxReplayTs
+    }
+    if (m.streaming) return false
+    if (m.jsonlUuid && replayUserIds.has(m.jsonlUuid)) return false
+    if (replayUserIds.has(m.id)) return false
+    if (replayUserContents.has(m.content)) return false
+    return true
+  })
+
+  const result: Message[] = []
+  let i = 0, j = 0
+  while (i < others.length && j < tagged.length) {
+    if (others[i].timestamp <= tagged[j].timestamp) result.push(others[i++])
+    else result.push(tagged[j++])
+  }
+  while (i < others.length) result.push(others[i++])
+  while (j < tagged.length) result.push(tagged[j++])
+  result.sort((a, b) => a.timestamp - b.timestamp)
+
+  // Drop residual streaming entries for this agent — a full replay supersedes them.
+  return result.filter((m) => !(m.streaming && m.agentId === agentId))
+}
+
 export const createExpertEventHandlers = (ctx: ExpertEventContext) => {
   const {
-    isCurrentChatEvent, addMessage, uid, t,
-    setExpertActivities, setMessages, setLoading, setThinking,
+    isCurrentChatEvent, addSystemMessage, uid, t,
+    setExpertActivities, setAgentMessages, setLoading, setThinking,
     setAgentSlashCommands, setAgentPlans, setAgentModes,
     setAgentAvailableCommands, setAgentSessionInfo,
   } = ctx
 
-  const deltaBuffer = { messages: [] as Message[], replacedIds: new Set<string>() }
+  // Per-agent delta buffering. Flush coalesces by agent so multiple agents
+  // running in parallel never overwrite each other's pending stream.
+  const deltaBuffers = new Map<string, { messages: Message[]; replacedIds: Set<string> }>()
   let deltaFlushTimer: ReturnType<typeof setTimeout> | null = null
   const DELTA_FLUSH_MS = 16
 
   const flushDeltaBuffer = () => {
     deltaFlushTimer = null
-    const { messages: batch, replacedIds } = deltaBuffer
-    if (batch.length === 0) return
-    const flushed = batch.splice(0)
-    const ids = new Set(replacedIds)
-    replacedIds.clear()
+    if (deltaBuffers.size === 0) return
+    const snapshot = new Map(deltaBuffers)
+    deltaBuffers.clear()
 
-    setMessages((prev) => {
-      const flushAgentIds = new Set(flushed.map((m) => m.agentId))
-      const base = prev.filter((m) => !(m.streaming && m.agentId && flushAgentIds.has(m.agentId)))
-
-      const existingInstanceKeys = new Set(base.map((m) => buildMessageInstanceKey(m)))
-      const existingContentKeys = new Set<string>()
-      for (const m of base) {
-        const ck = buildContentKey(m)
-        if (ck) existingContentKeys.add(ck)
-      }
-      const filtered = ids.size > 0 ? base.filter((m) => !ids.has(m.id)) : base
-      const seenInBatch = new Set<string>()
-      const seenContentInBatch = new Set<string>()
-      const deduped = flushed.filter((m) => {
-        const ik = buildMessageInstanceKey(m)
-        if (existingInstanceKeys.has(ik) || seenInBatch.has(ik)) return false
-        const ck = buildContentKey(m)
-        if (ck && (existingContentKeys.has(ck) || seenContentInBatch.has(ck))) return false
-        if (ck) seenContentInBatch.add(ck)
-        seenInBatch.add(ik)
-        return true
-      })
-      if (deduped.length === 0 && filtered.length === prev.length) return prev
-      const merged: Message[] = []
-      let i = 0, j = 0
-      while (i < filtered.length && j < deduped.length) {
-        if (filtered[i].timestamp <= deduped[j].timestamp) {
-          merged.push(filtered[i++])
-        } else {
-          merged.push(deduped[j++])
+    setAgentMessages((prev) => {
+      const next = { ...prev }
+      let changed = false
+      for (const [agentId, { messages: batch, replacedIds }] of snapshot.entries()) {
+        if (batch.length === 0 && replacedIds.size === 0) continue
+        const base = next[agentId] ?? []
+        const merged = mergeAgentBatch(base, batch, replacedIds, true)
+        if (merged !== base) {
+          next[agentId] = merged
+          changed = true
         }
       }
-      while (i < filtered.length) merged.push(filtered[i++])
-      while (j < deduped.length) merged.push(deduped[j++])
-      return merged
+      return changed ? next : prev
     })
   }
 
@@ -92,6 +154,19 @@ export const createExpertEventHandlers = (ctx: ExpertEventContext) => {
       deltaFlushTimer = null
     }
     flushDeltaBuffer()
+  }
+
+  const pushDelta = (agentId: string, messages: Message[], replacedStatsId?: string | null) => {
+    let bucket = deltaBuffers.get(agentId)
+    if (!bucket) {
+      bucket = { messages: [], replacedIds: new Set() }
+      deltaBuffers.set(agentId, bucket)
+    }
+    bucket.messages.push(...messages)
+    if (replacedStatsId) bucket.replacedIds.add(replacedStatsId)
+    if (!deltaFlushTimer) {
+      deltaFlushTimer = setTimeout(flushDeltaBuffer, DELTA_FLUSH_MS)
+    }
   }
 
   const handleExpertActivity = (payload: { agentId: string; chatId?: string; activity: AgentActivity }) => {
@@ -137,7 +212,22 @@ export const createExpertEventHandlers = (ctx: ExpertEventContext) => {
     if (payload?.error === 'command_not_found') {
       toast.error(payload.message || t('chat:cliNotInstalled'), { duration: 10000 })
     } else {
-      addMessage({ id: uid('err'), role: 'agent', content: `Error: ${payload?.message ?? 'unknown'}`, timestamp: Date.now(), type: 'error' })
+      const errorMsg: Message = {
+        id: uid('err'),
+        role: 'agent',
+        content: `Error: ${payload?.message ?? 'unknown'}`,
+        timestamp: Date.now(),
+        type: 'error',
+        agentId: payload?.agentId,
+      }
+      if (payload?.agentId) {
+        setAgentMessages((prev) => {
+          const list = prev[payload.agentId!] ?? []
+          return { ...prev, [payload.agentId!]: [...list, errorMsg] }
+        })
+      } else {
+        addSystemMessage(errorMsg)
+      }
       setLoading(false); setThinking(false)
     }
     if (payload?.agentId) {
@@ -191,87 +281,61 @@ export const createExpertEventHandlers = (ctx: ExpertEventContext) => {
       const agentOnly = payload.messages.filter((m) => m.role !== 'user')
       if (agentOnly.length === 0) return
       const tagged = agentOnly.map((m) => ({ ...m, agentId: payload.agentId }))
+      pushDelta(payload.agentId, tagged, payload.replacedStatsId ?? null)
+      return
+    }
 
-      deltaBuffer.messages.push(...tagged)
-      if (payload.replacedStatsId) {
-        deltaBuffer.replacedIds.add(payload.replacedStatsId)
-      }
-      if (!deltaFlushTimer) {
-        deltaFlushTimer = setTimeout(flushDeltaBuffer, DELTA_FLUSH_MS)
-      }
-    } else {
-      if (deltaFlushTimer) {
+    // Full replay — drop any pending delta for this agent so we don't double-apply.
+    if (deltaFlushTimer) {
+      const bucket = deltaBuffers.get(payload.agentId)
+      if (bucket) deltaBuffers.delete(payload.agentId)
+      if (deltaBuffers.size === 0) {
         clearTimeout(deltaFlushTimer)
         deltaFlushTimer = null
       }
-      deltaBuffer.messages = deltaBuffer.messages.filter((m) => m.agentId !== payload.agentId)
-      if (deltaBuffer.messages.length > 0) {
-        deltaFlushTimer = setTimeout(flushDeltaBuffer, DELTA_FLUSH_MS)
-      }
-
-      const tagged = payload.messages.map((m) => {
-        return { ...m, agentId: payload.agentId }
-      })
-      if (tagged.length === 0) return
-
-      setMessages((prev) => {
-        const replayUserIds = new Set(
-          tagged.filter((m) => m.role === 'user').map((m) => m.jsonlUuid || m.id),
-        )
-        const replayUserContents = new Set(
-          tagged.filter((m) => m.role === 'user').map((m) => m.content),
-        )
-        const maxReplayTs = tagged.reduce((max, m) => Math.max(max, m.timestamp), 0)
-        const others = prev.filter((m) => {
-          if (m.agentId === payload.agentId && m.role !== 'user') {
-            return m.timestamp > maxReplayTs
-          }
-          if (m.streaming && m.agentId === payload.agentId) return false
-          if (m.role === 'user') {
-            if (m.jsonlUuid && replayUserIds.has(m.jsonlUuid)) return false
-            if (replayUserIds.has(m.id)) return false
-            if (replayUserContents.has(m.content)) return false
-          }
-          return true
-        })
-        const result: Message[] = []
-        let i = 0, j = 0
-        while (i < others.length && j < tagged.length) {
-          if (others[i].timestamp <= tagged[j].timestamp) {
-            result.push(others[i++])
-          } else {
-            result.push(tagged[j++])
-          }
-        }
-        while (i < others.length) result.push(others[i++])
-        while (j < tagged.length) result.push(tagged[j++])
-
-        result.sort((a, b) => a.timestamp - b.timestamp)
-        return result
-      })
     }
+
+    const tagged = payload.messages.map((m) => ({ ...m, agentId: payload.agentId }))
+    if (tagged.length === 0) return
+
+    setAgentMessages((prev) => {
+      const base = prev[payload.agentId] ?? []
+      const next = applyAgentReplay(base, tagged, payload.agentId)
+      if (next === base) return prev
+      return { ...prev, [payload.agentId]: next }
+    })
   }
 
   const handleExpertPartialText = (payload: { agentId: string; chatId?: string; sessionId?: string; blockIndex: number; text: string }) => {
     if (!isCurrentChatEvent(payload)) return
     if (!payload?.agentId || !payload?.text) return
-    if (deltaBuffer.messages.some((m) => m.agentId === payload.agentId)) return
-    setMessages((prev) => {
-      const last = prev[prev.length - 1]
+    // If we already have a queued delta batch for this agent, partial text would
+    // race with the structured update; let the delta win.
+    if (deltaBuffers.get(payload.agentId)?.messages.length) return
+
+    setAgentMessages((prev) => {
+      const list = prev[payload.agentId] ?? []
+      const last = list[list.length - 1]
       if (last?.role === 'agent' && last.agentId === payload.agentId && last.streaming) {
-        const next = prev.slice()
-        next[next.length - 1] = { ...last, content: last.content + payload.text }
-        return next
+        const nextList = list.slice()
+        nextList[nextList.length - 1] = { ...last, content: last.content + payload.text }
+        return { ...prev, [payload.agentId]: nextList }
       }
-      return [...prev, {
-        id: uid('stream'),
-        role: 'agent',
-        agentId: payload.agentId,
-        content: payload.text,
-        timestamp: Date.now(),
-        type: 'text',
-        streaming: true,
-      }]
+      return {
+        ...prev,
+        [payload.agentId]: [
+          ...list,
+          {
+            id: uid('stream'),
+            role: 'agent',
+            agentId: payload.agentId,
+            content: payload.text,
+            timestamp: Date.now(),
+            type: 'text',
+            streaming: true,
+          },
+        ],
+      }
     })
   }
 
@@ -344,3 +408,4 @@ export const createExpertEventHandlers = (ctx: ExpertEventContext) => {
 }
 
 export type ExpertEventHandlers = ReturnType<typeof createExpertEventHandlers>
+export { SYSTEM_MESSAGE_AGENT }

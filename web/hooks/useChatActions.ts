@@ -20,7 +20,7 @@ interface UseChatActionsParams {
   messages: Message[]
   input: string
   setInput: (v: string) => void
-  addMessage: (msg: Message) => void
+  addAgentMessage: (agentId: string, msg: Message) => void
   uid: (prefix: string) => string
   handleScrollToBottom: () => void
   setExpertActivities: React.Dispatch<React.SetStateAction<Record<string, AgentActivity>>>
@@ -34,7 +34,7 @@ interface UseChatActionsParams {
 export const useChatActions = ({
   chatId, wsClient, currentSessionId, currentWorkingDirectory, wsRepositories,
   availableAgents, targetAgentId, expertActivities, currentMergedActivity,
-  messages, input, setInput, addMessage, uid, handleScrollToBottom,
+  messages, input, setInput, addAgentMessage, uid, handleScrollToBottom,
   setExpertActivities, setTargetAgentId, setLoading, chatTitle, setChatTitle,
   openDirPicker,
 }: UseChatActionsParams) => {
@@ -72,13 +72,14 @@ export const useChatActions = ({
       return targetAgent?.id || snapshotTargetId || availableAgents[0]?.id
     })()
 
-    addMessage({
-      id: uid('usr'), role: 'user',
-      content: messageContent,
-      timestamp: Date.now(), type: 'text',
-      mentions: msgMentions, images: msgImages,
-      agentId: inferredTargetAgentId,
-    })
+    if (inferredTargetAgentId) {
+      addAgentMessage(inferredTargetAgentId, {
+        id: uid('usr'), role: 'user',
+        content: messageContent,
+        timestamp: Date.now(), type: 'text',
+        mentions: msgMentions, images: msgImages,
+      })
+    }
     handleScrollToBottom()
 
     const wsImages = images.length > 0
@@ -120,7 +121,7 @@ export const useChatActions = ({
         body: JSON.stringify({ lastAgentId: finalAgentId }),
       }).catch(() => {})
     }
-  }, [availableAgents, addMessage, uid, handleScrollToBottom, setExpertActivities, wsClient, chatId, currentWorkingDirectory, wsRepositories, setTargetAgentId])
+  }, [availableAgents, addAgentMessage, uid, handleScrollToBottom, setExpertActivities, wsClient, chatId, currentWorkingDirectory, wsRepositories, setTargetAgentId])
 
   const flushNext = useCallback(() => {
     const head = queuedMessagesRef.current[0]

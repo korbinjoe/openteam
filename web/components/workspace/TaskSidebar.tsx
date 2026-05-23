@@ -1,10 +1,11 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useWorkspace, SIDEBAR_WIDTH_DEFAULT } from '../../contexts/WorkspaceContext'
 import { isMacElectron } from '../../utils/env'
 import TaskSessionList from './TaskSessionList'
 import SidebarFooter, { ResourcesSection } from './SidebarFooter'
 import ResizeHandle from './ResizeHandle'
-import { ChevronLeft, ChevronRight, Plus, Handshake, Zap, Repeat, FolderGit, Settings } from './icons'
+import { ChevronLeft, ChevronRight, Plus, Handshake, Zap, Repeat, FolderGit, Settings, Search } from './icons'
 
 interface TaskSidebarProps {
   collapsed: boolean
@@ -13,6 +14,7 @@ interface TaskSidebarProps {
 const TaskSidebar = ({ collapsed }: TaskSidebarProps) => {
   const { togglePanel, sidebarWidth, setSidebarWidth, openNewTask, workspaceId } = useWorkspace()
   const navigate = useNavigate()
+  const [query, setQuery] = useState('')
 
   const resourcePrefix = workspaceId ? `/workspace/${workspaceId}` : ''
   const goResource = (slug: string) => () => navigate(`${resourcePrefix}/${slug}`)
@@ -109,11 +111,33 @@ const TaskSidebar = ({ collapsed }: TaskSidebarProps) => {
           <span className="text-[13px] font-medium text-text-primary flex-1 text-left">New Task</span>
           <span className="font-mono text-[11px] text-text-muted">⌘N</span>
         </button>
+        <div className="relative mt-1.5">
+          <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Escape') setQuery('') }}
+            placeholder="Search tasks…"
+            aria-label="Search tasks"
+            className="w-full bg-bg-tertiary text-[12px] text-text-primary placeholder:text-text-muted rounded-md pl-7 pr-7 py-[6px] outline-none border border-transparent focus:border-border focus:bg-bg-primary transition-colors"
+          />
+          {query && (
+            <button
+              onClick={() => setQuery('')}
+              title="Clear (Esc)"
+              aria-label="Clear search"
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded flex items-center justify-center text-text-muted hover:text-text-primary hover:bg-bg-hover text-[12px] leading-none"
+            >
+              ×
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Scrollable task list — grouped by workspace */}
       <div className="flex-1 overflow-y-auto min-h-0 px-1.5 py-1">
-        <TaskSessionList />
+        <TaskSessionList query={query} />
       </div>
 
       {/* Resources */}

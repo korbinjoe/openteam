@@ -78,4 +78,29 @@ describe('groupMessages', () => {
     ])
     expect(groups[groups.length - 1].isStreaming).toBe(true)
   })
+
+  it('cross-agent interleaved replies attach to the right group, not the latest one', () => {
+    const groups = groupMessages([
+      msg({ id: 'u1', role: 'user', agentId: 'A', timestamp: 1 }),
+      msg({ id: 'u2', role: 'user', agentId: 'B', timestamp: 2 }),
+      msg({ id: 'a1', role: 'agent', agentId: 'A', timestamp: 3, content: 'from A' }),
+      msg({ id: 'a2', role: 'agent', agentId: 'B', timestamp: 4, content: 'from B' }),
+    ])
+    expect(groups).toHaveLength(2)
+    const groupA = groups.find(g => g.agentId === 'A')!
+    const groupB = groups.find(g => g.agentId === 'B')!
+    expect(groupA.agentMessages.map(m => m.id)).toEqual(['a1'])
+    expect(groupB.agentMessages.map(m => m.id)).toEqual(['a2'])
+  })
+
+  it('agent message with no matching prior group → opens orphan group instead of being dropped', () => {
+    const groups = groupMessages([
+      msg({ id: 'u1', role: 'user', agentId: 'A' }),
+      msg({ id: 'a1', role: 'agent', agentId: 'B', content: 'B speaks first' }),
+    ])
+    expect(groups).toHaveLength(2)
+    expect(groups[1].userMessage).toBeNull()
+    expect(groups[1].agentId).toBe('B')
+    expect(groups[1].agentMessages.map(m => m.id)).toEqual(['a1'])
+  })
 })

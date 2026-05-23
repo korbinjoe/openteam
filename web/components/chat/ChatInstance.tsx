@@ -10,7 +10,7 @@ import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import type { Message, AgentActivity } from '../../types/chat'
+import type { AgentActivity } from '../../types/chat'
 import { groupMessages } from './messages/MessageGroup'
 import ChatHeader from './ChatHeader'
 import ChatBody from './ChatBody'
@@ -134,7 +134,6 @@ const ChatInstance = ({ chatId, workspaceId, isActive, isNewChat = false, initAg
     currentMergedActivity,
   } = useExpertActivities()
 
-  const [messages, setMessages] = useState<Message[]>([])
   const [groupActivities, setGroupActivities] = useState<Record<string, AgentActivity>>({})
   const [input, setInput] = useState('')
   const [terminalWidth, setTerminalWidth] = useState(58)
@@ -142,14 +141,8 @@ const ChatInstance = ({ chatId, workspaceId, isActive, isNewChat = false, initAg
   const [isResizing, setIsResizing] = useState(false)
   const [filterAgentId, setFilterAgentId] = useState<string | null>(null)
 
-  const messagesRef = useRef(messages)
-  messagesRef.current = messages
   const inputAreaRef = useRef<InputAreaHandle>(null)
   const [agentSwitcherOpen, setAgentSwitcherOpen] = useState(false)
-
-  const addMessage = useCallback((msg: Message) => {
-    setMessages((prev) => [...prev, msg])
-  }, [])
 
   const onInitError = useCallback(() => navigate('/'), [navigate])
 
@@ -163,14 +156,26 @@ const ChatInstance = ({ chatId, workspaceId, isActive, isNewChat = false, initAg
     chatModel, setChatModel,
     agentPlans, agentModes, agentAvailableCommands, agentSessionInfo,
     permissionRequests, dismissPermissionRequest,
+    agentMessages, mergedMessages,
+    addAgentMessage, addSystemMessage,
   } = useChatWebSocket({
     workspaceId, chatId, isNewChat, initAgentId, initialMessage,
-    addMessage, uid, t,
-    setExpertActivities, setMessages,
+    uid, t,
+    setExpertActivities,
     selectedAgentId, availableAgents, handleSetSelectedAgentId, setAvailableAgents,
     isActive,
     onInitError,
   })
+
+  // Single-agent surfaces (Quad tile, ?agent=X route) and the toolbar agent
+  // filter read their slot directly so cross-agent traffic is excluded at the
+  // source; the aggregate Task view falls back to the merged, timestamp-sorted
+  // stream. ChatBody no longer needs a post-hoc filter pass.
+  const visibleMessages = useMemo(() => {
+    if (singleAgentMode && lockedAgentKey) return agentMessages[lockedAgentKey] ?? []
+    if (filterAgentId) return agentMessages[filterAgentId] ?? []
+    return mergedMessages
+  }, [singleAgentMode, lockedAgentKey, filterAgentId, agentMessages, mergedMessages])
 
   const dirPickerHistory = useMemo(() => currentWorkingDirectory ? [currentWorkingDirectory] : [], [currentWorkingDirectory])
   const dirPicker = useDirPicker(dirPickerHistory)
@@ -213,7 +218,7 @@ const ChatInstance = ({ chatId, workspaceId, isActive, isNewChat = false, initAg
   const {
     virtuosoRef, onAtBottomChange, followOutput,
     newMessageCount, handleScrollToBottom,
-  } = useChatScroll(messages)
+  } = useChatScroll(visibleMessages)
 
   const { statusMap: multiGitStatus, aggregate: gitAggregate, optimisticUpdate: multiOptimisticUpdate } = useMultiRepoGitStatus({
     worktreeSessions: allWorktreeSessions,
@@ -234,18 +239,18 @@ const ChatInstance = ({ chatId, workspaceId, isActive, isNewChat = false, initAg
     setChangesTabRequest((n) => n + 1)
   }, [])
 
-  const groups = useMemo(() => groupMessages(messages), [messages])
+  const groups = useMemo(() => groupMessages(visibleMessages), [visibleMessages])
   const activeAgentIds = useMemo(
-    () => [...new Set(messages.filter((m) => m.role === 'agent' && m.agentId).map((m) => m.agentId!))],
-    [messages],
+    () => [...new Set(mergedMessages.filter((m) => m.role === 'agent' && m.agentId).map((m) => m.agentId!))],
+    [mergedMessages],
   )
   const lastUserGroupId = useMemo(() => {
-    for (let i = messages.length - 1; i >= 0; i--) {
-      if (messages[i].role === 'user') return `group-${messages[i].id}`
+    for (let i = visibleMessages.length - 1; i >= 0; i--) {
+      if (visibleMessages[i].role === 'user') return `group-${visibleMessages[i].id}`
     }
-    const firstAgent = messages.find((m) => m.role !== 'user')
+    const firstAgent = visibleMessages.find((m) => m.role !== 'user')
     return firstAgent ? `group-orphan-${firstAgent.id}` : null
-  }, [messages])
+  }, [visibleMessages])
 
   const setGroupActivity = useCallback((groupId: string, activity: AgentActivity) => {
     setGroupActivities((prev) => {
@@ -267,14 +272,22 @@ const ChatInstance = ({ chatId, workspaceId, isActive, isNewChat = false, initAg
     })
   }, [])
 
-  // AutoSend initialMessage
+  // AutoSend initialMessage. Route to the agent slot that will actually receive
+  // this turn (locked agent > init agent > current selection); otherwise fall
+  // back to the chat-level system slot so the message never gets lost.
   const initialMessageAddedRef = useRef(false)
   useEffect(() => {
     if (!initialMessage || initialMessageAddedRef.current) return
     if (!connected || !cwdReady) return
     initialMessageAddedRef.current = true
-    addMessage({ id: uid('usr'), role: 'user', content: initialMessage, timestamp: Date.now(), type: 'text' })
-  }, [initialMessage, connected, cwdReady, addMessage, uid])
+    const initialAgentId = lockedAgentId || initAgentId || selectedAgentId
+    const userMsg = { id: uid('usr'), role: 'user' as const, content: initialMessage, timestamp: Date.now(), type: 'text' as const }
+    if (initialAgentId) {
+      addAgentMessage(initialAgentId, userMsg)
+    } else {
+      addSystemMessage(userMsg)
+    }
+  }, [initialMessage, connected, cwdReady, lockedAgentId, initAgentId, selectedAgentId, addAgentMessage, addSystemMessage, uid])
 
   // snapshot activity → groupActivity
   const prevLastGroupIdRef = useRef<string | null>(null)
@@ -322,7 +335,7 @@ const ChatInstance = ({ chatId, workspaceId, isActive, isNewChat = false, initAg
     const targetAgent = availableAgents.find((a) => a.name === targetAgentId || a.id === targetAgentId)
     const agentId = targetAgent?.id || targetAgentId || availableAgents[0]?.id
     if (!agentId) return
-    addMessage({ id: uid('usr'), role: 'user', content: message, timestamp: Date.now(), type: 'text' })
+    addAgentMessage(agentId, { id: uid('usr'), role: 'user', content: message, timestamp: Date.now(), type: 'text' })
     handleScrollToBottom()
     wsClient.send('expert:direct-input', {
       chatId, agentId, message, autoStart: true,
@@ -330,7 +343,7 @@ const ChatInstance = ({ chatId, workspaceId, isActive, isNewChat = false, initAg
       repositories: wsRepositories.map((r) => ({ path: r.path })),
       cols: 80, rows: 24,
     })
-  }, [availableAgents, targetAgentId, chatId, currentWorkingDirectory, wsRepositories, wsClient, dirPicker, addMessage, uid, handleScrollToBottom])
+  }, [availableAgents, targetAgentId, chatId, currentWorkingDirectory, wsRepositories, wsClient, dirPicker, addAgentMessage, uid, handleScrollToBottom])
 
   const {
     queuedMessages,
@@ -339,7 +352,7 @@ const ChatInstance = ({ chatId, workspaceId, isActive, isNewChat = false, initAg
   } = useChatActions({
     chatId, wsClient, currentSessionId, currentWorkingDirectory, wsRepositories,
     availableAgents, targetAgentId, expertActivities, currentMergedActivity,
-    messages, input, setInput, addMessage, uid, handleScrollToBottom,
+    messages: mergedMessages, input, setInput, addAgentMessage, uid, handleScrollToBottom,
     setExpertActivities, setTargetAgentId, setLoading, chatTitle, setChatTitle,
     openDirPicker: dirPicker.openDirPicker,
   })
@@ -413,11 +426,11 @@ const ChatInstance = ({ chatId, workspaceId, isActive, isNewChat = false, initAg
             <div style={LOADING_STYLE}>Loading workspace...</div>
           ) : (<>
           {allWorktreeSessions.length > 0 && <WorktreePanel sessions={allWorktreeSessions} repositories={wsRepositories} />}
-          {messages.length > 0 && !singleAgentMode && (
+          {mergedMessages.length > 0 && !singleAgentMode && (
             <MessageToolbar filterAgentId={filterAgentId} onFilterAgentChange={handleFilterAgentChange} agentNames={agentNames} agentPersonalities={agentPersonalities} expertActivities={expertActivities} activeAgentIds={activeAgentIds} />
           )}
           <ChatBody
-            messages={messages} groups={groups} filterAgentId={singleAgentMode ? lockedAgentKey : filterAgentId}
+            messages={visibleMessages} groups={groups} viewKey={singleAgentMode ? lockedAgentKey : (filterAgentId ?? '__all__')}
             currentMergedActivity={currentMergedActivity} groupActivities={groupActivities}
             expertActivities={expertActivities} agentNames={agentNames} agentPersonalities={agentPersonalities}
             thinking={thinking} currentAgentName={currentAgentName}

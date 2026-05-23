@@ -8,12 +8,12 @@ import type { Chat, ChatMember, ChatMemberStatus } from '../workspace/types'
 
 export const TASK_EXPANDED_KEY = 'openteam:v2-task-expanded'
 
-// Sidebar row indents. Task is root; agents nest under it via larger left padding.
-// Keep these in sync — they form the visual hierarchy (task > lead > sub).
-const INDENT_AGENT_LEAD = 'pl-9'          // 36px — lead agent under task title
-const INDENT_AGENT_SUB = 'pl-[52px]'      // 52px — sub-agent under lead (deeper indent)
-const INDENT_ADD_AGENT = 'pl-9'           // 36px — peer of lead agent
-const CONNECTOR_LEFT_CLASS = 'left-[30px]' // vertical tree line for sub-agents
+// Sidebar row indents. Task is root; all agents (lead + workers) sit as peers
+// directly beneath it. The data model has no parent/child relation between
+// agents — `role` only distinguishes lead from worker, so they must render at
+// the same indent. Lead is marked by the inline star, not by hierarchy.
+const INDENT_AGENT = 'pl-9'      // 36px — every agent row, peer of "Add Agent"
+const INDENT_ADD_AGENT = 'pl-9'  // 36px — peer of agent rows
 
 export const loadMap = (key: string): Record<string, boolean> => {
   try {
@@ -91,12 +91,15 @@ interface TaskRowProps {
   chat: Chat
   isSelected: boolean
   agentNames: Record<string, string>
+  // togglePin: same callback for pin and unpin (it's a toggle in the hook).
+  // The icon and tooltip flip based on `isPinned` so the action reads correctly.
   onPin: () => void
   onArchive: () => void
   onAddAgent: () => void
+  isPinned?: boolean
 }
 
-export const TaskRow = ({ chat, isSelected, agentNames, onPin, onArchive, onAddAgent }: TaskRowProps) => {
+export const TaskRow = ({ chat, isSelected, agentNames, onPin, onArchive, onAddAgent, isPinned = false }: TaskRowProps) => {
   const navigate = useNavigate()
   const { selectedAgentId } = useWorkspace()
   const [expanded, setExpanded] = useState<boolean>(() => loadTaskExpandedMap()[chat.id] ?? true)
@@ -156,16 +159,27 @@ export const TaskRow = ({ chat, isSelected, agentNames, onPin, onArchive, onAddA
           <ChevronRight size={9} className={cn('transition-transform', expanded && 'rotate-90')} />
         </button>
         <span className={cn('w-[7px] h-[7px] rounded-full flex-shrink-0', chatStatusDot(chat))} />
+        {isPinned && (
+          <Pin size={9} className="text-accent-brand flex-shrink-0 -ml-0.5" />
+        )}
         <span className="text-xs font-medium text-text-primary flex-1 truncate">{chat.title}</span>
         {agentCount > 1 && (
           <span className="font-mono text-[10px] px-1.5 rounded bg-bg-tertiary text-text-secondary tabular-nums flex-shrink-0">
             {agentCount}
           </span>
         )}
+        <span
+          className="font-mono text-[10px] text-text-muted tabular-nums flex-shrink-0 transition-opacity duration-100 group-hover:opacity-0"
+          title={`Created ${new Date(chat.createdAt).toLocaleString()}`}
+        >
+          {ageLabel(chat.createdAt)}
+        </span>
         <RowHoverActions
           actions={[
             { title: 'Add agent', onClick: onAddAgent, children: <Plus size={11} /> },
-            { title: 'Pin task', onClick: onPin, children: <Pin size={11} /> },
+            isPinned
+              ? { title: 'Unpin task', onClick: onPin, children: <PinOff size={11} /> }
+              : { title: 'Pin task', onClick: onPin, children: <Pin size={11} /> },
             { title: 'Archive task', onClick: onArchive, children: <Archive size={11} /> },
           ]}
         />
@@ -220,17 +234,11 @@ export const AgentRow = ({ agentId, agentName, isLead, chat, member, isSelected 
       onClick={handleOpen}
       title={`${agentName}${isLead ? ' · lead' : ''}`}
       className={cn(
-        'group relative flex items-center gap-1.5 py-[5px] rounded-md transition-colors text-left',
-        isLead ? `${INDENT_AGENT_LEAD} pr-2` : `${INDENT_AGENT_SUB} pr-2`,
+        'group relative flex items-center gap-1.5 py-[5px] pr-2 rounded-md transition-colors text-left',
+        INDENT_AGENT,
         isSelected ? 'bg-accent-brand/[0.08]' : 'hover:bg-bg-hover',
       )}
     >
-      {!isLead && (
-        <>
-          <span className={cn('absolute top-0 bottom-0 w-px bg-border', CONNECTOR_LEFT_CLASS)} aria-hidden />
-          <span className="text-[11px] text-text-muted -ml-1 mr-0 flex-shrink-0">↳</span>
-        </>
-      )}
       <span className={cn('w-[6px] h-[6px] rounded-full flex-shrink-0', dotClass)} />
       {isLead && (
         <LeadStar className={cn('flex-shrink-0', isSelected ? 'text-accent-brand-light' : 'text-text-muted')} />
@@ -244,38 +252,6 @@ export const AgentRow = ({ agentId, agentName, isLead, chat, member, isSelected 
       <span className="font-mono text-[11px] text-text-muted tabular-nums flex-shrink-0">
         {ageLabel(ageInput)}
       </span>
-    </button>
-  )
-}
-
-export const PinnedRow = ({ chat, age, isSelected, agentNames, onUnpin, onArchive }: {
-  chat: Chat
-  age: string
-  isSelected: boolean
-  agentNames: Record<string, string>
-  onUnpin: () => void
-  onArchive: () => void
-}) => {
-  const navigate = useNavigate()
-  const handleOpen = () => navigate(buildTaskOpenUrl(chat))
-  return (
-    <button
-      onClick={handleOpen}
-      title={`${chat.title} · ${agentNames[chat.primaryAgentId] ?? chat.primaryAgentId}`}
-      className={cn(
-        'group flex items-center gap-2 px-2.5 py-1.5 rounded-md cursor-pointer transition-colors w-full text-left',
-        isSelected ? 'bg-accent-brand/[0.08]' : 'hover:bg-bg-hover',
-      )}
-    >
-      <Pin size={11} className="text-accent-brand flex-shrink-0" />
-      <span className="text-xs font-medium text-text-primary flex-1 truncate">{chat.title}</span>
-      <RowEndSlotWithLabel
-        label={age}
-        actions={[
-          { title: 'Unpin task', onClick: onUnpin, children: <PinOff size={11} /> },
-          { title: 'Archive task', onClick: onArchive, children: <Archive size={11} /> },
-        ]}
-      />
     </button>
   )
 }
@@ -301,6 +277,12 @@ export const CompletedRow = ({ chat, isSelected, archived, agentNames, onPin, on
     >
       <span className="w-1.5 h-1.5 rounded-full bg-text-muted flex-shrink-0" />
       <span className="text-[12px] text-text-secondary flex-1 truncate">{chat.title}</span>
+      <span
+        className="font-mono text-[10px] text-text-muted tabular-nums flex-shrink-0 transition-opacity duration-100 group-hover:opacity-0"
+        title={`Created ${new Date(chat.createdAt).toLocaleString()}`}
+      >
+        {ageLabel(chat.createdAt)}
+      </span>
       <RowHoverActions
         actions={[
           { title: 'Pin task', onClick: onPin, children: <Pin size={11} /> },
@@ -311,7 +293,7 @@ export const CompletedRow = ({ chat, isSelected, archived, agentNames, onPin, on
   )
 }
 
-interface RowAction {
+export interface RowAction {
   title: string
   onClick: () => void
   children: React.ReactNode
@@ -348,13 +330,13 @@ const ActionButtons = ({ actions }: { actions: RowAction[] }) => (
   </>
 )
 
-const RowHoverActions = ({ actions }: { actions: RowAction[] }) => (
+export const RowHoverActions = ({ actions }: { actions: RowAction[] }) => (
   <span className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-100 bg-bg-secondary/95 backdrop-blur-sm rounded px-0.5">
     <ActionButtons actions={actions} />
   </span>
 )
 
-const RowEndSlotWithLabel = ({ label, actions }: { label: React.ReactNode; actions: RowAction[] }) => (
+export const RowEndSlotWithLabel = ({ label, actions }: { label: React.ReactNode; actions: RowAction[] }) => (
   <span className="relative flex items-center justify-end ml-auto min-w-[36px] flex-shrink-0">
     <span className="text-[10px] text-text-muted transition-opacity duration-100 group-hover:opacity-0">{label}</span>
     <span className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-100">

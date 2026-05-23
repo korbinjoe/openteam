@@ -15,16 +15,23 @@ import { useWorkspaceExternalSessions } from '../../hooks/useWorkspaceExternalSe
 import { useExternalCwdSessions, type ExternalSession } from '../../hooks/useExternalCwdSessions'
 import { ChevronDown, ChevronRight, FolderGit, Folder } from './icons'
 import type { Chat } from './types'
-import { loadMap, saveMap, TaskRow, PinnedRow, CompletedRow, ageLabel } from './TaskSessionRows'
+import { loadMap, saveMap, TaskRow, CompletedRow } from './TaskSessionRows'
 import { ExternalSessionRow } from './ExternalSessionRow'
 
 const WORKSPACE_EXPANDED_KEY = 'openteam:v2-workspace-expanded'
 
-const TaskSessionList = () => {
+interface TaskSessionListProps {
+  query?: string
+}
+
+const TaskSessionList = ({ query = '' }: TaskSessionListProps) => {
   const { workspaceId, activeChatId, openAddAgent } = useWorkspace()
   const { chats, workspaces, loading } = useAllChats()
   const { unmatchedDirs } = useExternalCwds()
   const { agentNames } = useAgents()
+
+  const q = query.trim().toLowerCase()
+  const isSearching = q.length > 0
 
   const { pinnedIds, pinnedAt, archivedIds, togglePin, toggleArchive } = useTaskPinArchive(workspaceId ?? '__all__')
   const [wsExpanded, setWsExpanded] = useState<Record<string, boolean>>(
@@ -65,11 +72,26 @@ const TaskSessionList = () => {
     )
   }
 
+  // While searching: hide workspaces with no name match and no chat-title match.
+  // External sessions are also filterable but only against what's already loaded —
+  // we don't trigger fetches based on the query.
+  const renderedWorkspaces = workspaces
+    .map((ws) => {
+      const wsChats = chats.filter((c) => c.workspaceId === ws.id)
+      if (!isSearching) return { ws, wsChats, wsNameMatches: false }
+      const wsNameMatches = ws.name.toLowerCase().includes(q)
+      const anyChatMatches = wsChats.some((c) => c.title.toLowerCase().includes(q))
+      if (!wsNameMatches && !anyChatMatches) return null
+      return { ws, wsChats, wsNameMatches }
+    })
+    .filter((x): x is { ws: typeof workspaces[number]; wsChats: Chat[]; wsNameMatches: boolean } => x !== null)
+
+  const hasMatches = !isSearching || renderedWorkspaces.length > 0
+
   return (
     <div className="flex flex-col gap-1 pb-2">
-      {workspaces.map((ws) => {
-        const wsChats = chats.filter((c) => c.workspaceId === ws.id)
-        const expanded = wsExpanded[ws.id] ?? true
+      {renderedWorkspaces.map(({ ws, wsChats, wsNameMatches }) => {
+        const expanded = isSearching ? true : (wsExpanded[ws.id] ?? true)
         return (
           <WorkspaceGroup
             key={ws.id}
@@ -83,6 +105,8 @@ const TaskSessionList = () => {
             isCurrent={ws.id === workspaceId}
             activeChatId={activeChatId}
             agentNames={agentNames}
+            query={q}
+            wsNameMatches={wsNameMatches}
             onToggle={() => toggleWorkspace(ws.id)}
             onPin={togglePin}
             onArchive={toggleArchive}
@@ -91,12 +115,22 @@ const TaskSessionList = () => {
         )
       })}
 
-      {visibleUnmatched.length > 0 && (
+      {!isSearching && visibleUnmatched.length > 0 && (
         <UnmatchedDirsSection
           dirs={visibleUnmatched}
           expandedMap={extDirExpanded}
           onToggle={toggleExtDir}
+          onPin={togglePin}
+          onArchive={toggleArchive}
+          onAddAgent={openAddAgent}
         />
+      )}
+
+      {isSearching && !hasMatches && (
+        <div className="px-3 py-6 text-center">
+          <div className="text-[11px] text-text-secondary mb-1">No matching tasks</div>
+          <div className="text-[10px] text-text-muted">Try a different keyword.</div>
+        </div>
       )}
     </div>
   )
@@ -110,6 +144,7 @@ const TaskSessionList = () => {
 const WorkspaceGroup = ({
   wsId, name, chats, pinnedIds, pinnedAt, archivedIds,
   expanded, isCurrent, activeChatId, agentNames,
+  query, wsNameMatches,
   onToggle, onPin, onArchive, onAddAgent,
 }: {
   wsId: string
@@ -122,37 +157,62 @@ const WorkspaceGroup = ({
   isCurrent: boolean
   activeChatId: string | null
   agentNames: Record<string, string>
+  query: string
+  wsNameMatches: boolean
   onToggle: () => void
   onPin: (chatId: string) => void
   onArchive: (chatId: string) => void
   onAddAgent: (chatId: string) => void
 }) => {
   const { sessions, hasMore, loading, loadMore, hide } = useWorkspaceExternalSessions(wsId, expanded)
+  const isSearching = query.length > 0
+  // Workspace name match keeps every chat under it; otherwise filter by title.
+  const chatMatches = useCallback((c: Chat): boolean => {
+    if (!isSearching || wsNameMatches) return true
+    return c.title.toLowerCase().includes(query)
+  }, [isSearching, wsNameMatches, query])
+  const sessionMatches = useCallback((s: ExternalSession): boolean => {
+    if (!isSearching || wsNameMatches) return true
+    const msg = s.firstUserMessage?.toLowerCase() ?? ''
+    return msg.includes(query) || s.sessionId.toLowerCase().startsWith(query)
+  }, [isSearching, wsNameMatches, query])
   // Partition workspace chats into pinned / archived / active. External sessions
   // are always "active" — pin/archive only applies to native chats.
   const pinnedChats = useMemo(
     () => chats
-      .filter((c) => pinnedIds.has(c.id))
+      .filter((c) => pinnedIds.has(c.id) && chatMatches(c))
       .sort((a, b) => (pinnedAt[b.id] ?? 0) - (pinnedAt[a.id] ?? 0)),
-    [chats, pinnedIds, pinnedAt],
+    [chats, pinnedIds, pinnedAt, chatMatches],
   )
   const archivedChats = useMemo(
     () => chats
-      .filter((c) => archivedIds.has(c.id))
+      .filter((c) => archivedIds.has(c.id) && chatMatches(c))
       .sort((a, b) => chatMtime(b) - chatMtime(a)),
-    [chats, archivedIds],
+    [chats, archivedIds, chatMatches],
   )
   const activeChats = useMemo(
-    () => chats.filter((c) => !pinnedIds.has(c.id) && !archivedIds.has(c.id)),
-    [chats, pinnedIds, archivedIds],
+    () => chats.filter((c) => !pinnedIds.has(c.id) && !archivedIds.has(c.id) && chatMatches(c)),
+    [chats, pinnedIds, archivedIds, chatMatches],
+  )
+  const filteredSessions = useMemo(
+    () => sessions.filter(sessionMatches),
+    [sessions, sessionMatches],
   )
   const runningCount = activeChats.filter((c) => c.status === 'running').length
-  const totalCount = chats.length + sessions.length
-  const items = useMemo(() => buildMergedItems(activeChats, sessions), [activeChats, sessions])
+  const totalCount = isSearching
+    ? activeChats.length + pinnedChats.length + archivedChats.length + filteredSessions.length
+    : chats.length + sessions.length
+  const items = useMemo(() => buildMergedItems(activeChats, filteredSessions), [activeChats, filteredSessions])
   const [visibleCount, setVisibleCount] = useState<number>(INITIAL_VISIBLE)
-  const visibleItems = useMemo(() => items.slice(0, visibleCount), [items, visibleCount])
-  const canLoadMore = visibleCount < items.length || hasMore
+  // While searching, show all matched items at once — no Load more truncation
+  // and no extra fetches (we only filter what's already in memory).
+  const visibleItems = useMemo(
+    () => isSearching ? items : items.slice(0, visibleCount),
+    [items, visibleCount, isSearching],
+  )
+  const canLoadMore = !isSearching && (visibleCount < items.length || hasMore)
   const [archivedOpen, setArchivedOpen] = useState<boolean>(false)
+  const showArchived = isSearching ? archivedChats.length > 0 : archivedOpen
 
   // Two-stage Load more: first consume already-fetched items, then fetch the
   // next external page once the local slice is exhausted. Keeps the click
@@ -190,20 +250,23 @@ const WorkspaceGroup = ({
           {pinnedChats.length > 0 && (
             <div className="flex flex-col gap-0.5 pb-1 mb-0.5 border-b border-border/30">
               {pinnedChats.map((c) => (
-                <PinnedRow
+                <TaskRow
                   key={`p:${c.id}`}
                   chat={c}
-                  age={ageLabel(c.lastMessageAt ?? c.createdAt)}
                   isSelected={activeChatId === c.id}
                   agentNames={agentNames}
-                  onUnpin={() => onPin(c.id)}
+                  onPin={() => onPin(c.id)}
                   onArchive={() => onArchive(c.id)}
+                  onAddAgent={() => onAddAgent(c.id)}
+                  isPinned
                 />
               ))}
             </div>
           )}
-          {items.length === 0 && pinnedChats.length === 0 ? (
-            <div className="px-3 py-1 text-[10px] text-text-muted italic">No sessions</div>
+          {items.length === 0 && pinnedChats.length === 0 && archivedChats.length === 0 ? (
+            <div className="px-3 py-1 text-[10px] text-text-muted italic">
+              {isSearching ? 'No matching tasks' : 'No sessions'}
+            </div>
           ) : visibleItems.map((it) => (
             it.kind === 'chat' ? (
               <TaskRow
@@ -220,6 +283,9 @@ const WorkspaceGroup = ({
                 key={`e:${it.session.id}`}
                 session={it.session}
                 onAdopted={() => hide(it.session.id)}
+                onPin={onPin}
+                onArchive={onArchive}
+                onAddAgent={onAddAgent}
               />
             )
           ))}
@@ -236,16 +302,17 @@ const WorkspaceGroup = ({
             <div className="mt-1 pt-1 border-t border-border/30">
               <button
                 onClick={() => setArchivedOpen((v) => !v)}
-                className="w-full flex items-center gap-1.5 px-2 py-1 hover:bg-bg-hover/50 rounded-sm transition-colors text-text-muted"
-                aria-expanded={archivedOpen}
+                disabled={isSearching}
+                className="w-full flex items-center gap-1.5 px-2 py-1 hover:bg-bg-hover/50 rounded-sm transition-colors text-text-muted disabled:cursor-default"
+                aria-expanded={showArchived}
               >
                 <span className="-ml-px">
-                  {archivedOpen ? <ChevronDown size={9} /> : <ChevronRight size={9} />}
+                  {showArchived ? <ChevronDown size={9} /> : <ChevronRight size={9} />}
                 </span>
                 <span className="text-[10px] uppercase tracking-wide">Archived</span>
                 <span className="ml-auto font-mono text-[10px] tabular-nums">{archivedChats.length}</span>
               </button>
-              {archivedOpen && (
+              {showArchived && (
                 <div className="flex flex-col gap-0.5">
                   {archivedChats.map((c) => (
                     <CompletedRow
@@ -304,10 +371,13 @@ const basename = (p: string): string => {
 // Unmatched-cwd group: a peer to WorkspaceGroup for cwds that don't fall under
 // any workspace's repositories. Same row shape inside, but the rows are
 // guaranteed external (no native chats exist without a workspace).
-const UnmatchedDirsSection = ({ dirs, expandedMap, onToggle }: {
+const UnmatchedDirsSection = ({ dirs, expandedMap, onToggle, onPin, onArchive, onAddAgent }: {
   dirs: UnmatchedExternalDir[]
   expandedMap: Record<string, boolean>
   onToggle: (cwd: string) => void
+  onPin: (chatId: string) => void
+  onArchive: (chatId: string) => void
+  onAddAgent: (chatId: string) => void
 }) => (
   <div className="mt-2 border-t border-border/40 pt-2">
     {dirs.map((d) => (
@@ -317,16 +387,22 @@ const UnmatchedDirsSection = ({ dirs, expandedMap, onToggle }: {
         count={d.sessionCount}
         expanded={expandedMap[d.cwd] ?? false}
         onToggle={() => onToggle(d.cwd)}
+        onPin={onPin}
+        onArchive={onArchive}
+        onAddAgent={onAddAgent}
       />
     ))}
   </div>
 )
 
-const ExternalCwdGroup = ({ cwd, count, expanded, onToggle }: {
+const ExternalCwdGroup = ({ cwd, count, expanded, onToggle, onPin, onArchive, onAddAgent }: {
   cwd: string
   count: number
   expanded: boolean
   onToggle: () => void
+  onPin: (chatId: string) => void
+  onArchive: (chatId: string) => void
+  onAddAgent: (chatId: string) => void
 }) => {
   const { sessions, hasMore, loading, loadMore, error } = useExternalCwdSessions(cwd, expanded)
   const [hiddenIds, setHiddenIds] = useState<Set<string>>(() => new Set())
@@ -379,6 +455,9 @@ const ExternalCwdGroup = ({ cwd, count, expanded, onToggle }: {
                 next.add(s.id)
                 return next
               })}
+              onPin={onPin}
+              onArchive={onArchive}
+              onAddAgent={onAddAgent}
             />
           ))}
           {canLoadMore && (

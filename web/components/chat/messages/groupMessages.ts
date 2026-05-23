@@ -64,6 +64,29 @@ export function groupMessages(messages: Message[]): MessageGroup[] {
       }
       if (currentGroup && currentGroup.agentId === msg.agentId) {
         currentGroup.agentMessages.push(msg)
+      } else {
+        // The merged Task view interleaves messages from agents running in
+        // parallel, so the current group often belongs to a different agent.
+        // Attach to the most recent group bound to this agent (the one that
+        // the user kicked off); otherwise open a new orphan group rather than
+        // silently dropping the message.
+        let target: MessageGroup | null = null
+        for (let i = groups.length - 1; i >= 0; i--) {
+          if (groups[i].agentId === msg.agentId) { target = groups[i]; break }
+        }
+        if (target) {
+          target.agentMessages.push(msg)
+        } else if (msg.type !== 'error') {
+          const orphan: MessageGroup = {
+            id: claimId(`group-orphan-${msg.id}`),
+            userMessage: null,
+            agentMessages: [msg],
+            isStreaming: false,
+            agentId: msg.agentId,
+          }
+          groups.push(orphan)
+          currentGroup = orphan
+        }
       }
     }
   }

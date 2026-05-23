@@ -5,6 +5,11 @@
  * dissonance. Click anywhere on the row triggers POST /adopt + navigates
  * straight into the resulting chat.
  *
+ * Hover actions (Pin / Archive / Add Agent) silently adopt the session first
+ * to obtain a chatId, then apply the action — no navigation. This makes
+ * external sessions first-class citizens in the sidebar without requiring the
+ * user to enter the chat just to manage it.
+ *
  * Adoption is idempotent server-side; `adopting` blocks the double-fire that
  * happens on rapid clicks.
  */
@@ -12,19 +17,27 @@
 import { useCallback, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { API_BASE, authFetch } from '@/config/api'
-import type { CliProviderKind } from '@/hooks/useExternalCwds'
 import type { ExternalSession } from '@/hooks/useExternalCwdSessions'
 import { cn } from '../../lib/utils'
-import { ChevronRight } from './icons'
+import { ChevronRight, Pin, Archive, Plus } from './icons'
 import { buildTaskUrl } from './urls'
-import { ageLabel } from './TaskSessionRows'
+import { ageLabel, RowEndSlotWithLabel } from './TaskSessionRows'
 
 interface ExternalSessionRowProps {
   session: ExternalSession
   onAdopted?: (sessionId: string) => void
+  onPin?: (chatId: string) => void
+  onArchive?: (chatId: string) => void
+  onAddAgent?: (chatId: string) => void
 }
 
-export const ExternalSessionRow = ({ session, onAdopted }: ExternalSessionRowProps) => {
+export const ExternalSessionRow = ({
+  session,
+  onAdopted,
+  onPin,
+  onArchive,
+  onAddAgent,
+}: ExternalSessionRowProps) => {
   const navigate = useNavigate()
   const [adopting, setAdopting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -32,8 +45,10 @@ export const ExternalSessionRow = ({ session, onAdopted }: ExternalSessionRowPro
   const label = session.firstUserMessage?.trim()
     || `${session.sessionId.slice(0, 8)}…`
 
-  const handleAdopt = useCallback(async () => {
-    if (adopting) return
+  // Core adopt request. Returns the new chatId (or null on failure) without
+  // navigating — callers decide whether to jump in or stay put.
+  const adoptOnly = useCallback(async (): Promise<string | null> => {
+    if (adopting) return null
     setAdopting(true)
     setError(null)
     try {
@@ -44,51 +59,59 @@ export const ExternalSessionRow = ({ session, onAdopted }: ExternalSessionRowPro
       if (!res.ok) {
         const body = (await res.json().catch(() => ({}))) as { error?: string }
         setError(body.error ?? `HTTP ${res.status}`)
-        return
+        return null
       }
       const { chatId } = (await res.json()) as { chatId: string }
       onAdopted?.(session.id)
       window.dispatchEvent(new Event('openteam:chat-created'))
-      try {
-        const chatRes = await authFetch(`${API_BASE}/api/chats/${chatId}`)
-        if (chatRes.ok) {
-          const chat = (await chatRes.json()) as { workspaceId: string; primaryAgentId: string }
-          navigate(buildTaskUrl(chat.workspaceId, chatId, chat.primaryAgentId))
-          return
-        }
-      } catch {
-        // fall through
-      }
-      navigate('/')
+      return chatId
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
+      return null
     } finally {
       setAdopting(false)
     }
-  }, [adopting, session.id, navigate, onAdopted])
+  }, [adopting, session.id, onAdopted])
+
+  // Row click: adopt + navigate into the resulting chat.
+  const handleAdoptAndOpen = useCallback(async () => {
+    const chatId = await adoptOnly()
+    if (!chatId) return
+    try {
+      const chatRes = await authFetch(`${API_BASE}/api/chats/${chatId}`)
+      if (chatRes.ok) {
+        const chat = (await chatRes.json()) as { workspaceId: string; primaryAgentId: string }
+        navigate(buildTaskUrl(chat.workspaceId, chatId, chat.primaryAgentId))
+        return
+      }
+    } catch {
+      // fall through
+    }
+    navigate('/')
+  }, [adoptOnly, navigate])
+
+  // Hover-action click: adopt silently, then apply the requested action.
+  // Stays on the current view so the user can keep triaging the sidebar.
+  // ActionButtons already calls stopPropagation before invoking onClick.
+  const runWithAdopt = (action?: (chatId: string) => void) => async () => {
+    if (!action) return
+    const chatId = await adoptOnly()
+    if (chatId) action(chatId)
+  }
 
   return (
     <div
-      onClick={handleAdopt}
+      onClick={handleAdoptAndOpen}
       role="button"
       tabIndex={0}
-      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); void handleAdopt() } }}
-      title={`${session.provider} · ${session.cwd}\n${label}`}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); void handleAdoptAndOpen() } }}
+      title={`${session.cwd}\n${label}`}
       className={cn(
         'group relative flex items-center gap-[7px] pl-1.5 pr-2 py-1.5 rounded-md cursor-pointer transition-colors',
         'hover:bg-bg-hover',
         adopting && 'opacity-60 cursor-progress',
       )}
     >
-      {/* Provider marker: 2px left bar. Replaces the old colored badge so the
-          row stays visually quiet while still distinguishing claude vs codex. */}
-      <span
-        aria-hidden
-        className={cn(
-          'absolute left-0 top-1.5 bottom-1.5 w-[2px] rounded-r-sm',
-          PROVIDER_BAR[session.provider],
-        )}
-      />
       {/* Chevron slot kept for visual alignment with TaskRow even though
           external rows have no children to expand. */}
       <span className="w-4 h-4 flex items-center justify-center text-text-muted -mr-0.5 flex-shrink-0">
@@ -99,16 +122,14 @@ export const ExternalSessionRow = ({ session, onAdopted }: ExternalSessionRowPro
       {error && (
         <span className="text-[10px] text-accent-red" title={error}>!</span>
       )}
-      <span className="font-mono text-[11px] text-text-muted tabular-nums flex-shrink-0">
-        {ageLabel(session.mtimeMs)}
-      </span>
+      <RowEndSlotWithLabel
+        label={ageLabel(session.mtimeMs)}
+        actions={[
+          { title: 'Add agent', onClick: () => { void runWithAdopt(onAddAgent)() }, children: <Plus size={11} /> },
+          { title: 'Pin task', onClick: () => { void runWithAdopt(onPin)() }, children: <Pin size={11} /> },
+          { title: 'Archive task', onClick: () => { void runWithAdopt(onArchive)() }, children: <Archive size={11} /> },
+        ]}
+      />
     </div>
   )
-}
-
-// Left-bar color per CLI provider. Low-saturation so it identifies without
-// shouting — meant to be glanceable, not informative on first read.
-const PROVIDER_BAR: Record<CliProviderKind, string> = {
-  claude: 'bg-accent-purple/60',
-  codex: 'bg-accent-green/60',
 }

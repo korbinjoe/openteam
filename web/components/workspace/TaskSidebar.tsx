@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useWorkspace, SIDEBAR_WIDTH_DEFAULT } from '../../contexts/WorkspaceContext'
 import { isElectron, isMacElectron } from '../../utils/env'
@@ -15,6 +15,31 @@ const TaskSidebar = ({ collapsed }: TaskSidebarProps) => {
   const { togglePanel, sidebarWidth, setSidebarWidth, openNewTask, workspaceId } = useWorkspace()
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
+  const [searchOpen, setSearchOpen] = useState(false)
+  const searchInputRef = useRef<HTMLInputElement>(null)
+
+  // Open with "/" anywhere in the app (unless the user is typing in another input).
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key !== '/') return
+      const t = e.target as HTMLElement | null
+      const tag = t?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || t?.isContentEditable) return
+      e.preventDefault()
+      setSearchOpen(true)
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [])
+
+  useEffect(() => {
+    if (searchOpen) searchInputRef.current?.focus()
+  }, [searchOpen])
+
+  const handleCloseSearch = () => {
+    setQuery('')
+    setSearchOpen(false)
+  }
 
   const resourcePrefix = workspaceId ? `/workspace/${workspaceId}` : ''
   const goResource = (slug: string) => () => navigate(`${resourcePrefix}/${slug}`)
@@ -99,6 +124,15 @@ const TaskSidebar = ({ collapsed }: TaskSidebarProps) => {
           )}
           <span className="flex-1" />
           <button
+            onClick={() => setSearchOpen((v) => !v)}
+            className={`w-[22px] h-[22px] rounded-md flex items-center justify-center transition-colors ${searchOpen || query ? 'text-text-primary bg-bg-hover' : 'text-text-muted hover:bg-bg-hover hover:text-text-secondary'}`}
+            title="Search tasks (/)"
+            aria-label="Search tasks"
+            aria-expanded={searchOpen}
+          >
+            <Search size={13} />
+          </button>
+          <button
             onClick={togglePanel}
             className="w-[22px] h-[22px] rounded-md flex items-center justify-center text-text-muted hover:bg-bg-hover hover:text-text-secondary transition-colors"
             title="Collapse sidebar (⌘B)"
@@ -115,28 +149,29 @@ const TaskSidebar = ({ collapsed }: TaskSidebarProps) => {
           <span className="text-[13px] font-medium text-text-primary flex-1 text-left">New Task</span>
           <span className="font-mono text-[11px] text-text-muted">⌘N</span>
         </button>
-        <div className="relative mt-1.5">
-          <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Escape') setQuery('') }}
-            placeholder="Search tasks…"
-            aria-label="Search tasks"
-            className="w-full bg-bg-tertiary text-[12px] text-text-primary placeholder:text-text-muted rounded-md pl-7 pr-7 py-[6px] outline-none border border-transparent focus:border-border focus:bg-bg-primary transition-colors"
-          />
-          {query && (
+        {searchOpen && (
+          <div className="relative mt-1.5">
+            <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
+            <input
+              ref={searchInputRef}
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Escape') handleCloseSearch() }}
+              placeholder="Search tasks…"
+              aria-label="Search tasks"
+              className="w-full bg-bg-tertiary text-[12px] text-text-primary placeholder:text-text-muted rounded-md pl-7 pr-7 py-[6px] outline-none border border-transparent focus:border-border focus:bg-bg-primary transition-colors"
+            />
             <button
-              onClick={() => setQuery('')}
-              title="Clear (Esc)"
-              aria-label="Clear search"
+              onClick={handleCloseSearch}
+              title="Close (Esc)"
+              aria-label="Close search"
               className="absolute right-1.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded flex items-center justify-center text-text-muted hover:text-text-primary hover:bg-bg-hover text-[12px] leading-none"
             >
               ×
             </button>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Scrollable task list — grouped by workspace */}

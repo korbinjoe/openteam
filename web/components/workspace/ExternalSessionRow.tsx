@@ -80,6 +80,15 @@ export const ExternalSessionRow = ({ session, onAdopted }: ExternalSessionRowPro
         adopting && 'opacity-60 cursor-progress',
       )}
     >
+      {/* Provider marker: 2px left bar. Replaces the old colored badge so the
+          row stays visually quiet while still distinguishing claude vs codex. */}
+      <span
+        aria-hidden
+        className={cn(
+          'absolute left-0 top-1.5 bottom-1.5 w-[2px] rounded-r-sm',
+          PROVIDER_BAR[session.provider],
+        )}
+      />
       {/* Chevron slot kept for visual alignment with TaskRow even though
           external rows have no children to expand. */}
       <span className="w-4 h-4 flex items-center justify-center text-text-muted -mr-0.5 flex-shrink-0">
@@ -87,7 +96,6 @@ export const ExternalSessionRow = ({ session, onAdopted }: ExternalSessionRowPro
       </span>
       <span className="w-[7px] h-[7px] rounded-full bg-text-muted flex-shrink-0" />
       <span className="text-xs text-text-primary flex-1 truncate">{label}</span>
-      <ProviderBadge provider={session.provider} />
       {error && (
         <span className="text-[10px] text-accent-red" title={error}>!</span>
       )}
@@ -98,18 +106,9 @@ export const ExternalSessionRow = ({ session, onAdopted }: ExternalSessionRowPro
   )
 }
 
-const PROVIDER_STYLES: Record<CliProviderKind, string> = {
-  claude: 'bg-accent-purple/[0.12] text-accent-purple',
-  codex: 'bg-accent-green/[0.12] text-accent-green',
+// Left-bar color per CLI provider. Low-saturation so it identifies without
+// shouting — meant to be glanceable, not informative on first read.
+const PROVIDER_BAR: Record<CliProviderKind, string> = {
+  claude: 'bg-accent-purple/60',
+  codex: 'bg-accent-green/60',
 }
-
-export const ProviderBadge = ({ provider }: { provider: CliProviderKind }) => (
-  <span
-    className={cn(
-      'font-mono text-[9px] uppercase tracking-wide px-1 py-px rounded-sm flex-shrink-0',
-      PROVIDER_STYLES[provider],
-    )}
-  >
-    {provider}
-  </span>
-)

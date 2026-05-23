@@ -1,4 +1,11 @@
 import { useCallback, useMemo, useState } from 'react'
+
+// Sidebar pagination: every group shows this many items first; "Load more"
+// grows the visible slice in the same step. When the slice catches up to the
+// already-fetched items and the server still has more, the click also triggers
+// a network fetch before growing the slice.
+const INITIAL_VISIBLE = 10
+const PAGE_STEP = 10
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { useAllChats } from '../../hooks/useAllChats'
 import { useAgents } from '../../hooks/useAgents'
@@ -8,7 +15,7 @@ import { useWorkspaceExternalSessions } from '../../hooks/useWorkspaceExternalSe
 import { useExternalCwdSessions, type ExternalSession } from '../../hooks/useExternalCwdSessions'
 import { ChevronDown, ChevronRight, FolderGit, Folder } from './icons'
 import type { Chat } from './types'
-import { loadMap, saveMap, TaskRow } from './TaskSessionRows'
+import { loadMap, saveMap, TaskRow, PinnedRow, CompletedRow, ageLabel } from './TaskSessionRows'
 import { ExternalSessionRow } from './ExternalSessionRow'
 
 const WORKSPACE_EXPANDED_KEY = 'openteam:v2-workspace-expanded'
@@ -19,7 +26,7 @@ const TaskSessionList = () => {
   const { unmatchedDirs } = useExternalCwds()
   const { agentNames } = useAgents()
 
-  const { archivedIds, togglePin, toggleArchive } = useTaskPinArchive(workspaceId ?? '__all__')
+  const { pinnedIds, pinnedAt, archivedIds, togglePin, toggleArchive } = useTaskPinArchive(workspaceId ?? '__all__')
   const [wsExpanded, setWsExpanded] = useState<Record<string, boolean>>(
     () => loadMap(WORKSPACE_EXPANDED_KEY),
   )
@@ -61,7 +68,7 @@ const TaskSessionList = () => {
   return (
     <div className="flex flex-col gap-1 pb-2">
       {workspaces.map((ws) => {
-        const wsChats = chats.filter((c) => c.workspaceId === ws.id && !archivedIds.has(c.id))
+        const wsChats = chats.filter((c) => c.workspaceId === ws.id)
         const expanded = wsExpanded[ws.id] ?? true
         return (
           <WorkspaceGroup
@@ -69,6 +76,9 @@ const TaskSessionList = () => {
             wsId={ws.id}
             name={ws.name}
             chats={wsChats}
+            pinnedIds={pinnedIds}
+            pinnedAt={pinnedAt}
+            archivedIds={archivedIds}
             expanded={expanded}
             isCurrent={ws.id === workspaceId}
             activeChatId={activeChatId}
@@ -98,12 +108,16 @@ const TaskSessionList = () => {
 // External fetch fires only when the group is expanded. `isCurrent` flags the
 // workspace the URL currently points at so its header gets a subtle marker.
 const WorkspaceGroup = ({
-  wsId, name, chats, expanded, isCurrent, activeChatId, agentNames,
+  wsId, name, chats, pinnedIds, pinnedAt, archivedIds,
+  expanded, isCurrent, activeChatId, agentNames,
   onToggle, onPin, onArchive, onAddAgent,
 }: {
   wsId: string
   name: string
   chats: Chat[]
+  pinnedIds: Set<string>
+  pinnedAt: Record<string, number>
+  archivedIds: Set<string>
   expanded: boolean
   isCurrent: boolean
   activeChatId: string | null
@@ -113,10 +127,46 @@ const WorkspaceGroup = ({
   onArchive: (chatId: string) => void
   onAddAgent: (chatId: string) => void
 }) => {
-  const runningCount = chats.filter((c) => c.status === 'running').length
   const { sessions, hasMore, loading, loadMore, hide } = useWorkspaceExternalSessions(wsId, expanded)
+  // Partition workspace chats into pinned / archived / active. External sessions
+  // are always "active" — pin/archive only applies to native chats.
+  const pinnedChats = useMemo(
+    () => chats
+      .filter((c) => pinnedIds.has(c.id))
+      .sort((a, b) => (pinnedAt[b.id] ?? 0) - (pinnedAt[a.id] ?? 0)),
+    [chats, pinnedIds, pinnedAt],
+  )
+  const archivedChats = useMemo(
+    () => chats
+      .filter((c) => archivedIds.has(c.id))
+      .sort((a, b) => chatMtime(b) - chatMtime(a)),
+    [chats, archivedIds],
+  )
+  const activeChats = useMemo(
+    () => chats.filter((c) => !pinnedIds.has(c.id) && !archivedIds.has(c.id)),
+    [chats, pinnedIds, archivedIds],
+  )
+  const runningCount = activeChats.filter((c) => c.status === 'running').length
   const totalCount = chats.length + sessions.length
-  const items = useMemo(() => buildMergedItems(chats, sessions), [chats, sessions])
+  const items = useMemo(() => buildMergedItems(activeChats, sessions), [activeChats, sessions])
+  const [visibleCount, setVisibleCount] = useState<number>(INITIAL_VISIBLE)
+  const visibleItems = useMemo(() => items.slice(0, visibleCount), [items, visibleCount])
+  const canLoadMore = visibleCount < items.length || hasMore
+  const [archivedOpen, setArchivedOpen] = useState<boolean>(false)
+
+  // Two-stage Load more: first consume already-fetched items, then fetch the
+  // next external page once the local slice is exhausted. Keeps the click
+  // cheap for the common case where the user just wants the next 10 rows.
+  const handleLoadMore = useCallback(async () => {
+    if (visibleCount < items.length) {
+      setVisibleCount((v) => v + PAGE_STEP)
+      return
+    }
+    if (hasMore) {
+      await loadMore()
+      setVisibleCount((v) => v + PAGE_STEP)
+    }
+  }, [visibleCount, items.length, hasMore, loadMore])
 
   return (
     <div>
@@ -129,7 +179,7 @@ const WorkspaceGroup = ({
           {expanded ? <ChevronDown size={9} /> : <ChevronRight size={9} />}
         </span>
         <FolderGit size={11} className={isCurrent ? 'text-text-primary' : 'text-text-muted'} />
-        <span className={`text-[11px] font-semibold tracking-wide uppercase truncate ${isCurrent ? 'text-text-primary' : 'text-text-muted'}`}>{name}</span>
+        <span className={`text-[11px] font-semibold truncate ${isCurrent ? 'text-text-primary' : 'text-text-secondary'}`}>{name}</span>
         {runningCount > 0 && (
           <span className="w-[6px] h-[6px] rounded-full bg-accent-brand animate-pulse flex-shrink-0" />
         )}
@@ -137,9 +187,24 @@ const WorkspaceGroup = ({
       </button>
       {expanded && (
         <div className="flex flex-col gap-0.5">
-          {items.length === 0 ? (
+          {pinnedChats.length > 0 && (
+            <div className="flex flex-col gap-0.5 pb-1 mb-0.5 border-b border-border/30">
+              {pinnedChats.map((c) => (
+                <PinnedRow
+                  key={`p:${c.id}`}
+                  chat={c}
+                  age={ageLabel(c.lastMessageAt ?? c.createdAt)}
+                  isSelected={activeChatId === c.id}
+                  agentNames={agentNames}
+                  onUnpin={() => onPin(c.id)}
+                  onArchive={() => onArchive(c.id)}
+                />
+              ))}
+            </div>
+          )}
+          {items.length === 0 && pinnedChats.length === 0 ? (
             <div className="px-3 py-1 text-[10px] text-text-muted italic">No sessions</div>
-          ) : items.map((it) => (
+          ) : visibleItems.map((it) => (
             it.kind === 'chat' ? (
               <TaskRow
                 key={`c:${it.chat.id}`}
@@ -158,14 +223,44 @@ const WorkspaceGroup = ({
               />
             )
           ))}
-          {hasMore && (
+          {canLoadMore && (
             <button
-              onClick={() => void loadMore()}
+              onClick={() => void handleLoadMore()}
               disabled={loading}
               className="ml-3 mt-0.5 text-[10px] text-text-muted hover:text-text-primary underline self-start disabled:opacity-50"
             >
               {loading ? 'Loading…' : 'Load more'}
             </button>
+          )}
+          {archivedChats.length > 0 && (
+            <div className="mt-1 pt-1 border-t border-border/30">
+              <button
+                onClick={() => setArchivedOpen((v) => !v)}
+                className="w-full flex items-center gap-1.5 px-2 py-1 hover:bg-bg-hover/50 rounded-sm transition-colors text-text-muted"
+                aria-expanded={archivedOpen}
+              >
+                <span className="-ml-px">
+                  {archivedOpen ? <ChevronDown size={9} /> : <ChevronRight size={9} />}
+                </span>
+                <span className="text-[10px] uppercase tracking-wide">Archived</span>
+                <span className="ml-auto font-mono text-[10px] tabular-nums">{archivedChats.length}</span>
+              </button>
+              {archivedOpen && (
+                <div className="flex flex-col gap-0.5">
+                  {archivedChats.map((c) => (
+                    <CompletedRow
+                      key={`a:${c.id}`}
+                      chat={c}
+                      isSelected={activeChatId === c.id}
+                      archived
+                      agentNames={agentNames}
+                      onPin={() => onPin(c.id)}
+                      onUnarchive={() => onArchive(c.id)}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
           )}
         </div>
       )}
@@ -236,6 +331,20 @@ const ExternalCwdGroup = ({ cwd, count, expanded, onToggle }: {
   const { sessions, hasMore, loading, loadMore, error } = useExternalCwdSessions(cwd, expanded)
   const [hiddenIds, setHiddenIds] = useState<Set<string>>(() => new Set())
   const visible = sessions.filter((s) => !hiddenIds.has(s.id))
+  const [visibleCount, setVisibleCount] = useState<number>(INITIAL_VISIBLE)
+  const sliced = visible.slice(0, visibleCount)
+  const canLoadMore = visibleCount < visible.length || hasMore
+
+  const handleLoadMore = useCallback(async () => {
+    if (visibleCount < visible.length) {
+      setVisibleCount((v) => v + PAGE_STEP)
+      return
+    }
+    if (hasMore) {
+      await loadMore()
+      setVisibleCount((v) => v + PAGE_STEP)
+    }
+  }, [visibleCount, visible.length, hasMore, loadMore])
 
   return (
     <div>
@@ -249,7 +358,7 @@ const ExternalCwdGroup = ({ cwd, count, expanded, onToggle }: {
           {expanded ? <ChevronDown size={9} /> : <ChevronRight size={9} />}
         </span>
         <Folder size={11} className="text-text-muted" />
-        <span className="text-[11px] font-semibold tracking-wide uppercase text-text-muted truncate">{basename(cwd)}</span>
+        <span className="text-[11px] font-semibold text-text-secondary truncate">{basename(cwd)}</span>
         <span className="ml-auto font-mono text-[10px] text-text-muted tabular-nums">{count}</span>
       </button>
       {expanded && (
@@ -260,7 +369,7 @@ const ExternalCwdGroup = ({ cwd, count, expanded, onToggle }: {
           {error && visible.length === 0 && (
             <div className="px-3 py-1 text-[10px] text-accent-red">Failed: {error}</div>
           )}
-          {visible.map((s) => (
+          {sliced.map((s) => (
             <ExternalSessionRow
               key={s.id}
               session={s}
@@ -272,9 +381,9 @@ const ExternalCwdGroup = ({ cwd, count, expanded, onToggle }: {
               })}
             />
           ))}
-          {hasMore && (
+          {canLoadMore && (
             <button
-              onClick={() => void loadMore()}
+              onClick={() => void handleLoadMore()}
               disabled={loading}
               className="ml-3 mt-0.5 text-[10px] text-text-muted hover:text-text-primary underline self-start disabled:opacity-50"
             >

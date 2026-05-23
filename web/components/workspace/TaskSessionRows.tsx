@@ -158,12 +158,13 @@ export const TaskRow = ({ chat, isSelected, agentNames, onPin, onArchive, onAddA
         <span className={cn('w-[7px] h-[7px] rounded-full flex-shrink-0', chatStatusDot(chat))} />
         <span className="text-xs font-medium text-text-primary flex-1 truncate">{chat.title}</span>
         {agentCount > 1 && (
-          <span className="font-mono text-[10px] px-1 py-px rounded-sm bg-accent-brand/[0.1] text-accent-brand-light font-semibold tabular-nums flex-shrink-0">
+          <span className="font-mono text-[10px] px-1.5 rounded bg-bg-tertiary text-text-secondary tabular-nums flex-shrink-0">
             {agentCount}
           </span>
         )}
         <RowHoverActions
           actions={[
+            { title: 'Add agent', onClick: onAddAgent, children: <Plus size={11} /> },
             { title: 'Pin task', onClick: onPin, children: <Pin size={11} /> },
             { title: 'Archive task', onClick: onArchive, children: <Archive size={11} /> },
           ]}
@@ -231,21 +232,15 @@ export const AgentRow = ({ agentId, agentName, isLead, chat, member, isSelected 
         </>
       )}
       <span className={cn('w-[6px] h-[6px] rounded-full flex-shrink-0', dotClass)} />
+      {isLead && (
+        <LeadStar className={cn('flex-shrink-0', isSelected ? 'text-accent-brand-light' : 'text-text-muted')} />
+      )}
       <span className={cn(
         'text-[12px] truncate flex-1',
         isSelected ? 'text-accent-brand-light font-medium' : 'text-text-secondary',
       )}>
         {agentName}
       </span>
-      {isLead ? (
-        <span className="font-mono text-[10px] font-bold uppercase tracking-wide px-1 py-px rounded-sm bg-accent-purple/[0.12] text-accent-purple flex-shrink-0">
-          LEAD
-        </span>
-      ) : (
-        <span className="font-mono text-[10px] uppercase tracking-wide px-1 py-px rounded-sm bg-accent-green/[0.08] text-accent-green flex-shrink-0">
-          auto
-        </span>
-      )}
       <span className="font-mono text-[11px] text-text-muted tabular-nums flex-shrink-0">
         {ageLabel(ageInput)}
       </span>
@@ -321,6 +316,14 @@ interface RowAction {
   onClick: () => void
   children: React.ReactNode
 }
+
+// Filled 5-point star used as a quiet lead marker on AgentRow. Sits inline
+// before the agent name — replaces the old colorful LEAD/auto badges.
+const LeadStar = ({ className }: { className?: string }) => (
+  <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor" className={className} aria-label="Lead">
+    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+  </svg>
+)
 
 const ActionButtons = ({ actions }: { actions: RowAction[] }) => (
   <>

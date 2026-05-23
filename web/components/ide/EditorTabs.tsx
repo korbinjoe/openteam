@@ -77,7 +77,7 @@ const toRelative = (absolutePath: string, worktreePath?: string): string | null 
 }
 
 const ImagePreview = ({ filePath }: { filePath: string }) => (
-  <div className="h-full flex items-center justify-center p-4 overflow-auto bg-[#1e1e1e]">
+  <div className="h-full flex items-center justify-center p-4 overflow-auto bg-bg-primary">
     <img
       src={`${API_BASE}/api/file?path=${encodeURIComponent(filePath)}`}
       alt={filePath.split('/').pop() || ''}
@@ -88,7 +88,7 @@ const ImagePreview = ({ filePath }: { filePath: string }) => (
 )
 
 const MarkdownPreview = ({ content }: { content: string }) => (
-  <div className="h-full overflow-auto bg-[#1e1e1e] p-4">
+  <div className="h-full overflow-auto bg-bg-primary p-4">
     <div className="md-preview max-w-[760px]">
       <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
     </div>

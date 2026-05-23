@@ -3,6 +3,7 @@ import { CliAutoInstaller, type CliAutoInstallResult } from '../services/CliAuto
 import { PreflightChecker, type PreflightResult } from '../services/PreflightChecker'
 import { DirectoryEnumerator } from '../services/scanner/DirectoryEnumerator'
 import { ExternalDirWatcher } from '../services/scanner/ExternalDirWatcher'
+import { SessionPager } from '../services/scanner/SessionPager'
 import { backfillExternalChatTitles } from '../services/scanner/backfillExternalChatTitles'
 import { isExternalScanEnabled } from '../services/scanSettings'
 
@@ -64,6 +65,20 @@ export const runAsyncBoot = (broadcast: (msg: Record<string, unknown>) => void):
         error: err instanceof Error ? err.message : String(err),
       })
     })
+
+    // One-shot: link external_session_index rows back to chats that already
+    // reference their cliSessionId via expert_sessions. Pre-fix chats never
+    // wrote adopted_chat_id, so the same conversation surfaced twice in the
+    // sidebar (native TaskRow + un-adopted ExternalSessionRow). Idempotent —
+    // every UPDATE is guarded by adopted_chat_id IS NULL.
+    try {
+      const { linked } = new SessionPager().backfillAdoptedChatIds()
+      if (linked > 0) log.info('backfillAdoptedChatIds linked rows', { linked })
+    } catch (err) {
+      log.debug('backfillAdoptedChatIds failed (non-fatal)', {
+        error: err instanceof Error ? err.message : String(err),
+      })
+    }
   })
 
   return result

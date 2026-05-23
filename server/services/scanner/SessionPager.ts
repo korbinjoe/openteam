@@ -74,9 +74,33 @@ export class SessionPager {
   private listByCwdStmt: BetterSqlite3.Statement
   private upsertStmt: BetterSqlite3.Statement
   private deleteByPathStmt: BetterSqlite3.Statement
+  private linkByProviderStmt: BetterSqlite3.Statement
+  private linkAnyProviderStmt: BetterSqlite3.Statement
 
   constructor() {
     this.db = getDatabase()
+    // Reverse-link helpers: when an external_session_index row corresponds to
+    // a chat that already references its cliSessionId, stamp adopted_chat_id
+    // so the row gets filtered out of the external feed (otherwise the chat
+    // shows up twice in the sidebar — once as native TaskRow, once as
+    // ExternalSessionRow).
+    //
+    // Two variants because expertSessions[].provider was optional historically:
+    // when present we can use the unique (provider, session_id) index; when
+    // missing we fall back to session_id alone. Both guard `adopted_chat_id
+    // IS NULL` to avoid clobbering an existing link.
+    this.linkByProviderStmt = this.db.prepare(`
+      UPDATE external_session_index
+      SET adopted_chat_id = @chatId
+      WHERE provider = @provider AND session_id = @sessionId
+        AND adopted_chat_id IS NULL
+    `)
+    this.linkAnyProviderStmt = this.db.prepare(`
+      UPDATE external_session_index
+      SET adopted_chat_id = @chatId
+      WHERE session_id = @sessionId
+        AND adopted_chat_id IS NULL
+    `)
     // Selects un-adopted rows for this cwd, ordered newest first, with
     // mtime keyset cursor. limit+1 so we can detect hasMore without COUNT(*).
     this.listByCwdStmt = this.db.prepare(`
@@ -264,6 +288,82 @@ export class SessionPager {
         this.deleteByPathStmt.run(filePath)
       }
     }
+
+    // After indexing this cwd's files, link any rows whose sessionId is
+    // already referenced by an existing chat. This covers the timing where
+    // OpenTeam created a chat (writing expertSessions) before the user ever
+    // expanded the directory in the sidebar — the row appears here with
+    // adopted_chat_id NULL and would otherwise duplicate the native TaskRow.
+    this.linkAdoptedRowsForCwd(cwd)
+  }
+
+  /**
+   * Build a map of cliSessionId → chatId by scanning chats.expert_sessions.
+   * Used both by the per-cwd link pass and the one-shot backfill on boot.
+   */
+  private collectChatSessionLinks(): Array<{ chatId: string; cliSessionId: string; provider?: string }> {
+    const rows = this.db
+      .prepare(`SELECT id, expert_sessions FROM chats WHERE expert_sessions IS NOT NULL`)
+      .all() as Array<{ id: string; expert_sessions: string }>
+    const out: Array<{ chatId: string; cliSessionId: string; provider?: string }> = []
+    for (const row of rows) {
+      let parsed: Record<string, { cliSessionId?: string; provider?: string }> | null
+      try {
+        parsed = JSON.parse(row.expert_sessions) as Record<string, { cliSessionId?: string; provider?: string }>
+      } catch {
+        continue
+      }
+      if (!parsed) continue
+      for (const info of Object.values(parsed)) {
+        if (info?.cliSessionId) {
+          out.push({ chatId: row.id, cliSessionId: info.cliSessionId, provider: info.provider })
+        }
+      }
+    }
+    return out
+  }
+
+  private linkAdoptedRowsForCwd(cwd: string): void {
+    // Narrow to sessionIds present in this cwd's index — avoids touching every
+    // chat for every directory expand. Cheap because the cwd index is small.
+    const sessionRows = this.db
+      .prepare(`SELECT session_id FROM external_session_index WHERE cwd = ? AND adopted_chat_id IS NULL`)
+      .all(cwd) as Array<{ session_id: string }>
+    if (sessionRows.length === 0) return
+    const cwdSessionIds = new Set(sessionRows.map((r) => r.session_id))
+    const links = this.collectChatSessionLinks().filter((l) => cwdSessionIds.has(l.cliSessionId))
+    if (links.length === 0) return
+    const tx = this.db.transaction((items: typeof links) => {
+      for (const l of items) {
+        if (l.provider) {
+          this.linkByProviderStmt.run({ chatId: l.chatId, provider: l.provider, sessionId: l.cliSessionId })
+        } else {
+          this.linkAnyProviderStmt.run({ chatId: l.chatId, sessionId: l.cliSessionId })
+        }
+      }
+    })
+    tx(links)
+  }
+
+  /**
+   * One-shot backfill for existing rows whose adopted_chat_id was never
+   * populated (chats created before this link pass existed). Safe to call on
+   * every boot — UPDATEs are guarded by `adopted_chat_id IS NULL`.
+   */
+  backfillAdoptedChatIds(): { linked: number } {
+    const links = this.collectChatSessionLinks()
+    let linked = 0
+    const tx = this.db.transaction((items: typeof links) => {
+      for (const l of items) {
+        const result = l.provider
+          ? this.linkByProviderStmt.run({ chatId: l.chatId, provider: l.provider, sessionId: l.cliSessionId })
+          : this.linkAnyProviderStmt.run({ chatId: l.chatId, sessionId: l.cliSessionId })
+        linked += result.changes
+      }
+    })
+    tx(links)
+    if (linked > 0) log.info('backfilled adopted_chat_id for legacy rows', { linked })
+    return { linked }
   }
 
   private async listClaudeFiles(

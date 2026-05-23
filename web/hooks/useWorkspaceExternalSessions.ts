@@ -22,6 +22,10 @@ interface PageResponse {
   hasMore: boolean
 }
 
+// Sidebar slices items to 10 by default and grows in +10 steps. Fetching 30
+// per request gives ~2 local pages of headroom before hitting the network.
+const PAGE_SIZE = 30
+
 export interface UseWorkspaceExternalSessionsResult {
   sessions: ExternalSession[]
   hasMore: boolean
@@ -52,7 +56,7 @@ export const useWorkspaceExternalSessions = (
     try {
       const params = new URLSearchParams()
       if (!resetCursor && cursor !== null) params.set('cursor', String(cursor))
-      params.set('limit', '100')
+      params.set('limit', String(PAGE_SIZE))
       const url = `${API_BASE}/api/workspaces/${encodeURIComponent(workspaceId)}/external-sessions?${params}`
       const res = await authFetch(url)
       if (!res.ok) {
@@ -87,7 +91,7 @@ export const useWorkspaceExternalSessions = (
       inFlightRef.current = true
       setLoading(true)
       try {
-        const url = `${API_BASE}/api/workspaces/${encodeURIComponent(workspaceId)}/external-sessions?limit=100`
+        const url = `${API_BASE}/api/workspaces/${encodeURIComponent(workspaceId)}/external-sessions?limit=${PAGE_SIZE}`
         const res = await authFetch(url)
         if (!res.ok) { setError(`HTTP ${res.status}`); return }
         const body = (await res.json()) as PageResponse

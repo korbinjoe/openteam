@@ -196,6 +196,25 @@ export const createExternalSessionRoutes = ({
         // Stale pointer (chat deleted) — fall through to re-create.
       }
 
+      // Reverse lookup: this cliSessionId may already be referenced by a chat
+      // whose adopted_chat_id was never written back (pre-backfill data, or a
+      // chat created via "New Task" that started a Claude session). Without
+      // this guard, clicking the still-unlinked ExternalSessionRow would create
+      // a duplicate chat sharing the same cliSessionId.
+      const existingByCliSession = findChatByCliSession(db, sessionRow.session_id, sessionRow.provider)
+      if (existingByCliSession) {
+        // Stamp the index so future adopt calls skip straight to the
+        // idempotent branch above, and the row drops out of the unadopted
+        // feed.
+        db.prepare(
+          'UPDATE external_session_index SET adopted_chat_id = ? WHERE id = ?',
+        ).run(existingByCliSession, id)
+        log.info('Adopt short-circuited to existing chat', {
+          sessionId: sessionRow.session_id, chatId: existingByCliSession,
+        })
+        return res.json({ chatId: existingByCliSession })
+      }
+
       // Force a re-parse if we never resolved a first user message for this
       // session. Without this the new chat's title falls back to "<cwd>/<id>",
       // which is opaque. ensureIndexed is idempotent and respects mtime/size
@@ -341,4 +360,29 @@ const resolveOrCreateWorkspace = async (
 const truncateTitle = (s: string, max: number = 80): string => {
   const single = s.replace(/\s+/g, ' ').trim()
   return single.length > max ? single.slice(0, max - 1) + '…' : single
+}
+
+// Scan chats.expert_sessions for any entry referencing this cliSessionId.
+// Done in JS rather than SQL JSON because expert_sessions is keyed by agentId
+// and the structure varies — small N, cheap to iterate.
+const findChatByCliSession = (
+  db: ReturnType<typeof getDatabase>,
+  cliSessionId: string,
+  provider: 'claude' | 'codex',
+): string | null => {
+  const rows = db
+    .prepare(`SELECT id, expert_sessions FROM chats WHERE expert_sessions IS NOT NULL`)
+    .all() as Array<{ id: string; expert_sessions: string }>
+  for (const row of rows) {
+    let parsed: Record<string, { cliSessionId?: string; provider?: string }> | null
+    try { parsed = JSON.parse(row.expert_sessions) } catch { continue }
+    if (!parsed) continue
+    for (const info of Object.values(parsed)) {
+      if (info?.cliSessionId !== cliSessionId) continue
+      // Provider may be unset on legacy rows — accept when missing.
+      if (info.provider && info.provider !== provider) continue
+      return row.id
+    }
+  }
+  return null
 }

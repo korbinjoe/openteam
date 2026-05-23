@@ -17,20 +17,26 @@
  *   - Re-expand warm:    ≤ 50 ms (all rows cached, no parseHeader calls)
  */
 
-import { existsSync } from 'fs'
+import { createReadStream, existsSync } from 'fs'
 import { promises as fsp } from 'fs'
+import { createInterface } from 'readline'
 import { join } from 'path'
 import { homedir } from 'os'
 import type BetterSqlite3 from 'better-sqlite3'
 import { getDatabase } from '../../stores/Database'
 import { createLogger } from '../../lib/logger'
 import { cwdToClaudeProjectKey } from '../../../shared/projectKey'
-import { readHeadLines, safeJsonParse } from './readHead'
+import { safeJsonParse } from './readHead'
 
 const log = createLogger('SessionPager')
 
 const CLAUDE_ROOT = join(homedir(), '.claude', 'projects')
-const HEAD_CAP = 8192
+// Hard cap on bytes scanned per file when searching for the first user message.
+// Claude / Codex jsonl headers can be 30-50 KB of metadata (attachments,
+// AGENTS.md injection, session_meta) before the first real user input. 1 MB
+// covers all observed corpora with room to spare; stream-with-early-exit
+// means small sessions cost only a few KB to read.
+const HEAD_SCAN_BYTES_MAX = 1024 * 1024
 const FIRST_USER_CAP = 200
 const DEFAULT_LIMIT = 20
 
@@ -183,10 +189,27 @@ export class SessionPager {
     const scannedAt = Date.now()
     const onDiskPaths = new Set<string>()
 
+    // Pull the existing parse state so we can detect cached rows that have
+    // mtime/size match but never resolved a first_user_message (parser bug,
+    // missing message in old 8 KB window, etc.) — those get re-parsed.
+    const cachedClaudeState = new Map<string, { firstUser: string | null; parseError: string | null }>()
+    for (const row of this.db
+      .prepare(
+        `SELECT file_path, first_user_message, parse_error
+         FROM external_session_index
+         WHERE provider = 'claude' AND cwd = ?`,
+      )
+      .all(cwd) as Array<{ file_path: string; first_user_message: string | null; parse_error: string | null }>) {
+      cachedClaudeState.set(row.file_path, { firstUser: row.first_user_message, parseError: row.parse_error })
+    }
+
     for (const f of claudeFiles) {
       onDiskPaths.add(f.filePath)
       const c = cached.get(f.filePath)
-      if (c && c.mtime === f.mtime && c.size === f.size) continue
+      const state = cachedClaudeState.get(f.filePath)
+      const stale = !c || c.mtime !== f.mtime || c.size !== f.size
+      const needsParse = stale || (state?.firstUser === null && state?.parseError === null)
+      if (!needsParse) continue
       const parsed = await parseClaudeHeader(f.filePath)
       upserts.push({
         id: `claude:${f.sessionId}`,
@@ -328,76 +351,135 @@ interface ParsedHeader {
   error: string | null
 }
 
-const truncate = (s: string): string =>
-  s.length > FIRST_USER_CAP ? s.slice(0, FIRST_USER_CAP) : s
-
-const parseClaudeHeader = async (path: string): Promise<ParsedHeader> => {
-  let lines: string[]
-  try {
-    lines = await readHeadLines(path, HEAD_CAP)
-  } catch (err) {
-    return { firstUser: null, error: err instanceof Error ? err.message : String(err) }
-  }
-  for (const line of lines) {
-    const obj = safeJsonParse<{
-      type?: string
-      message?: { role?: string; content?: unknown }
-    }>(line)
-    if (!obj?.message) continue
-    if (obj.message.role !== 'user') continue
-    const content = obj.message.content
-    if (typeof content === 'string' && content.length > 0) {
-      return { firstUser: truncate(content), error: null }
-    }
-    if (Array.isArray(content)) {
-      // Claude content can be a list of blocks; find the first text block.
-      for (const block of content) {
-        if (
-          block
-          && typeof block === 'object'
-          && (block as { type?: string }).type === 'text'
-          && typeof (block as { text?: unknown }).text === 'string'
-        ) {
-          const text = (block as { text: string }).text
-          if (text.length > 0) return { firstUser: truncate(text), error: null }
-        }
-      }
-    }
-  }
-  return { firstUser: null, error: null }
+const truncate = (s: string): string => {
+  const single = s.replace(/\s+/g, ' ').trim()
+  return single.length > FIRST_USER_CAP ? single.slice(0, FIRST_USER_CAP) : single
 }
 
-const parseCodexHeader = async (path: string): Promise<ParsedHeader> => {
-  let lines: string[]
+/**
+ * Stream a jsonl file line-by-line and return the first line for which
+ * `match` returns a non-null string. Stops as soon as a match is found or
+ * `maxBytes` is exceeded — fast path for small sessions, bounded worst case
+ * for headers padded with attachments / context injection.
+ */
+const scanForFirstMatch = async (
+  path: string,
+  match: (obj: unknown) => string | null,
+  maxBytes: number,
+): Promise<ParsedHeader> => {
+  let bytes = 0
+  let stream: ReturnType<typeof createReadStream> | null = null
   try {
-    lines = await readHeadLines(path, HEAD_CAP)
+    stream = createReadStream(path, { encoding: 'utf8' })
+    const rl = createInterface({ input: stream, crlfDelay: Infinity })
+    for await (const line of rl) {
+      bytes += Buffer.byteLength(line, 'utf8') + 1
+      if (!line) continue
+      const obj = safeJsonParse(line)
+      if (obj) {
+        const text = match(obj)
+        if (text) {
+          rl.close()
+          stream.destroy()
+          return { firstUser: truncate(text), error: null }
+        }
+      }
+      if (bytes >= maxBytes) {
+        rl.close()
+        stream.destroy()
+        return { firstUser: null, error: 'no_user_message_in_head' }
+      }
+    }
+    return { firstUser: null, error: null }
   } catch (err) {
     return { firstUser: null, error: err instanceof Error ? err.message : String(err) }
+  } finally {
+    if (stream && !stream.destroyed) stream.destroy()
   }
-  for (const line of lines) {
-    const obj = safeJsonParse<{
-      type?: string
-      payload?: {
-        type?: string
-        role?: string
-        content?: Array<{ type?: string; text?: string }>
+}
+
+// Claude hooks inject synthetic "user" messages like <command-name>/clear</command-name>
+// or <system-reminder>...</system-reminder>. Those are not real user input.
+const CLAUDE_NOISE_PREFIXES = ['<command-', '<system-reminder', '<local-command-stdout', 'Caveat:']
+
+const isClaudeNoise = (text: string): boolean => {
+  const trimmed = text.trimStart()
+  return CLAUDE_NOISE_PREFIXES.some((p) => trimmed.startsWith(p))
+}
+
+const matchClaude = (obj: unknown): string | null => {
+  const o = obj as { type?: string; message?: { role?: string; content?: unknown } }
+  if (!o?.message || o.message.role !== 'user') return null
+  const content = o.message.content
+  if (typeof content === 'string') {
+    if (!content || isClaudeNoise(content)) return null
+    return content
+  }
+  if (Array.isArray(content)) {
+    for (const block of content) {
+      if (
+        block
+        && typeof block === 'object'
+        && (block as { type?: string }).type === 'text'
+        && typeof (block as { text?: unknown }).text === 'string'
+      ) {
+        const text = (block as { text: string }).text
+        if (text && !isClaudeNoise(text)) return text
       }
-    }>(line)
-    const p = obj?.payload
-    if (!p) continue
-    // Codex stores user inputs as response_item with role=user.
-    if (p.role !== 'user') continue
-    if (!Array.isArray(p.content)) continue
+    }
+  }
+  return null
+}
+
+const parseClaudeHeader = (path: string): Promise<ParsedHeader> =>
+  scanForFirstMatch(path, matchClaude, HEAD_SCAN_BYTES_MAX)
+
+// Codex injects AGENTS.md / environment context as the first response_item
+// with role=user. Heuristic: real user input is rarely prefixed with these
+// markers and is rarely > 2 KB. Prefer the event_msg.user_message envelope
+// when present — it's the most reliable signal.
+const CODEX_INJECTED_PREFIXES = ['# AGENTS.md', '<INSTRUCTIONS>', '<environment_context>', '<user_instructions>']
+
+const isCodexInjected = (text: string): boolean => {
+  const trimmed = text.trimStart()
+  if (CODEX_INJECTED_PREFIXES.some((p) => trimmed.startsWith(p))) return true
+  // Defensive: anything > 4 KB at the very head is almost certainly context
+  // injection, not a real prompt.
+  return trimmed.length > 4096
+}
+
+const matchCodex = (obj: unknown): string | null => {
+  const o = obj as {
+    type?: string
+    payload?: {
+      type?: string
+      role?: string
+      message?: unknown
+      content?: Array<{ type?: string; text?: string }>
+    }
+  }
+  const p = o?.payload
+  if (!p) return null
+  // Preferred path: event_msg envelope with payload.type='user_message'.
+  if (o.type === 'event_msg' && p.type === 'user_message') {
+    if (typeof p.message === 'string' && p.message) return p.message
+  }
+  // Fallback: response_item.message with role=user, skipping injected context.
+  if (o.type === 'response_item' && p.role === 'user' && Array.isArray(p.content)) {
     for (const block of p.content) {
       if (
         block
         && (block.type === 'input_text' || block.type === 'text')
         && typeof block.text === 'string'
-        && block.text.length > 0
+        && block.text
+        && !isCodexInjected(block.text)
       ) {
-        return { firstUser: truncate(block.text), error: null }
+        return block.text
       }
     }
   }
-  return { firstUser: null, error: null }
+  return null
 }
+
+const parseCodexHeader = (path: string): Promise<ParsedHeader> =>
+  scanForFirstMatch(path, matchCodex, HEAD_SCAN_BYTES_MAX)

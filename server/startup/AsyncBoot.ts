@@ -3,6 +3,7 @@ import { CliAutoInstaller, type CliAutoInstallResult } from '../services/CliAuto
 import { PreflightChecker, type PreflightResult } from '../services/PreflightChecker'
 import { DirectoryEnumerator } from '../services/scanner/DirectoryEnumerator'
 import { ExternalDirWatcher } from '../services/scanner/ExternalDirWatcher'
+import { backfillExternalChatTitles } from '../services/scanner/backfillExternalChatTitles'
 import { isExternalScanEnabled } from '../services/scanSettings'
 
 const log = createLogger('AsyncBoot')
@@ -55,6 +56,14 @@ export const runAsyncBoot = (broadcast: (msg: Record<string, unknown>) => void):
           error: err instanceof Error ? err.message : String(err),
         })
       })
+
+    // One-shot: fix titles on chats adopted before the parser learned to skip
+    // attachment/context-injection rows. Cheap (one indexed query + N updates).
+    backfillExternalChatTitles().catch((err) => {
+      log.debug('backfillExternalChatTitles failed (non-fatal)', {
+        error: err instanceof Error ? err.message : String(err),
+      })
+    })
   })
 
   return result

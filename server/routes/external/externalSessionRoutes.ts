@@ -196,6 +196,24 @@ export const createExternalSessionRoutes = ({
         // Stale pointer (chat deleted) — fall through to re-create.
       }
 
+      // Force a re-parse if we never resolved a first user message for this
+      // session. Without this the new chat's title falls back to "<cwd>/<id>",
+      // which is opaque. ensureIndexed is idempotent and respects mtime/size
+      // caching, so the cost is bounded to the one file we care about.
+      if (!sessionRow.first_user_message) {
+        await pager.listForCwd(sessionRow.cwd, null, 1).catch((err) => {
+          log.debug('adopt: pre-adopt index refresh failed (non-fatal)', {
+            id, error: err instanceof Error ? err.message : String(err),
+          })
+        })
+        const refreshed = db
+          .prepare(`SELECT first_user_message FROM external_session_index WHERE id = ?`)
+          .get(id) as { first_user_message: string | null } | undefined
+        if (refreshed?.first_user_message) {
+          sessionRow.first_user_message = refreshed.first_user_message
+        }
+      }
+
       // 1. Resolve workspace: match by repository prefix, else auto-create one
       //    that owns this cwd. Auto-created workspace is a real first-class
       //    workspace; it just happens to be created at adoption time.

@@ -32,6 +32,7 @@ const CHAT_UPDATABLE_FIELDS: Array<keyof Chat> = [
   'lastMessageAt',
   'taskStatus',
   'lastAgentId',
+  'teamAgentIds',
 ]
 
 const pickUpdatableFields = (body: Record<string, unknown>): Partial<Chat> => {

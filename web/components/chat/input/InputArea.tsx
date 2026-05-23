@@ -61,6 +61,10 @@ interface Props {
   cwd?: string | null
   queueSize?: number
   onOpenAgentSwitcher?: () => void
+  /** True when the workspace URL pins this view to one agent. Disables the
+   *  agent-switch chip and rewrites the placeholder to make the lock visible. */
+  singleAgentMode?: boolean
+  lockedAgentName?: string
   isActive?: boolean
 }
 
@@ -92,6 +96,8 @@ const InputArea = forwardRef<InputAreaHandle, Props>(({
   targetAgentId, onTargetChange, cwd,
   queueSize = 0,
   onOpenAgentSwitcher,
+  singleAgentMode = false,
+  lockedAgentName,
   isActive = true,
 }, ref) => {
   const { t } = useTranslation('chat')
@@ -496,7 +502,9 @@ const InputArea = forwardRef<InputAreaHandle, Props>(({
       ? (queueSize > 0
           ? t('input.queuedCount', { count: queueSize })
           : t('input.taskInProgress'))
-      : 'Send a message...'
+      : singleAgentMode && lockedAgentName
+        ? `Message ${lockedAgentName}…`
+        : 'Send a message...'
 
   return (
     <div className="px-4 pt-1 pb-2.5 shrink-0 relative">
@@ -578,20 +586,30 @@ const InputArea = forwardRef<InputAreaHandle, Props>(({
 
         {/* Bottom toolbar */}
         <div className="flex items-center px-1.5 pt-0.5 pb-1.5 gap-1 min-w-0">
-          {/* Agent Switch chip */}
+          {/* Agent Switch chip — becomes a non-interactive lock indicator in single-agent mode */}
           {showAgentChip && activeAgent && (
-            <button
-              type="button"
-              onClick={() => onOpenAgentSwitcher?.()}
-              title={t('input.agentSwitchTitle', { name: activeAgent.name, shortcut: isMac ? '⌘K' : 'Ctrl+K' })}
-              className="group flex items-center gap-1 text-xs text-text-secondary px-1.5 py-0.5 bg-bg-hover-muted rounded-sm whitespace-nowrap overflow-hidden cursor-pointer hover:text-text-primary hover:bg-bg-hover transition-colors max-w-[180px] shrink-[10] min-w-0"
-            >
-              <Users size={11} className="shrink-0 opacity-60" />
-              <span className="truncate">{activeAgent.name}</span>
-              <kbd className="shrink-0 text-[10px] font-mono text-text-muted opacity-60 ml-0.5 px-1 py-px rounded border border-border-subtle/60 group-hover:opacity-80 transition-opacity">
-                {isMac ? '⌘K' : 'Ctrl+K'}
-              </kbd>
-            </button>
+            singleAgentMode ? (
+              <span
+                title={`Locked to ${activeAgent.name} — open the task view to switch agents`}
+                className="flex items-center gap-1 text-xs text-text-secondary px-1.5 py-0.5 bg-bg-hover-muted/60 rounded-sm whitespace-nowrap overflow-hidden max-w-[180px] shrink-[10] min-w-0 cursor-default"
+              >
+                <Users size={11} className="shrink-0 opacity-60" />
+                <span className="truncate">{activeAgent.name}</span>
+              </span>
+            ) : (
+              <button
+                type="button"
+                onClick={() => onOpenAgentSwitcher?.()}
+                title={t('input.agentSwitchTitle', { name: activeAgent.name, shortcut: isMac ? '⌘K' : 'Ctrl+K' })}
+                className="group flex items-center gap-1 text-xs text-text-secondary px-1.5 py-0.5 bg-bg-hover-muted rounded-sm whitespace-nowrap overflow-hidden cursor-pointer hover:text-text-primary hover:bg-bg-hover transition-colors max-w-[180px] shrink-[10] min-w-0"
+              >
+                <Users size={11} className="shrink-0 opacity-60" />
+                <span className="truncate">{activeAgent.name}</span>
+                <kbd className="shrink-0 text-[10px] font-mono text-text-muted opacity-60 ml-0.5 px-1 py-px rounded border border-border-subtle/60 group-hover:opacity-80 transition-opacity">
+                  {isMac ? '⌘K' : 'Ctrl+K'}
+                </kbd>
+              </button>
+            )
           )}
 
           <div ref={modelDropdownRef} className="relative shrink-[10] min-w-0">

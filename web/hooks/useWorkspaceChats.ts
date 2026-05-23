@@ -81,10 +81,24 @@ export const useWorkspaceChats = (workspaceId: string | null | undefined): Works
     const handleVisibility = () => { if (!document.hidden) void refresh() }
     document.addEventListener('visibilitychange', handleVisibility)
 
+    // Local DOM events dispatched by callers that just mutated chats
+    // (NewChatForm after create, AddAgentPicker after teamAgentIds update).
+    // Keeps sidebar/quad in sync without a dedicated WS broadcast.
+    const handleChatMutated = (e: Event) => {
+      const detail = (e as CustomEvent<{ workspaceId?: string }>).detail
+      if (!detail || !detail.workspaceId || detail.workspaceId === workspaceId) {
+        void refresh()
+      }
+    }
+    window.addEventListener('openteam:chat-created', handleChatMutated)
+    window.addEventListener('openteam:chat-updated', handleChatMutated)
+
     return () => {
       wsClient.off('chat:status-changed', handleStatusChanged)
       wsClient.off('chat:activity', handleActivity)
       document.removeEventListener('visibilitychange', handleVisibility)
+      window.removeEventListener('openteam:chat-created', handleChatMutated)
+      window.removeEventListener('openteam:chat-updated', handleChatMutated)
     }
   }, [workspaceId, refresh])
 

@@ -30,6 +30,7 @@ import { useAgents } from '../../hooks/useAgents'
 import { useChatWebSocket } from '../../hooks/useChatWebSocket'
 import { useChatActions } from '../../hooks/useChatActions'
 import { useChatTabs } from '../../contexts/ChatTabContext'
+import { useWorkspace } from '../../contexts/WorkspaceContext'
 import DirPickerDialog from '../home/DirPickerDialog'
 import { useDirPicker } from '../../hooks/useDirPicker'
 import { API_BASE, authFetch } from '@/config/api'
@@ -84,6 +85,11 @@ const ChatInstance = ({ chatId, workspaceId, isActive, isNewChat = false, initAg
   const { t } = useTranslation(['chat', 'common'])
   const navigate = useNavigate()
   const { updateTabTitle, updateTabStatus } = useChatTabs()
+  // URL-derived single-agent lock: when /workspace/:ws/task/:task?agent=:id is
+  // active, the workspace pins the conversation to one agent. All cross-agent
+  // affordances (mention menu, agent switcher, etc.) must be hidden inside this
+  // view — talking to a different agent there means leaving the 1:1 surface.
+  const { selectedAgentId: lockedAgentId } = useWorkspace()
   // ── Hooks ──
   const {
     availableAgents, setAvailableAgents,
@@ -91,6 +97,24 @@ const ChatInstance = ({ chatId, workspaceId, isActive, isNewChat = false, initAg
     handleSetSelectedAgentId, currentAgentName,
     agentNames, agentPersonalities,
   } = useAgents()
+
+  const lockedAgent = useMemo(() => {
+    if (!lockedAgentId) return null
+    return availableAgents.find((a) => a.id === lockedAgentId || a.name === lockedAgentId) ?? null
+  }, [lockedAgentId, availableAgents])
+  const singleAgentMode = !!lockedAgent
+  const inputAgents = useMemo(
+    () => (singleAgentMode && lockedAgent ? [lockedAgent] : availableAgents),
+    [singleAgentMode, lockedAgent, availableAgents],
+  )
+
+  // Keep the input's target locked to the URL agent in single-agent mode so
+  // the agent chip / send path stay coherent if state momentarily drifts.
+  useEffect(() => {
+    if (!singleAgentMode || !lockedAgent) return
+    const lockedKey = lockedAgent.id ?? lockedAgent.name
+    if (targetAgentId !== lockedKey) setTargetAgentId(lockedKey)
+  }, [singleAgentMode, lockedAgent, targetAgentId, setTargetAgentId])
 
   const {
     expertActivities, setExpertActivities,
@@ -269,13 +293,14 @@ const ChatInstance = ({ chatId, workspaceId, isActive, isNewChat = false, initAg
         return
       }
       if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && (e.key === 'k' || e.key === 'K')) {
+        if (singleAgentMode) return
         e.preventDefault()
         setAgentSwitcherOpen((v) => !v)
       }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isActive])
+  }, [isActive, singleAgentMode])
 
   const handleAddDirPick = useCallback((path: string) => {
     dirPicker.setDirModalOpen(false)
@@ -407,11 +432,13 @@ const ChatInstance = ({ chatId, workspaceId, isActive, isNewChat = false, initAg
             onInterrupt={handleInterrupt}
             disabled={!canSend} activity={currentMergedActivity} slashCommands={currentSlashCommands}
             model={chatModel} onModelChange={handleModelChange} availableModels={availableModels}
-            agents={availableAgents} expertActivities={expertActivities} targetAgentId={targetAgentId}
+            agents={inputAgents} expertActivities={expertActivities} targetAgentId={targetAgentId}
             onTargetChange={(agent) => setTargetAgentId(agent.id ?? agent.name)}
             cwd={currentWorkingDirectory}
             queueSize={queuedMessages.length}
-            onOpenAgentSwitcher={() => setAgentSwitcherOpen(true)}
+            onOpenAgentSwitcher={singleAgentMode ? undefined : () => setAgentSwitcherOpen(true)}
+            singleAgentMode={singleAgentMode}
+            lockedAgentName={lockedAgent?.name}
             isActive={isActive} />
           </>)}
         </div>
@@ -473,7 +500,7 @@ const ChatInstance = ({ chatId, workspaceId, isActive, isNewChat = false, initAg
         )}
       </div>
 
-      {isActive && (
+      {isActive && !singleAgentMode && (
         <AgentSwitcherModal
           open={agentSwitcherOpen}
           agents={availableAgents}

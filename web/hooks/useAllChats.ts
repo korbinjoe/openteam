@@ -86,10 +86,18 @@ export const useAllChats = (): V2AllChatsResult => {
     const handleVisibility = () => { if (!document.hidden) void refresh() }
     document.addEventListener('visibilitychange', handleVisibility)
 
+    // Local DOM events from callers that just mutated chats (NewChatForm,
+    // AddAgentPicker). Sidebar refreshes without waiting for a WS broadcast.
+    const handleChatMutated = () => { void refresh() }
+    window.addEventListener('openteam:chat-created', handleChatMutated)
+    window.addEventListener('openteam:chat-updated', handleChatMutated)
+
     return () => {
       wsClient.off('chat:status-changed', handleStatusChanged)
       wsClient.off('chat:activity', handleActivity)
       document.removeEventListener('visibilitychange', handleVisibility)
+      window.removeEventListener('openteam:chat-created', handleChatMutated)
+      window.removeEventListener('openteam:chat-updated', handleChatMutated)
     }
   }, [refresh])
 

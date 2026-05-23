@@ -170,6 +170,11 @@ const NewChatForm = ({ currentWorkspaceId, currentAgentId, onCreated, routePrefi
         throw new Error(errData.error || 'Create failed')
       }
       const { workspace, chat } = await res.json()
+      // Notify useWorkspaceChats listeners so the sidebar/quad pick up the new
+      // chat before WorkspaceLayout's auto-redirect runs against a stale list.
+      window.dispatchEvent(new CustomEvent('openteam:chat-created', {
+        detail: { workspaceId: workspace.id, chatId: chat.id },
+      }))
       onCreated?.()
       navigate(`${routePrefix}/${workspace.id}/${chatSegment}/${chat.id}`, {
         state: { isNew: true, agentId: opts.agent?.id },

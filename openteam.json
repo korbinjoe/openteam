@@ -41,7 +41,7 @@
         "description": "End-to-end delivery from requirement analysis and technical design to frontend/backend development.",
         "workspace": "./ai-assets/agents/fullstack-product-engineer",
         "role": "expert",
-        "skills": ["frontend-expert", "api-integrator", "whiteboard"],
+        "skills": ["frontend-expert", "api-integrator", "playwright-cli", "whiteboard"],
         "allowedTools": ["Read", "Write", "Edit", "Glob", "Grep", "Bash"],
         "heartbeat": {
           "every": "30m",

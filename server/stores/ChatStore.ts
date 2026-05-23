@@ -97,6 +97,8 @@ export class ChatStore extends SqliteBaseStore<Chat> {
       totalToolCalls: row.total_tool_calls as number | undefined,
       participantAgents: row.participant_agents ? JSON.parse(row.participant_agents as string) : undefined,
       lastAgentId: row.last_agent_id as string | undefined,
+      source: (row.source as Chat['source']) ?? 'native',
+      externalCwd: (row.external_cwd as string | null) ?? undefined,
       createdAt: row.created_at as string,
       lastMessageAt: row.last_message_at as string,
     }
@@ -123,6 +125,8 @@ export class ChatStore extends SqliteBaseStore<Chat> {
       location_history: null,
       device_id: null,
       last_agent_id: entity.lastAgentId ?? null,
+      source: entity.source ?? 'native',
+      external_cwd: entity.externalCwd ?? null,
       created_at: entity.createdAt,
       last_message_at: entity.lastMessageAt,
     }

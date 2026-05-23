@@ -170,6 +170,14 @@ export interface Chat {
    *  it is enrichment, not persistence — every API surface that returns Chat
    *  to the client SHOULD populate this via enrichWithMembers(). */
   members?: ChatMember[]
+  /** Origin of the chat. 'native' = created in OpenTeam; 'external' = adopted
+   *  from a pre-existing local CLI jsonl (Claude Code / Codex). Defaults to
+   *  'native' for legacy rows. */
+  source?: 'native' | 'external'
+  /** When the adopted chat's working directory does not match any registered
+   *  workspace, the original cwd is preserved here so the sidebar can still
+   *  group it correctly. Always null for native chats. */
+  externalCwd?: string
   createdAt: string
   lastMessageAt: string
 }

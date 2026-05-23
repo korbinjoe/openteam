@@ -56,7 +56,7 @@ import { ensureAvatarDir } from './lib/avatarStorage'
 import { initEventTracker, trackEvent } from './lib/eventTracker'
 
 import { healStaleChatStatuses, watchAiAssetsDev } from './startup/StartupHealers'
-import { runAsyncBoot, type AsyncBootResult } from './startup/AsyncBoot'
+import { runAsyncBoot, getExternalDirWatcher, type AsyncBootResult } from './startup/AsyncBoot'
 import { setupRoutes } from './startup/routeSetup'
 import { setupWebSocket } from './startup/wsSetup'
 
@@ -333,6 +333,7 @@ const gracefulShutdown = (signal: string) => {
   cronScheduler.stop()
   idleReaper.stop()
   updateMonitor.stop()
+  void getExternalDirWatcher()?.stop()
   const forceTimer = setTimeout(() => {
     log.warn('Graceful shutdown timed out, forcing exit')
     process.exit(1)

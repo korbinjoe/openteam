@@ -14,6 +14,7 @@ import { createExpertRoutes } from '../routes/agent/expertRoutes'
 import { createWorkspaceApiRoutes } from '../routes/workspace/workspaceApiRoutes'
 import { createChatRoutes } from '../routes/chat/chatRoutes'
 import { createWhiteboardRoutes } from '../routes/chat/whiteboardRoutes'
+import { createExternalSessionRoutes } from '../routes/external/externalSessionRoutes'
 import { createExecutionLogRoutes } from '../routes/system/executionLogRoutes'
 import { createCronJobRoutes } from '../routes/system/cronJobRoutes'
 import { createNotificationRoutes } from '../routes/system/notificationRoutes'
@@ -130,6 +131,7 @@ export const setupRoutes = (app: Express, d: RouteDeps) => {
   app.use(createAgentRoutes({ agentRegistry: d.agentRegistry, agentStore: d.agentStore, skillManager: d.skillManager, senseiPromptPaths: d.senseiPromptPaths }))
   app.use(createExpertRoutes({ expertHandler: d.expertHandler, agentRegistry: d.agentRegistry, mailboxManager: d.mailboxManager, executionPlanManager: d.executionPlanManager }))
   app.use(createWorkspaceApiRoutes({ workspaceStore: d.workspaceStore, chatStore: d.chatStore, chatService: d.chatService }))
+  app.use(createExternalSessionRoutes({ workspaceStore: d.workspaceStore, chatStore: d.chatStore }))
   app.use(createChatRoutes({ chatStore: d.chatStore, chatService: d.chatService, tokenUsageStore: d.tokenUsageStore, sessionRegistry: d.sessionRegistry }))
   app.use(createWhiteboardRoutes({ whiteboardManager: d.whiteboardManager, chatStore: d.chatStore, broadcastToChat: d.broadcastToChat }))
   app.use(createExecutionLogRoutes(d.executionLogStore))

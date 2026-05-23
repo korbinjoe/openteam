@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react'
+import { useCallback } from 'react'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { Folder, Flag, FolderGit } from './icons'
 import { cn } from '../../lib/utils'
@@ -114,11 +114,13 @@ const ExpandedPanel = () => {
   const { activeChatId, setIdeMountNode } = useWorkspace()
   const hasChat = !!activeChatId
 
+  // Callback ref handles both attach (newNode) and detach (null on unmount).
+  // Do NOT add a useEffect cleanup that also clears the node — passive cleanup
+  // runs AFTER the new component's ref attach on layout switches, so it would
+  // overwrite the freshly attached mount node and blank the IDE portal.
   const mountRef = useCallback((node: HTMLDivElement | null) => {
     setIdeMountNode(node)
   }, [setIdeMountNode])
-
-  useEffect(() => () => setIdeMountNode(null), [setIdeMountNode])
 
   return (
     <div className="flex-1 flex flex-col min-w-0 overflow-hidden border-l border-border-subtle">

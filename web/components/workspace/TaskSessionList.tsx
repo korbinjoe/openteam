@@ -299,11 +299,11 @@ const WorkspaceGroup = ({
             </button>
           )}
           {archivedChats.length > 0 && (
-            <div className="mt-1 pt-1 border-t border-border/30">
+            <div className="mt-1 pt-1 ml-3 border-t border-border/30">
               <button
                 onClick={() => setArchivedOpen((v) => !v)}
                 disabled={isSearching}
-                className="w-full flex items-center gap-1.5 px-2 py-1 hover:bg-bg-hover/50 rounded-sm transition-colors text-text-muted disabled:cursor-default"
+                className="w-full flex items-center gap-1.5 px-1.5 py-0.5 hover:bg-bg-hover/50 rounded-sm transition-colors text-text-muted disabled:cursor-default"
                 aria-expanded={showArchived}
               >
                 <span className="-ml-px">

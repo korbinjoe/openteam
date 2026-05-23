@@ -119,24 +119,47 @@ export class SessionPager {
       limit: limit + 1,
     }) as IndexRow[]
 
-    const hasMore = rows.length > limit
-    const page = hasMore ? rows.slice(0, limit) : rows
-    const nextCursor = hasMore ? page[page.length - 1].file_mtime_ms : null
+    return toPageResult(rows, limit)
+  }
 
-    return {
-      sessions: page.map((r) => ({
-        id: r.id,
-        provider: r.provider,
-        sessionId: r.session_id,
-        cwd: r.cwd,
-        filePath: r.file_path,
-        firstUserMessage: r.first_user_message,
-        mtimeMs: r.file_mtime_ms,
-        sizeBytes: r.size_bytes,
-      })),
-      nextCursor,
-      hasMore,
+  /**
+   * Multi-cwd variant — merges and pages across N cwds by mtime DESC. Used by
+   * the workspace-level endpoint that surfaces all external sessions falling
+   * under a workspace's repositories in one unified, time-sorted feed.
+   *
+   * Hydration runs per-cwd (parses jsonl headers for new/changed files), then
+   * a single SQL query does the cross-cwd ordering. Skips empty cwd list.
+   */
+  async listForCwds(
+    cwds: string[],
+    cursor: number | null,
+    limit: number = DEFAULT_LIMIT,
+  ): Promise<PageResult> {
+    if (cwds.length === 0) {
+      return { sessions: [], nextCursor: null, hasMore: false }
     }
+    for (const cwd of cwds) {
+      await this.ensureIndexed(cwd)
+    }
+    const placeholders = cwds.map(() => '?').join(',')
+    const params: Array<string | number | null> = [...cwds]
+    let cursorClause = ''
+    if (cursor !== null) {
+      cursorClause = ' AND file_mtime_ms < ?'
+      params.push(cursor)
+    }
+    params.push(limit + 1)
+    const sql = `
+      SELECT id, provider, session_id, cwd, file_path,
+             first_user_message, size_bytes, file_mtime_ms, adopted_chat_id
+      FROM external_session_index
+      WHERE cwd IN (${placeholders})
+        AND adopted_chat_id IS NULL${cursorClause}
+      ORDER BY file_mtime_ms DESC
+      LIMIT ?
+    `
+    const rows = this.db.prepare(sql).all(...params) as IndexRow[]
+    return toPageResult(rows, limit)
   }
 
   /**
@@ -273,6 +296,28 @@ export class SessionPager {
       first_user_message: string | null
       parse_error: string | null
     }>
+  }
+}
+
+// ── page assembly ─────────────────────────────────────────────────────────
+
+const toPageResult = (rows: IndexRow[], limit: number): PageResult => {
+  const hasMore = rows.length > limit
+  const page = hasMore ? rows.slice(0, limit) : rows
+  const nextCursor = hasMore ? page[page.length - 1].file_mtime_ms : null
+  return {
+    sessions: page.map((r) => ({
+      id: r.id,
+      provider: r.provider,
+      sessionId: r.session_id,
+      cwd: r.cwd,
+      filePath: r.file_path,
+      firstUserMessage: r.first_user_message,
+      mtimeMs: r.file_mtime_ms,
+      sizeBytes: r.size_bytes,
+    })),
+    nextCursor,
+    hasMore,
   }
 }
 

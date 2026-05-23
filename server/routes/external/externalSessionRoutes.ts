@@ -136,6 +136,35 @@ export const createExternalSessionRoutes = ({
     }
   })
 
+  // Workspace-scoped unified feed: merges every external cwd that falls under
+  // the workspace's repositories into a single mtime-DESC stream. Sidebar uses
+  // this to interleave native chats with claude/codex sessions inside one
+  // workspace group.
+  router.get('/api/workspaces/:id/external-sessions', async (req, res) => {
+    try {
+      const ws = workspaceStore.get(req.params.id)
+      if (!ws) return res.status(404).json({ error: 'Workspace not found' })
+      const cursor = req.query.cursor ? Number(req.query.cursor) : null
+      const rawLimit = req.query.limit ? Number(req.query.limit) : 20
+      const limit = Math.min(Math.max(1, rawLimit || 20), 100)
+
+      const dirRows = getDatabase()
+        .prepare(`SELECT cwd FROM external_dir_index WHERE hidden = 0`)
+        .all() as Array<{ cwd: string }>
+      const cwds = dirRows.map((r) => r.cwd).filter((cwd) => isCwdInWorkspace(cwd, ws))
+
+      const result = await pager.listForCwds(cwds, cursor, limit)
+      res.json(result)
+    } catch (err) {
+      log.warn('list workspace external sessions failed', {
+        error: err instanceof Error ? err.message : String(err),
+      })
+      res.status(500).json({
+        error: err instanceof Error ? err.message : 'Failed to list sessions',
+      })
+    }
+  })
+
   router.post('/api/external-sessions/:id/adopt', async (req, res) => {
     try {
       const id = req.params.id

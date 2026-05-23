@@ -8,4 +8,5 @@ export const AGENT_EMOJI: Record<string, string> = {
   'image-creator': '🦎',
   'sensei': '🐙',
   'ui-designer': '🦊',
+  'product-strategist': '🧪',
 }

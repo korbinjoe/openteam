@@ -4,7 +4,7 @@ import { useWorkspaceMeta } from '../../hooks/useWorkspaceMeta'
 import { useWorkspaceChats } from '../../hooks/useWorkspaceChats'
 import { useAgents } from '../../hooks/useAgents'
 import LayoutControls from './LayoutControls'
-import { UsersGroup, ChevronRight, FolderGit, PanelRight } from './icons'
+import { UsersGroup, ChevronRight, FolderGit } from './icons'
 import { cn } from '../../lib/utils'
 import { buildTaskUrl } from './urls'
 import { memberStatusDot, ageLabel } from './TaskSessionRows'
@@ -15,7 +15,7 @@ import type { Chat, ChatMember } from '../workspace/types'
 // Terminal button lives inside WebIDEPanel's tab bar (the only IDE-column header).
 
 const WorkspaceToolbar = () => {
-  const { viewMode, workspaceId, activeChatId, selectedAgentId, ideCollapsed, toggleIde } = useWorkspace()
+  const { viewMode, workspaceId, activeChatId, selectedAgentId } = useWorkspace()
   const { meta } = useWorkspaceMeta(workspaceId)
   const { chats } = useWorkspaceChats(workspaceId)
   const chat = activeChatId ? chats.find((c) => c.id === activeChatId) : undefined
@@ -35,37 +35,11 @@ const WorkspaceToolbar = () => {
       <StatusChips duration={duration} chat={chat} />
       <Separator />
       <LayoutControls />
-      <ToolbarIconButton title="Toggle IDE panel (⌘J)" ariaLabel="Toggle IDE panel" active={!ideCollapsed} onClick={toggleIde}>
-        <PanelRight size={13} />
-      </ToolbarIconButton>
     </div>
   )
 }
 
 const Separator = () => <span className="w-px h-3.5 bg-border flex-shrink-0" />
-
-const ToolbarIconButton = ({ children, title, ariaLabel, onClick, active }: {
-  children: React.ReactNode
-  title: string
-  ariaLabel: string
-  onClick: () => void
-  active?: boolean
-}) => (
-  <button
-    type="button"
-    title={title}
-    aria-label={ariaLabel}
-    onClick={onClick}
-    className={cn(
-      'w-6 h-6 rounded-[5px] flex items-center justify-center transition-colors flex-shrink-0',
-      active
-        ? 'bg-accent-brand/[0.12] text-accent-brand-light'
-        : 'text-text-muted hover:bg-bg-hover hover:text-text-secondary',
-    )}
-  >
-    {children}
-  </button>
-)
 
 const StatusChips = ({ duration, chat }: { duration: string | null; chat?: Chat }) => {
   const toolCalls = chat?.totalToolCalls ?? null

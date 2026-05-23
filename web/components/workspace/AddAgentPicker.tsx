@@ -1,13 +1,16 @@
 import { useRef, useEffect, useState, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { useAgents } from '../../hooks/useAgents'
 import { API_BASE, authFetch } from '@/config/api'
 import { toast } from 'sonner'
 import { Users } from './icons'
+import { buildTaskUrl } from './urls'
 
 const AddAgentPicker = () => {
   const { workspaceId, addAgentOpen, addAgentTaskId, closeAddAgent } = useWorkspace()
   const { availableAgents } = useAgents()
+  const navigate = useNavigate()
   const inputRef = useRef<HTMLInputElement>(null)
   const [filter, setFilter] = useState('')
   const [busyAgentId, setBusyAgentId] = useState<string | null>(null)
@@ -84,6 +87,11 @@ const AddAgentPicker = () => {
       }))
       toast.success('Agent added to task')
       closeAddAgent()
+      // V2: each added agent gets its own 1:1 conversation thread. Jump to it
+      // so the user immediately sees the independent surface, not the group.
+      if (workspaceId) {
+        navigate(buildTaskUrl(workspaceId, addAgentTaskId, agentId))
+      }
     } catch (err) {
       console.error('[AddAgentPicker] add failed:', err)
       toast.error('Failed to add agent')

@@ -3,7 +3,6 @@
  */
 
 import { createContext, useContext, useReducer, useCallback, useRef, useEffect, type ReactNode } from 'react'
-import { toast } from 'sonner'
 
 // ── Types ──
 
@@ -49,7 +48,6 @@ interface ChatTabContextValue extends ChatTabState {
 // ── Constants ──
 
 const STORAGE_KEY = 'openteam:chat-tabs'
-const MAX_TABS = 10
 
 // ── Reducer ──
 
@@ -80,9 +78,6 @@ const reducer = (state: ChatTabState, action: Action): ChatTabState => {
           ? state.unreadTabs.filter((id) => id !== action.chatId)
           : state.unreadTabs
         return { ...state, activeTabId: action.chatId, unreadTabs: nextUnread, collapsedGroups: autoExpand }
-      }
-      if (state.tabs.length >= MAX_TABS) {
-        return state // caller shows toast
       }
       const newTab: ChatTabItem = {
         chatId: action.chatId,
@@ -298,10 +293,6 @@ export const ChatTabProvider = ({ children }: { children: ReactNode }) => {
   }, [state])
 
   const openTab = useCallback((chatId: string, workspaceId: string, title?: string) => {
-    if (stateRef.current.tabs.length >= MAX_TABS && !stateRef.current.tabs.some((t) => t.chatId === chatId)) {
-      toast.warning(`Maximum ${MAX_TABS} tabs open. Please close completed tabs first.`)
-      return
-    }
     dispatch({ type: 'OPEN_TAB', chatId, workspaceId, title: title ?? '' })
   }, [])
 

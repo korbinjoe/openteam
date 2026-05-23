@@ -116,6 +116,11 @@ const ChatInstance = ({ chatId, workspaceId, isActive, isNewChat = false, initAg
     if (targetAgentId !== lockedKey) setTargetAgentId(lockedKey)
   }, [singleAgentMode, lockedAgent, targetAgentId, setTargetAgentId])
 
+  // V2: an agent route (?agent=X) is a 1:1 conversation. The chat body must
+  // show only that agent's groups, otherwise switching agents inside a task
+  // reveals the same merged stream and the 1:1 promise breaks.
+  const lockedAgentKey = lockedAgent?.id ?? lockedAgent?.name ?? null
+
   const {
     expertActivities, setExpertActivities,
     currentMergedActivity,
@@ -400,11 +405,11 @@ const ChatInstance = ({ chatId, workspaceId, isActive, isNewChat = false, initAg
             <div style={LOADING_STYLE}>Loading workspace...</div>
           ) : (<>
           {allWorktreeSessions.length > 0 && <WorktreePanel sessions={allWorktreeSessions} repositories={wsRepositories} />}
-          {messages.length > 0 && (
+          {messages.length > 0 && !singleAgentMode && (
             <MessageToolbar filterAgentId={filterAgentId} onFilterAgentChange={handleFilterAgentChange} agentNames={agentNames} agentPersonalities={agentPersonalities} expertActivities={expertActivities} activeAgentIds={activeAgentIds} />
           )}
           <ChatBody
-            messages={messages} groups={groups} filterAgentId={filterAgentId}
+            messages={messages} groups={groups} filterAgentId={singleAgentMode ? lockedAgentKey : filterAgentId}
             currentMergedActivity={currentMergedActivity} groupActivities={groupActivities}
             expertActivities={expertActivities} agentNames={agentNames} agentPersonalities={agentPersonalities}
             thinking={thinking} currentAgentName={currentAgentName}

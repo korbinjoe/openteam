@@ -5,10 +5,30 @@ import type { Chat } from '../workspace/types'
 import ChatPane from './ChatPane'
 import IDEPanel from './IDEPanel'
 import MiniAgentPane from './MiniAgentPane'
-import TaskOverview from './TaskOverview'
-import GroupChat from './GroupChat'
+import TaskInfoSidebar from './TaskInfoSidebar'
 import ResizeHandle from './ResizeHandle'
 import { Plus } from './icons'
+
+// Quad task-overview tiles MiniAgentPanes (which don't mount ChatInstance),
+// so we still need an off-screen ChatPane to keep the IDE portal alive there.
+// Single/split layouts now render ChatPane + IdeRegion at stable React positions
+// (see UnifiedFrame), so the portal source never unmounts on view-mode toggle.
+const HiddenChatPortalSource = () => (
+  <div
+    aria-hidden
+    style={{
+      position: 'absolute',
+      left: '-99999px',
+      top: 0,
+      width: '1px',
+      height: '1px',
+      overflow: 'hidden',
+      pointerEvents: 'none',
+    }}
+  >
+    <ChatPane />
+  </div>
+)
 
 /** Pick the chats that earn quad slots: active chat first, then waiting (urgent),
  * then running. Dedup, cap at 4. Empty quad → show add-agent placeholders. */
@@ -50,36 +70,75 @@ const useSplitChatWidth = (): string => {
 
 const WorkspaceContent = () => {
   const { viewMode, layoutMode, ideCollapsed } = useWorkspace()
+
+  // Quad layouts have different geometry (2x2 grid), keep their own branches.
+  // Their IDE area can reload across view-mode switches — acceptable trade-off
+  // since the dominant surface in quad is the agent grid, not the IDE.
+  if (layoutMode === 'quad') {
+    return viewMode === 'task-overview'
+      ? <TaskOverviewQuadFrame ideCollapsed={ideCollapsed} />
+      : <QuadLayout ideCollapsed={ideCollapsed} />
+  }
+
+  // Single + split share one stable frame so ChatPane + IdeRegion keep their
+  // React positions across viewMode switches. Only TaskInfoSidebar enters/exits
+  // as a keyed sibling, which lets WebIDEPanel (terminal, file tree) stay alive.
+  return <UnifiedFrame viewMode={viewMode} layoutMode={layoutMode} ideCollapsed={ideCollapsed} />
+}
+
+/** Stable frame for single/split layouts. TaskInfoSidebar is the only thing
+ *  that mounts/unmounts on viewMode toggle — ChatPane and IdeRegion stay put. */
+const UnifiedFrame = ({
+  viewMode,
+  layoutMode,
+  ideCollapsed,
+}: {
+  viewMode: 'agent' | 'task-overview'
+  layoutMode: 'single' | 'split'
+  ideCollapsed: boolean
+}) => {
   const splitChatWidth = useSplitChatWidth()
+  // Task overview is the coordination view — IDE is part of the experience,
+  // not a peripheral toggle. Force-expand it here so the user sees files /
+  // changes / terminal next to the group chat.
+  const effectiveIdeCollapsed = viewMode === 'task-overview' ? false : ideCollapsed
+  const isTaskView = viewMode === 'task-overview'
 
-  if (viewMode === 'task-overview') {
-    return <TaskOverviewContent splitChatWidth={splitChatWidth} />
-  }
+  return (
+    <div className="flex-1 flex min-h-0 overflow-hidden">
+      {isTaskView && <TaskInfoSidebar key="taskinfo" />}
+      <ChatColumn
+        key="chat"
+        layoutMode={layoutMode}
+        ideCollapsed={effectiveIdeCollapsed}
+        splitChatWidth={splitChatWidth}
+      >
+        <ChatPane />
+      </ChatColumn>
+      <IdeRegion key="ide" mode={layoutMode} collapsed={effectiveIdeCollapsed} />
+    </div>
+  )
+}
 
+const ChatColumn = ({
+  layoutMode,
+  ideCollapsed,
+  splitChatWidth,
+  children,
+}: {
+  layoutMode: 'single' | 'split'
+  ideCollapsed: boolean
+  splitChatWidth: string
+  children: React.ReactNode
+}) => {
   if (layoutMode === 'single') {
-    return (
-      <div className="flex-1 flex min-h-0 overflow-hidden">
-        <div className="flex-1 flex flex-col overflow-hidden min-w-0">
-          <ChatPane />
-        </div>
-        <IdeRegion mode="single" collapsed={ideCollapsed} />
-      </div>
-    )
+    return <div className="flex-1 flex flex-col overflow-hidden min-w-0">{children}</div>
   }
-
-  if (layoutMode === 'split') {
-    return (
-      <div className="flex-1 flex min-h-0 overflow-hidden">
-        <SplitChatContainer ideCollapsed={ideCollapsed} fallbackWidthClass={splitChatWidth}>
-          <ChatPane />
-        </SplitChatContainer>
-        <IdeRegion mode="split" collapsed={ideCollapsed} />
-      </div>
-    )
-  }
-
-  // Quad layout — driven by real chats
-  return <QuadLayout ideCollapsed={ideCollapsed} />
+  return (
+    <SplitChatContainer ideCollapsed={ideCollapsed} fallbackWidthClass={splitChatWidth}>
+      {children}
+    </SplitChatContainer>
+  )
 }
 
 const QuadLayout = ({ ideCollapsed }: { ideCollapsed: boolean }) => {
@@ -175,37 +234,10 @@ const IdeRegion = ({ mode, collapsed }: { mode: 'single' | 'split' | 'quad'; col
   )
 }
 
-const TaskOverviewContent = ({ splitChatWidth }: { splitChatWidth: string }) => {
-  const { layoutMode, ideCollapsed } = useWorkspace()
-
-  if (layoutMode === 'single') {
-    return (
-      <div className="flex-1 flex min-h-0 overflow-hidden">
-        <div className="flex-1 flex flex-col overflow-hidden min-w-0">
-          <TaskOverview />
-        </div>
-        <IdeRegion mode="single" collapsed={ideCollapsed} />
-      </div>
-    )
-  }
-
-  if (layoutMode === 'split') {
-    return (
-      <div className="flex-1 flex min-h-0 overflow-hidden">
-        <div className={ideCollapsed ? 'flex-1 flex flex-col overflow-hidden min-w-0' : `${splitChatWidth} flex flex-col overflow-hidden border-r border-border-subtle`}>
-          <GroupChat />
-        </div>
-        <IdeRegion mode="split" collapsed={ideCollapsed} />
-      </div>
-    )
-  }
-
-  return <TaskOverviewQuadLayout ideCollapsed={ideCollapsed} />
-}
-
 /** Task-overview quad: tile the *members of the active task*, not cross-task chats.
- *  Empty slots → AddAgentSlot. >4 members → first 3 + "more" tile. */
-const TaskOverviewQuadLayout = ({ ideCollapsed }: { ideCollapsed: boolean }) => {
+ *  Empty slots → AddAgentSlot. >4 members → first 3 + "more" tile.
+ *  HiddenChatPortalSource keeps the IDE portal alive (MiniAgentPanes don't mount ChatInstance). */
+const TaskOverviewQuadFrame = ({ ideCollapsed }: { ideCollapsed: boolean }) => {
   const QUAD_SIZE = 4
   const { workspaceId, activeChatId, openAddAgent } = useWorkspace()
   const { chats } = useWorkspaceChats(workspaceId)
@@ -215,31 +247,34 @@ const TaskOverviewQuadLayout = ({ ideCollapsed }: { ideCollapsed: boolean }) => 
   const handleAdd = () => { if (activeChatId) openAddAgent(activeChatId) }
 
   return (
-    <div className="flex-1 flex min-h-0 overflow-hidden">
-      <div className="flex-1 grid grid-cols-2 grid-rows-2 gap-px bg-border overflow-hidden min-w-0">
-        {chat && total >= QUAD_SIZE ? (
-          <>
-            {members.slice(0, 3).map((m, i) => (
-              <MiniAgentPane key={m.agentId} member={m} parentChat={chat} shortcutKey={String(i + 1)} />
-            ))}
-            <MoreAgentsSlot count={total - 3} />
-          </>
-        ) : chat ? (
-          <>
-            {members.map((m, i) => (
-              <MiniAgentPane key={m.agentId} member={m} parentChat={chat} shortcutKey={String(i + 1)} />
-            ))}
-            {Array.from({ length: QUAD_SIZE - total }).map((_, i) => (
+    <div className="flex-1 flex min-h-0 overflow-hidden relative">
+      <div className="flex-1 flex min-h-0 overflow-hidden">
+        <div className="flex-1 grid grid-cols-2 grid-rows-2 gap-px bg-border overflow-hidden min-w-0">
+          {chat && total >= QUAD_SIZE ? (
+            <>
+              {members.slice(0, 3).map((m, i) => (
+                <MiniAgentPane key={m.agentId} member={m} parentChat={chat} shortcutKey={String(i + 1)} />
+              ))}
+              <MoreAgentsSlot count={total - 3} />
+            </>
+          ) : chat ? (
+            <>
+              {members.map((m, i) => (
+                <MiniAgentPane key={m.agentId} member={m} parentChat={chat} shortcutKey={String(i + 1)} />
+              ))}
+              {Array.from({ length: QUAD_SIZE - total }).map((_, i) => (
+                <AddAgentSlot key={`add-${i}`} onClick={handleAdd} />
+              ))}
+            </>
+          ) : (
+            Array.from({ length: QUAD_SIZE }).map((_, i) => (
               <AddAgentSlot key={`add-${i}`} onClick={handleAdd} />
-            ))}
-          </>
-        ) : (
-          Array.from({ length: QUAD_SIZE }).map((_, i) => (
-            <AddAgentSlot key={`add-${i}`} onClick={handleAdd} />
-          ))
-        )}
+            ))
+          )}
+        </div>
+        <IdeRegion mode="quad" collapsed={ideCollapsed} />
       </div>
-      <IdeRegion mode="quad" collapsed={ideCollapsed} />
+      {activeChatId && <HiddenChatPortalSource />}
     </div>
   )
 }

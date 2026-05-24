@@ -1,11 +1,12 @@
 // Placeholder titles assigned to a chat before the first user message.
 // Includes the legacy English defaults plus every i18n translation of
-// `workspace:newChat.title` ("New Task") so the server-side auto-title
+// `workspace:newChat.title` ("New Mission") so the server-side auto-title
 // trigger matches regardless of the user's locale at creation time.
 export const PLACEHOLDER_TITLES: readonly string[] = [
   'New Chat',
   'New Session',
   'New Task',
+  'New Mission',
   '新建任务',
   '新規タスク',
   '새 작업',

@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="zh-CN" class="dark">
+<html lang="en" class="dark">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>OpenTeam 左侧菜单 · UX 优化方案</title>
+<title>OpenTeam Sidebar · UX Optimization Proposal</title>
 <script src="./tailwind.js"></script>
 <script>
   tailwind.config = {
@@ -70,16 +70,16 @@
     <div>
       <div class="text-[11px] uppercase tracking-[0.18em] text-mute mb-1.5">UX Proposal · OpenTeam</div>
       <h1 class="font-serif text-[34px] leading-[1.05] font-medium">
-        让左侧菜单更<span class="italic text-accent">安静</span>，更<span class="italic text-accent">有用</span>
+        Make the sidebar more <span class="italic text-accent">quiet</span>, more <span class="italic text-accent">useful</span>
       </h1>
       <p class="text-mute text-[13.5px] mt-2 max-w-[640px]">
-        当一个用户管理 100+ 个并行任务时，sidebar 是他每天看 200 次的地方。
-        现在它太"吵"——重复的标题、相同的徽章、反复出现的「Add Agent」、悬停才出现的小图标——一切都在抢注意力。
+        When a user manages 100+ parallel tasks, the sidebar is the place they look at 200 times a day.
+        Right now it's too "noisy" — repeated titles, identical badges, recurring "Add Agent" buttons, hover-only tiny icons — everything fighting for attention.
       </p>
     </div>
     <div class="text-right text-mute text-[12px] leading-tight">
-      <div>状态：<span class="text-ok">已观察实测 · 8 处主要问题</span></div>
-      <div>主张：<span class="text-ink-100">从「列表」升级为「指挥台」</span></div>
+      <div>Status: <span class="text-ok">Observed & tested · 8 major issues</span></div>
+      <div>Thesis: <span class="text-ink-100">Upgrade from "list" to "command center"</span></div>
       <div class="num">Round · 1</div>
     </div>
   </div>
@@ -90,23 +90,23 @@
   <div class="grid grid-cols-12 gap-6">
     <div class="col-span-7 bg-panel/70 border border-line rounded-2xl p-6">
       <div class="text-[11px] uppercase tracking-[0.18em] text-accent/80 mb-2">TL;DR</div>
-      <h2 class="font-serif text-[22px] leading-snug mb-3">三件最该改的事</h2>
+      <h2 class="font-serif text-[22px] leading-snug mb-3">Three Most Important Changes</h2>
       <ol class="space-y-3 text-[14px]">
         <li class="flex gap-3"><span class="num pill bg-ink-800 text-mute shrink-0">01</span>
-          <div><b class="text-ink-100">把每个任务从 ~80px 压到 36px。</b><span class="text-mute">默认折叠 agent 行与 Add Agent 行，hover/active 才展开。</span></div></li>
+          <div><b class="text-ink-100">Compress each task from ~80px to 36px.</b><span class="text-mute"> Collapse agent rows and Add Agent by default, expand on hover/active only.</span></div></li>
         <li class="flex gap-3"><span class="num pill bg-ink-800 text-mute shrink-0">02</span>
-          <div><b class="text-ink-100">加一条搜索 + 状态筛选条。</b><span class="text-mute">218 个任务里 80% 是历史归档，但当前没有任何过滤手段。</span></div></li>
+          <div><b class="text-ink-100">Add a search + status filter bar.</b><span class="text-mute"> 80% of 218 tasks are historical archives, but there's no filtering mechanism.</span></div></li>
         <li class="flex gap-3"><span class="num pill bg-ink-800 text-mute shrink-0">03</span>
-          <div><b class="text-ink-100">用真实状态点（运行 / 等待 / 完成 / 错误）替代统一的紫点。</b><span class="text-mute">脉冲式工作流的核心是「我离开期间，谁在动？」</span></div></li>
+          <div><b class="text-ink-100">Replace the uniform purple dot with semantic status dots (running / waiting / done / error).</b><span class="text-mute"> The core question of pulse-mode workflow: "While I was away, who moved?"</span></div></li>
       </ol>
     </div>
     <div class="col-span-5 bg-gradient-to-br from-accent/10 to-transparent border border-accent/20 rounded-2xl p-6">
       <div class="text-[11px] uppercase tracking-[0.18em] text-accent/80 mb-2">Why now</div>
       <p class="text-[13.5px] text-ink-200 leading-relaxed">
-        OpenTeam 的核心节奏是「批量派发 → 离开 → 批量验收」。<br>
-        sidebar 是<b class="text-ink-100">回到台面后第 1 秒</b>看到的东西。
-        现在它要求用户用 5 秒滚动 + 阅读才能搞清「谁动了、谁卡了、谁要我审」。
-        目标：把这 5 秒缩到 <span class="text-accent">1 秒</span>。
+        OpenTeam's core rhythm is "batch dispatch → leave → batch review."<br>
+        The sidebar is <b class="text-ink-100">the first thing seen within 1 second</b> of returning.
+        Currently it takes 5 seconds of scrolling + reading to figure out "who moved, who's stuck, who needs my review."
+        Goal: reduce those 5 seconds to <span class="text-accent">1 second</span>.
       </p>
     </div>
   </div>
@@ -117,9 +117,9 @@
   <div class="flex items-end justify-between mb-5">
     <div>
       <div class="text-[11px] uppercase tracking-[0.18em] text-mute mb-1">Section 01</div>
-      <h2 class="font-serif text-[26px] font-medium">现状对比 · 实测截图标注</h2>
+      <h2 class="font-serif text-[26px] font-medium">Current State · Annotated Screenshots</h2>
     </div>
-    <div class="text-mute text-[12px]">浏览器实测：1440×900 · 113 个任务在列</div>
+    <div class="text-mute text-[12px]">Browser test: 1440×900 · 113 tasks listed</div>
   </div>
 
   <div class="grid grid-cols-12 gap-6">
@@ -128,9 +128,9 @@
       <div class="flex items-center justify-between mb-3">
         <div class="flex items-center gap-2">
           <span class="ribbon">Before</span>
-          <span class="text-mute text-[11.5px]">当前实现 · 240px</span>
+          <span class="text-mute text-[11.5px]">Current impl · 240px</span>
         </div>
-        <span class="text-[10px] num text-mute">8 处问题</span>
+        <span class="text-[10px] num text-mute">8 issues</span>
       </div>
 
       <!-- Reproduction of current sidebar -->
@@ -156,7 +156,7 @@
           <div class="flex items-center gap-2 px-1 py-1.5 text-[12.5px]">
             <span class="text-mute">▾</span>
             <span class="dot s-run"></span>
-            <span class="truncate text-ink-100 flex-1">打开浏览器 http://localhost...</span>
+            <span class="truncate text-ink-100 flex-1">Open browser http://localhost...</span>
             <span class="pill auto">CLAUDE</span>
             <span class="text-mute text-[10px] num">now</span>
           </div>
@@ -174,7 +174,7 @@
           <div class="flex items-center gap-2 px-1 py-1.5 text-[12.5px] bg-white/[0.03] rounded">
             <span class="text-mute">▾</span>
             <span class="dot s-wait"></span>
-            <span class="truncate text-ink-100 flex-1">产品为啥有这个提示？ Maximu…</span>
+            <span class="truncate text-ink-100 flex-1">Why does the product show this? Maximu…</span>
             <span class="text-mute text-[11px]">📌</span>
             <span class="text-mute text-[11px]">🗄</span>
           </div>
@@ -211,58 +211,58 @@
         <div class="bg-panel border border-line rounded-xl p-4">
           <div class="flex items-center gap-2 mb-1.5">
             <span class="num pill bg-warn/15 text-warn">A1</span>
-            <span class="text-[12.5px] font-medium text-ink-100">每条任务占 ~80px</span>
+            <span class="text-[12.5px] font-medium text-ink-100">Each task takes ~80px</span>
           </div>
-          <p class="text-mute text-[12px] leading-relaxed">标题 + agent + Add Agent 三行常驻。113 个任务占 9000+px 垂直空间，必须滚才能扫到一周前的。</p>
+          <p class="text-mute text-[12px] leading-relaxed">Title + agent + Add Agent — three persistent rows. 113 tasks occupy 9000+px vertical space; must scroll to reach last week's items.</p>
         </div>
         <div class="bg-panel border border-line rounded-xl p-4">
           <div class="flex items-center gap-2 mb-1.5">
             <span class="num pill bg-warn/15 text-warn">A2</span>
-            <span class="text-[12.5px] font-medium text-ink-100">大量「Generate a concise title…」</span>
+            <span class="text-[12.5px] font-medium text-ink-100">Many "Generate a concise title…"</span>
           </div>
-          <p class="text-mute text-[12px] leading-relaxed">title 自动生成失败时显示原始 prompt 模板，连续多个标题完全相同，列表退化为不可识别。</p>
+          <p class="text-mute text-[12px] leading-relaxed">When auto-title generation fails, the raw prompt template is shown. Multiple identical titles in a row make the list unreadable.</p>
         </div>
         <div class="bg-panel border border-line rounded-xl p-4">
           <div class="flex items-center gap-2 mb-1.5">
             <span class="num pill bg-warn/15 text-warn">A3</span>
-            <span class="text-[12.5px] font-medium text-ink-100">Pin / Archive 仅 hover 出现</span>
+            <span class="text-[12.5px] font-medium text-ink-100">Pin / Archive only on hover</span>
           </div>
-          <p class="text-mute text-[12px] leading-relaxed">16×16 极小图标贴在已截断标题右侧，出现时还会进一步压缩标题宽度，触发 layout shift。</p>
+          <p class="text-mute text-[12px] leading-relaxed">16×16 tiny icons appear beside an already-truncated title, further compressing title width and triggering layout shift.</p>
         </div>
         <div class="bg-panel border border-line rounded-xl p-4">
           <div class="flex items-center gap-2 mb-1.5">
             <span class="num pill bg-warn/15 text-warn">A4</span>
-            <span class="text-[12.5px] font-medium text-ink-100">紫色状态点没有语义</span>
+            <span class="text-[12.5px] font-medium text-ink-100">Purple dot has no semantics</span>
           </div>
-          <p class="text-mute text-[12px] leading-relaxed">所有任务都是同一个紫点。无法一眼看出谁在跑、谁卡了、谁出错了——脉冲式工作流的核心信号缺失。</p>
+          <p class="text-mute text-[12px] leading-relaxed">All tasks show the same purple dot. Can't tell at a glance who's running, who's stuck, who errored — core signal for pulse-mode workflow is missing.</p>
         </div>
         <div class="bg-panel border border-line rounded-xl p-4">
           <div class="flex items-center gap-2 mb-1.5">
             <span class="num pill bg-warn/15 text-warn">A5</span>
-            <span class="text-[12.5px] font-medium text-ink-100">活动高亮在 agent 行而非任务</span>
+            <span class="text-[12.5px] font-medium text-ink-100">Active highlight on agent row, not task</span>
           </div>
-          <p class="text-mute text-[12px] leading-relaxed">当前选中态出现在子项 agent，而不是父项任务。点击 title vs agent 是两个不同跳转，用户难以建模。</p>
+          <p class="text-mute text-[12px] leading-relaxed">Current selection state appears on the child agent item, not the parent task. Clicking title vs agent leads to two different destinations — confusing mental model.</p>
         </div>
         <div class="bg-panel border border-line rounded-xl p-4">
           <div class="flex items-center gap-2 mb-1.5">
             <span class="num pill bg-warn/15 text-warn">A6</span>
-            <span class="text-[12.5px] font-medium text-ink-100">没有搜索 / 筛选 / 分组</span>
+            <span class="text-[12.5px] font-medium text-ink-100">No search / filter / grouping</span>
           </div>
-          <p class="text-mute text-[12px] leading-relaxed">218 个任务在列，找一个昨天的需要肉眼滚动 30 屏。没有 status filter，没有 today/yesterday 分组。</p>
+          <p class="text-mute text-[12px] leading-relaxed">218 tasks listed; finding yesterday's requires manually scrolling 30 screens. No status filter, no today/yesterday grouping.</p>
         </div>
         <div class="bg-panel border border-line rounded-xl p-4">
           <div class="flex items-center gap-2 mb-1.5">
             <span class="num pill bg-warn/15 text-warn">A7</span>
-            <span class="text-[12.5px] font-medium text-ink-100">折叠侧栏 = 失去全部任务</span>
+            <span class="text-[12.5px] font-medium text-ink-100">Collapsing sidebar = losing all tasks</span>
           </div>
-          <p class="text-mute text-[12px] leading-relaxed">⌘B 折叠后只剩 logo + 4 个底部图标。当前任务、活跃任务全部消失，回不去。</p>
+          <p class="text-mute text-[12px] leading-relaxed">After collapsing with ⌘B, only logo + 4 bottom icons remain. Current task, active tasks all vanish — no way back.</p>
         </div>
         <div class="bg-panel border border-line rounded-xl p-4">
           <div class="flex items-center gap-2 mb-1.5">
             <span class="num pill bg-warn/15 text-warn">A8</span>
-            <span class="text-[12.5px] font-medium text-ink-100">底部导航占 ~150px</span>
+            <span class="text-[12.5px] font-medium text-ink-100">Bottom nav takes ~150px</span>
           </div>
-          <p class="text-mute text-[12px] leading-relaxed">Team / Skills / Schedules / Workspaces 四行 + 4 个图标 + theme 切换器，全部并列堆叠，永久占用任务列表的可视空间。</p>
+          <p class="text-mute text-[12px] leading-relaxed">Team / Skills / Schedules / Workspaces — four rows + 4 icons + theme switcher, all stacked, permanently consuming task list viewport space.</p>
         </div>
       </div>
     </div>
@@ -272,27 +272,27 @@
 <!-- ============================== SECTION 2: PRINCIPLES ============================== -->
 <section class="max-w-[1400px] mx-auto px-8 pt-16">
   <div class="text-[11px] uppercase tracking-[0.18em] text-mute mb-1">Section 02</div>
-  <h2 class="font-serif text-[26px] font-medium mb-5">设计原则</h2>
+  <h2 class="font-serif text-[26px] font-medium mb-5">Design Principles</h2>
   <div class="grid grid-cols-4 gap-5">
     <div class="border border-line rounded-2xl p-5 bg-panel/60">
       <div class="text-accent text-[11px] uppercase tracking-[0.18em] mb-1.5">P1</div>
-      <h3 class="font-serif text-[18px] mb-2">注意力优先</h3>
-      <p class="text-mute text-[12.5px] leading-relaxed">默认安静。只有需要用户做决策的任务才"喊"——状态变化、需要审、被阻塞。</p>
+      <h3 class="font-serif text-[18px] mb-2">Attention First</h3>
+      <p class="text-mute text-[12.5px] leading-relaxed">Quiet by default. Only tasks requiring user decisions "call out" — status changes, review needed, blocked.</p>
     </div>
     <div class="border border-line rounded-2xl p-5 bg-panel/60">
       <div class="text-accent text-[11px] uppercase tracking-[0.18em] mb-1.5">P2</div>
-      <h3 class="font-serif text-[18px] mb-2">脉冲友好</h3>
-      <p class="text-mute text-[12.5px] leading-relaxed">回到台面 1 秒内看到："正在跑 3 个 / 等审 2 个 / 失败 1 个"。无需滚动。</p>
+      <h3 class="font-serif text-[18px] mb-2">Pulse-Friendly</h3>
+      <p class="text-mute text-[12.5px] leading-relaxed">See within 1 second of returning: "3 running / 2 awaiting review / 1 failed." No scrolling required.</p>
     </div>
     <div class="border border-line rounded-2xl p-5 bg-panel/60">
       <div class="text-accent text-[11px] uppercase tracking-[0.18em] mb-1.5">P3</div>
-      <h3 class="font-serif text-[18px] mb-2">渐进披露</h3>
-      <p class="text-mute text-[12.5px] leading-relaxed">默认每行 36px 极简。hover 显行动，active 展开 agents，永远不主动占空间。</p>
+      <h3 class="font-serif text-[18px] mb-2">Progressive Disclosure</h3>
+      <p class="text-mute text-[12.5px] leading-relaxed">Default 36px minimal per row. Hover reveals actions, active expands agents — never proactively consumes space.</p>
     </div>
     <div class="border border-line rounded-2xl p-5 bg-panel/60">
       <div class="text-accent text-[11px] uppercase tracking-[0.18em] mb-1.5">P4</div>
-      <h3 class="font-serif text-[18px] mb-2">批量原生</h3>
-      <p class="text-mute text-[12.5px] leading-relaxed">超级个体每天派 20 任务、归档 50 任务。多选、批量归档、批量重派必须是一等公民。</p>
+      <h3 class="font-serif text-[18px] mb-2">Batch-Native</h3>
+      <p class="text-mute text-[12.5px] leading-relaxed">Super-individuals dispatch 20 tasks and archive 50 tasks daily. Multi-select, batch archive, batch re-dispatch must be first-class citizens.</p>
     </div>
   </div>
 </section>
@@ -302,11 +302,11 @@
   <div class="flex items-end justify-between mb-5">
     <div>
       <div class="text-[11px] uppercase tracking-[0.18em] text-mute mb-1">Section 03</div>
-      <h2 class="font-serif text-[26px] font-medium">新方案 · After</h2>
+      <h2 class="font-serif text-[26px] font-medium">New Design · After</h2>
     </div>
     <div class="flex items-center gap-2 text-[11.5px] text-mute">
       <span class="ribbon">After</span>
-      <span>仍是 240px · 但密度翻倍 · 噪音减半</span>
+      <span>Still 240px · but 2x density · half the noise</span>
     </div>
   </div>
 
@@ -314,7 +314,7 @@
 
     <!-- ===== Mock A: default state ===== -->
     <div class="col-span-4">
-      <div class="text-[11px] text-mute uppercase tracking-[.16em] mb-2">Mock A · 默认态</div>
+      <div class="text-[11px] text-mute uppercase tracking-[.16em] mb-2">Mock A · Default State</div>
       <div class="bg-[#0E0E0F] border border-line rounded-2xl overflow-hidden ring-soft">
         <!-- header -->
         <div class="px-3 pt-3 pb-2 flex items-center justify-between">
@@ -364,7 +364,7 @@
           <div class="reveal-actions group rounded-lg border border-accent/25 bg-accent/[0.07] mb-1">
             <div class="flex items-center gap-2 px-2 py-2 row-anim">
               <span class="dot s-run shrink-0"></span>
-              <span class="truncate text-[12.5px] text-ink-100 flex-1">打开浏览器 → 优化 sidebar 交互</span>
+              <span class="truncate text-[12.5px] text-ink-100 flex-1">Open browser → optimize sidebar UX</span>
               <span class="num text-mute text-[10px]">now</span>
             </div>
             <!-- expanded agent strip -->
@@ -379,7 +379,7 @@
           <div class="reveal-actions group rounded-lg hover:bg-white/[0.03] mb-0.5">
             <div class="flex items-center gap-2 px-2 py-1.5 row-anim">
               <span class="dot s-run shrink-0"></span>
-              <span class="truncate text-[12.5px] text-ink-200 flex-1">优化 server 端会话扫描器</span>
+              <span class="truncate text-[12.5px] text-ink-200 flex-1">Optimize server-side session scanner</span>
               <span class="actions flex items-center gap-1 mr-1">
                 <button title="Pin" class="text-mute hover:text-ink-100">📌</button>
                 <button title="Archive" class="text-mute hover:text-ink-100">🗄</button>
@@ -391,7 +391,7 @@
           <div class="reveal-actions group rounded-lg hover:bg-white/[0.03] mb-0.5">
             <div class="flex items-center gap-2 px-2 py-1.5 row-anim">
               <span class="dot s-wait shrink-0"></span>
-              <span class="truncate text-[12.5px] text-ink-200 flex-1">产品为啥有这个提示？</span>
+              <span class="truncate text-[12.5px] text-ink-200 flex-1">Why does product show this prompt?</span>
               <span class="num text-mute text-[10px]">37m</span>
             </div>
           </div>
@@ -399,7 +399,7 @@
           <div class="reveal-actions group rounded-lg hover:bg-white/[0.03] mb-0.5">
             <div class="flex items-center gap-2 px-2 py-1.5 row-anim">
               <span class="dot s-err shrink-0"></span>
-              <span class="truncate text-[12.5px] text-ink-200 flex-1">左侧菜单需要支持 workspace</span>
+              <span class="truncate text-[12.5px] text-ink-200 flex-1">Sidebar needs workspace support</span>
               <span class="num text-mute text-[10px]">42m</span>
             </div>
           </div>
@@ -407,7 +407,7 @@
           <div class="reveal-actions group rounded-lg hover:bg-white/[0.03] mb-0.5">
             <div class="flex items-center gap-2 px-2 py-1.5 row-anim">
               <span class="dot s-done shrink-0"></span>
-              <span class="truncate text-[12.5px] text-ink-200/70 flex-1">在 ai-assets skills 中内置 npx</span>
+              <span class="truncate text-[12.5px] text-ink-200/70 flex-1">Bundle npx in ai-assets skills</span>
               <span class="num text-mute text-[10px]">1h</span>
             </div>
           </div>
@@ -421,14 +421,14 @@
           <div class="reveal-actions group rounded-lg hover:bg-white/[0.03] mb-0.5">
             <div class="flex items-center gap-2 px-2 py-1.5 row-anim">
               <span class="dot s-done shrink-0"></span>
-              <span class="truncate text-[12.5px] text-ink-200/70 flex-1">打开 playwright，走查 new task</span>
+              <span class="truncate text-[12.5px] text-ink-200/70 flex-1">Open playwright, walkthrough new task</span>
               <span class="num text-mute text-[10px]">1d</span>
             </div>
           </div>
           <div class="reveal-actions group rounded-lg hover:bg-white/[0.03] mb-0.5">
             <div class="flex items-center gap-2 px-2 py-1.5 row-anim">
               <span class="dot s-done shrink-0"></span>
-              <span class="truncate text-[12.5px] text-ink-200/70 flex-1">Task 视图为什么没有像 Agent</span>
+              <span class="truncate text-[12.5px] text-ink-200/70 flex-1">Why doesn't Task view look like Agent</span>
               <span class="num text-mute text-[10px]">1d</span>
             </div>
           </div>
@@ -451,7 +451,7 @@
         </div>
       </div>
       <div class="mt-3 text-[11.5px] text-mute leading-relaxed">
-        默认态 · 36px / 任务 · 14 个任务在 1 屏内 (vs 7 个) · 状态可读性 +300%
+        Default state · 36px / task · 14 tasks visible on screen (vs 7) · Status readability +300%
       </div>
     </div>
 
@@ -469,7 +469,7 @@
         <div class="px-3 pb-3">
           <div class="flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-white/[0.03] border border-line/60">
             <span class="text-mute text-[11px]">⌕</span>
-            <input class="flex-1 bg-transparent outline-none text-[12px]" value="左侧" />
+            <input class="flex-1 bg-transparent outline-none text-[12px]" value="sidebar" />
             <span class="num text-mute text-[10.5px]">3 hits</span>
           </div>
         </div>
@@ -481,7 +481,7 @@
             <div class="flex items-center gap-2 px-2 py-2">
               <span class="dot s-run shrink-0"></span>
               <span class="truncate text-[12.5px] text-ink-100 flex-1">
-                <mark class="bg-accent/30 text-ink-100 rounded px-0.5">左侧</mark>菜单需要支持 workspace
+                <mark class="bg-accent/30 text-ink-100 rounded px-0.5">Sidebar</mark> needs workspace support
               </span>
               <span class="num text-mute text-[10px]">42m</span>
             </div>
@@ -503,7 +503,7 @@
             <div class="flex items-center gap-2 px-2 py-1.5">
               <span class="dot s-done shrink-0"></span>
               <span class="truncate text-[12.5px] text-ink-200 flex-1">
-                Sidebar 折叠后保留快捷入口
+                Keep quick access when sidebar collapsed
               </span>
               <span class="flex items-center gap-1 mr-1">
                 <button title="Pin" class="text-mute hover:text-warn">📌</button>
@@ -518,7 +518,7 @@
             <div class="flex items-center gap-2 px-2 py-1.5">
               <span class="dot s-done shrink-0"></span>
               <span class="truncate text-[12.5px] text-ink-200/70 flex-1">
-                <mark class="bg-accent/20 text-ink-100 rounded px-0.5">左侧</mark>栏 batch ops 设计
+                <mark class="bg-accent/20 text-ink-100 rounded px-0.5">Sidebar</mark> batch ops design
               </span>
               <span class="num text-mute text-[10px]">5h</span>
             </div>
@@ -545,13 +545,13 @@
         </div>
       </div>
       <div class="mt-3 text-[11.5px] text-mute leading-relaxed">
-        ⌘K 直接触达任意任务 · 多选浮起批量操作条 · hover 上的 Pin/Archive 用 opacity 切换不引发 layout shift
+        ⌘K to reach any task directly · multi-select triggers floating batch action bar · Pin/Archive on hover uses opacity transition, no layout shift
       </div>
     </div>
 
     <!-- ===== Mock C: collapsed rail ===== -->
     <div class="col-span-4">
-      <div class="text-[11px] text-mute uppercase tracking-[.16em] mb-2">Mock C · 折叠态（48px）</div>
+      <div class="text-[11px] text-mute uppercase tracking-[.16em] mb-2">Mock C · Collapsed State (48px)</div>
       <div class="flex gap-3">
         <div class="bg-[#0E0E0F] border border-line rounded-2xl overflow-hidden ring-soft w-[60px]">
           <div class="px-2 pt-3 pb-2 grid place-items-center">
@@ -565,19 +565,19 @@
 
           <!-- active task pill (vertical chip showing status) -->
           <div class="px-1 py-1 space-y-1.5">
-            <button title="打开浏览器 → 优化 sidebar (running)" class="w-9 h-9 grid place-items-center rounded-lg bg-accent/15 border border-accent/30 relative" >
+            <button title="Open browser → optimize sidebar (running)" class="w-9 h-9 grid place-items-center rounded-lg bg-accent/15 border border-accent/30 relative" >
               <span class="text-[10px]">📌</span>
               <span class="dot s-run absolute top-1 right-1"></span>
             </button>
-            <button title="优化 server 端会话扫描 (running)" class="w-9 h-9 grid place-items-center rounded-lg hover:bg-white/[0.05] relative">
+            <button title="Optimize server session scanner (running)" class="w-9 h-9 grid place-items-center rounded-lg hover:bg-white/[0.05] relative">
               <span class="text-[10px] text-mute">F</span>
               <span class="dot s-run absolute top-1 right-1"></span>
             </button>
-            <button title="左侧菜单 workspace (error)" class="w-9 h-9 grid place-items-center rounded-lg hover:bg-white/[0.05] relative">
+            <button title="Sidebar workspace (error)" class="w-9 h-9 grid place-items-center rounded-lg hover:bg-white/[0.05] relative">
               <span class="text-[10px] text-mute">L</span>
               <span class="dot s-err absolute top-1 right-1"></span>
             </button>
-            <button title="产品为啥有这个提示 (waiting)" class="w-9 h-9 grid place-items-center rounded-lg hover:bg-white/[0.05] relative">
+            <button title="Why does product show this (waiting)" class="w-9 h-9 grid place-items-center rounded-lg hover:bg-white/[0.05] relative">
               <span class="text-[10px] text-mute">P</span>
               <span class="dot s-wait absolute top-1 right-1"></span>
             </button>
@@ -598,19 +598,19 @@
           <div class="bg-panel border border-line rounded-xl p-3 shadow-2xl">
             <div class="text-[11px] text-mute mb-1">📌 Pinned · 1</div>
             <div class="px-2 py-1.5 rounded bg-accent/10 border border-accent/20 flex items-center gap-2 text-[12px]">
-              <span class="dot s-run"></span><span class="truncate flex-1">打开浏览器 → 优化 sidebar 交互</span><span class="num text-mute text-[10px]">now</span>
+              <span class="dot s-run"></span><span class="truncate flex-1">Open browser → optimize sidebar UX</span><span class="num text-mute text-[10px]">now</span>
             </div>
             <div class="text-[11px] text-mute mt-2 mb-1">Running · 2</div>
             <div class="space-y-0.5">
-              <div class="px-2 py-1.5 rounded hover:bg-white/[0.04] flex items-center gap-2 text-[12px]"><span class="dot s-run"></span><span class="truncate flex-1">优化 server 端会话扫描器</span><span class="num text-mute text-[10px]">12m</span></div>
+              <div class="px-2 py-1.5 rounded hover:bg-white/[0.04] flex items-center gap-2 text-[12px]"><span class="dot s-run"></span><span class="truncate flex-1">Optimize server session scanner</span><span class="num text-mute text-[10px]">12m</span></div>
             </div>
             <div class="text-[11px] text-err mt-2 mb-1">Error · 1</div>
-            <div class="px-2 py-1.5 rounded hover:bg-white/[0.04] flex items-center gap-2 text-[12px]"><span class="dot s-err"></span><span class="truncate flex-1">左侧菜单需要支持 workspace</span><span class="num text-mute text-[10px]">42m</span></div>
+            <div class="px-2 py-1.5 rounded hover:bg-white/[0.04] flex items-center gap-2 text-[12px]"><span class="dot s-err"></span><span class="truncate flex-1">Sidebar needs workspace support</span><span class="num text-mute text-[10px]">42m</span></div>
           </div>
         </div>
       </div>
       <div class="mt-3 text-[11.5px] text-mute leading-relaxed">
-        折叠后仍然能看到状态。Hover Logo 弹出"指挥台"快照——你离开期间发生了什么。
+        Status visible even when collapsed. Hovering Logo reveals a "command center" snapshot — what happened while you were away.
       </div>
     </div>
 
@@ -620,58 +620,58 @@
 <!-- ============================== SECTION 4: INTERACTION SPEC ============================== -->
 <section class="max-w-[1400px] mx-auto px-8 pt-16">
   <div class="text-[11px] uppercase tracking-[0.18em] text-mute mb-1">Section 04</div>
-  <h2 class="font-serif text-[26px] font-medium mb-5">交互细则</h2>
+  <h2 class="font-serif text-[26px] font-medium mb-5">Interaction Spec</h2>
 
   <div class="grid grid-cols-2 gap-6">
     <div class="border border-line rounded-2xl bg-panel p-6">
-      <h3 class="text-[14px] font-medium mb-3 flex items-center gap-2"><span class="dot s-run"></span>状态点语义</h3>
+      <h3 class="text-[14px] font-medium mb-3 flex items-center gap-2"><span class="dot s-run"></span>Status Dot Semantics</h3>
       <table class="w-full text-[12.5px] num">
-        <thead class="text-mute text-[11px] uppercase tracking-[.14em] border-b border-line"><tr><th class="text-left py-2">点</th><th class="text-left py-2">含义</th><th class="text-left py-2">可达动作</th></tr></thead>
+        <thead class="text-mute text-[11px] uppercase tracking-[.14em] border-b border-line"><tr><th class="text-left py-2">Dot</th><th class="text-left py-2">Meaning</th><th class="text-left py-2">Action</th></tr></thead>
         <tbody class="divide-y divide-line/40">
-          <tr><td class="py-2"><span class="dot s-run"></span></td><td>Running · 有 agent 正在产出 token</td><td class="text-mute">点击 → 跳到对话尾部 / 监听 stream</td></tr>
-          <tr><td class="py-2"><span class="dot s-wait"></span></td><td>Awaiting · 等待用户输入或确认</td><td class="text-mute">点击 → 直接定位到 prompt 区</td></tr>
-          <tr><td class="py-2"><span class="dot s-done"></span></td><td>Idle / Completed · 静默</td><td class="text-mute">悬停可 Pin / Archive</td></tr>
-          <tr><td class="py-2"><span class="dot s-err"></span></td><td>Error · session 失败 / 超时</td><td class="text-mute">点击 → 显示错误 + Re-run</td></tr>
+          <tr><td class="py-2"><span class="dot s-run"></span></td><td>Running · agent actively producing tokens</td><td class="text-mute">Click → jump to conversation tail / stream</td></tr>
+          <tr><td class="py-2"><span class="dot s-wait"></span></td><td>Awaiting · waiting for user input or confirm</td><td class="text-mute">Click → navigate directly to prompt area</td></tr>
+          <tr><td class="py-2"><span class="dot s-done"></span></td><td>Idle / Completed · silent</td><td class="text-mute">Hover to Pin / Archive</td></tr>
+          <tr><td class="py-2"><span class="dot s-err"></span></td><td>Error · session failed / timed out</td><td class="text-mute">Click → show error + Re-run</td></tr>
         </tbody>
       </table>
     </div>
 
     <div class="border border-line rounded-2xl bg-panel p-6">
-      <h3 class="text-[14px] font-medium mb-3">快捷键</h3>
+      <h3 class="text-[14px] font-medium mb-3">Keyboard Shortcuts</h3>
       <div class="grid grid-cols-2 gap-3 text-[12.5px]">
-        <div class="flex items-center justify-between"><span>新建任务</span><span class="ki">⌘N</span></div>
-        <div class="flex items-center justify-between"><span>搜索 / 跳转</span><span class="ki">⌘K</span></div>
-        <div class="flex items-center justify-between"><span>折叠 sidebar</span><span class="ki">⌘B</span></div>
-        <div class="flex items-center justify-between"><span>下一任务</span><span class="ki">J</span></div>
-        <div class="flex items-center justify-between"><span>上一任务</span><span class="ki">K</span></div>
-        <div class="flex items-center justify-between"><span>归档当前</span><span class="ki">E</span></div>
-        <div class="flex items-center justify-between"><span>Pin 当前</span><span class="ki">P</span></div>
-        <div class="flex items-center justify-between"><span>多选模式</span><span class="ki">X</span></div>
+        <div class="flex items-center justify-between"><span>New task</span><span class="ki">⌘N</span></div>
+        <div class="flex items-center justify-between"><span>Search / jump</span><span class="ki">⌘K</span></div>
+        <div class="flex items-center justify-between"><span>Collapse sidebar</span><span class="ki">⌘B</span></div>
+        <div class="flex items-center justify-between"><span>Next task</span><span class="ki">J</span></div>
+        <div class="flex items-center justify-between"><span>Previous task</span><span class="ki">K</span></div>
+        <div class="flex items-center justify-between"><span>Archive current</span><span class="ki">E</span></div>
+        <div class="flex items-center justify-between"><span>Pin current</span><span class="ki">P</span></div>
+        <div class="flex items-center justify-between"><span>Multi-select mode</span><span class="ki">X</span></div>
       </div>
     </div>
 
     <div class="border border-line rounded-2xl bg-panel p-6">
-      <h3 class="text-[14px] font-medium mb-3">行的 5 种态</h3>
+      <h3 class="text-[14px] font-medium mb-3">5 Row States</h3>
       <div class="space-y-2 text-[12.5px]">
-        <div class="px-3 py-2 rounded-lg bg-white/[0.02] flex items-center gap-2"><span class="dot s-done"></span><span class="text-ink-200 flex-1">Default · 静态</span><span class="text-mute text-[11px]">36px</span></div>
-        <div class="px-3 py-2 rounded-lg bg-white/[0.05] flex items-center gap-2"><span class="dot s-done"></span><span class="text-ink-100 flex-1">Hover · 显 actions</span><span class="text-mute text-[11px]">opacity tween · no shift</span></div>
-        <div class="px-3 py-2 rounded-lg bg-accent/[0.08] border border-accent/25 flex items-center gap-2"><span class="dot s-run"></span><span class="text-ink-100 flex-1">Active · 展开 agents</span><span class="text-mute text-[11px]">~76px</span></div>
-        <div class="px-3 py-2 rounded-lg bg-white/[0.03] flex items-center gap-2 outline outline-1 outline-accent"><span class="dot s-done"></span><span class="text-ink-100 flex-1">Selected · 多选模式</span><span class="text-mute text-[11px]">checkbox</span></div>
-        <div class="px-3 py-2 rounded-lg bg-err/[0.06] border border-err/25 flex items-center gap-2"><span class="dot s-err"></span><span class="text-ink-100 flex-1">Error · 红边提示</span><span class="text-mute text-[11px]">需用户处理</span></div>
+        <div class="px-3 py-2 rounded-lg bg-white/[0.02] flex items-center gap-2"><span class="dot s-done"></span><span class="text-ink-200 flex-1">Default · static</span><span class="text-mute text-[11px]">36px</span></div>
+        <div class="px-3 py-2 rounded-lg bg-white/[0.05] flex items-center gap-2"><span class="dot s-done"></span><span class="text-ink-100 flex-1">Hover · shows actions</span><span class="text-mute text-[11px]">opacity tween · no shift</span></div>
+        <div class="px-3 py-2 rounded-lg bg-accent/[0.08] border border-accent/25 flex items-center gap-2"><span class="dot s-run"></span><span class="text-ink-100 flex-1">Active · expands agents</span><span class="text-mute text-[11px]">~76px</span></div>
+        <div class="px-3 py-2 rounded-lg bg-white/[0.03] flex items-center gap-2 outline outline-1 outline-accent"><span class="dot s-done"></span><span class="text-ink-100 flex-1">Selected · multi-select mode</span><span class="text-mute text-[11px]">checkbox</span></div>
+        <div class="px-3 py-2 rounded-lg bg-err/[0.06] border border-err/25 flex items-center gap-2"><span class="dot s-err"></span><span class="text-ink-100 flex-1">Error · red border alert</span><span class="text-mute text-[11px]">needs user action</span></div>
       </div>
     </div>
 
     <div class="border border-line rounded-2xl bg-panel p-6">
-      <h3 class="text-[14px] font-medium mb-3">分组与排序</h3>
+      <h3 class="text-[14px] font-medium mb-3">Grouping & Sorting</h3>
       <div class="text-[12.5px] text-ink-200 leading-relaxed">
-        <p class="mb-2">默认按 <b>状态优先 → 时间次之</b>：</p>
+        <p class="mb-2">Default: <b>status-first → time-second</b>:</p>
         <ol class="list-decimal pl-5 space-y-1 text-mute">
-          <li><b class="text-err">Error</b>（最显眼，要求处理）</li>
-          <li><b class="text-warn">Awaiting</b>（卡在等用户）</li>
-          <li><b class="text-ok">Running</b>（正在跑）</li>
-          <li><b class="text-mute">Today</b> · Yesterday · This week · Older（按完成时间）</li>
+          <li><b class="text-err">Error</b> (most visible, demands action)</li>
+          <li><b class="text-warn">Awaiting</b> (blocked on user)</li>
+          <li><b class="text-ok">Running</b> (actively executing)</li>
+          <li><b class="text-mute">Today</b> · Yesterday · This week · Older (by completion time)</li>
         </ol>
-        <p class="mt-3 text-mute">用户可切到 <code class="ki">仅时间</code> 或 <code class="ki">仅按 agent</code> 模式。Pinned 永远置顶。</p>
+        <p class="mt-3 text-mute">Users can switch to <code class="ki">time-only</code> or <code class="ki">by-agent</code> mode. Pinned always stays on top.</p>
       </div>
     </div>
 
@@ -681,69 +681,69 @@
 <!-- ============================== SECTION 5: BEFORE / AFTER METRICS ============================== -->
 <section class="max-w-[1400px] mx-auto px-8 pt-16 pb-20">
   <div class="text-[11px] uppercase tracking-[0.18em] text-mute mb-1">Section 05</div>
-  <h2 class="font-serif text-[26px] font-medium mb-5">量化对比</h2>
+  <h2 class="font-serif text-[26px] font-medium mb-5">Quantitative Comparison</h2>
 
   <div class="grid grid-cols-4 gap-5">
     <div class="border border-line rounded-2xl p-5 bg-panel">
-      <div class="text-mute text-[11px] uppercase tracking-[.14em]">每任务高度</div>
+      <div class="text-mute text-[11px] uppercase tracking-[.14em]">Height per task</div>
       <div class="mt-2 flex items-end gap-2 num">
         <span class="text-[26px] line-through text-mute">80px</span>
         <span class="text-[34px] font-serif text-accent">→ 36px</span>
       </div>
-      <div class="text-[11.5px] text-mute mt-1">默认折叠 agent / Add Agent · ‑55%</div>
+      <div class="text-[11.5px] text-mute mt-1">Collapse agent / Add Agent by default · -55%</div>
     </div>
     <div class="border border-line rounded-2xl p-5 bg-panel">
-      <div class="text-mute text-[11px] uppercase tracking-[.14em]">单屏可见任务</div>
+      <div class="text-mute text-[11px] uppercase tracking-[.14em]">Tasks visible per screen</div>
       <div class="mt-2 flex items-end gap-2 num">
         <span class="text-[26px] line-through text-mute">7</span>
         <span class="text-[34px] font-serif text-accent">→ 14</span>
       </div>
-      <div class="text-[11.5px] text-mute mt-1">在 900px 屏高 · ×2</div>
+      <div class="text-[11.5px] text-mute mt-1">At 900px screen height · ×2</div>
     </div>
     <div class="border border-line rounded-2xl p-5 bg-panel">
-      <div class="text-mute text-[11px] uppercase tracking-[.14em]">找到目标任务</div>
+      <div class="text-mute text-[11px] uppercase tracking-[.14em]">Find target task</div>
       <div class="mt-2 flex items-end gap-2 num">
         <span class="text-[26px] line-through text-mute">~5s</span>
         <span class="text-[34px] font-serif text-accent">→ &lt;1s</span>
       </div>
-      <div class="text-[11.5px] text-mute mt-1">⌘K 直接搜索 / 状态过滤</div>
+      <div class="text-[11.5px] text-mute mt-1">⌘K direct search / status filter</div>
     </div>
     <div class="border border-line rounded-2xl p-5 bg-panel">
-      <div class="text-mute text-[11px] uppercase tracking-[.14em]">折叠态信息量</div>
+      <div class="text-mute text-[11px] uppercase tracking-[.14em]">Info in collapsed state</div>
       <div class="mt-2 flex items-end gap-2 num">
         <span class="text-[26px] line-through text-mute">0</span>
         <span class="text-[34px] font-serif text-accent">→ 4+1</span>
       </div>
-      <div class="text-[11.5px] text-mute mt-1">显近 4 任务状态 + Pinned</div>
+      <div class="text-[11.5px] text-mute mt-1">Shows 4 recent task statuses + Pinned</div>
     </div>
   </div>
 
   <!-- implementation hint -->
   <div class="mt-10 border border-line rounded-2xl p-6 bg-gradient-to-br from-panel to-transparent">
-    <div class="text-[11px] uppercase tracking-[.18em] text-accent/80 mb-2">实现路径建议</div>
+    <div class="text-[11px] uppercase tracking-[.18em] text-accent/80 mb-2">Implementation Roadmap</div>
     <div class="grid grid-cols-3 gap-6 text-[12.5px]">
       <div>
-        <h4 class="text-ink-100 font-medium mb-1.5">Phase 1 · 减噪</h4>
+        <h4 class="text-ink-100 font-medium mb-1.5">Phase 1 · Reduce Noise</h4>
         <ul class="text-mute space-y-1 list-disc pl-4">
-          <li>任务行默认折叠（隐藏 Add Agent + agent 行）</li>
-          <li>状态点改用 4 色语义（要 server 先上报状态）</li>
-          <li>actions 用 opacity 切换避免 layout shift</li>
+          <li>Collapse task rows by default (hide Add Agent + agent rows)</li>
+          <li>Switch status dots to 4-color semantic (requires server to report status)</li>
+          <li>Use opacity transitions for actions to avoid layout shift</li>
         </ul>
       </div>
       <div>
-        <h4 class="text-ink-100 font-medium mb-1.5">Phase 2 · 加力</h4>
+        <h4 class="text-ink-100 font-medium mb-1.5">Phase 2 · Add Power</h4>
         <ul class="text-mute space-y-1 list-disc pl-4">
-          <li>顶部搜索 + 状态 chips（client 端过滤）</li>
-          <li>Today / Yesterday 时间分组</li>
-          <li>修 title 生成失败回退（避免连续多个 "Generate a concise title…"）</li>
+          <li>Top search + status chips (client-side filtering)</li>
+          <li>Today / Yesterday time grouping</li>
+          <li>Fix title generation fallback (avoid consecutive "Generate a concise title…")</li>
         </ul>
       </div>
       <div>
-        <h4 class="text-ink-100 font-medium mb-1.5">Phase 3 · 进阶</h4>
+        <h4 class="text-ink-100 font-medium mb-1.5">Phase 3 · Advanced</h4>
         <ul class="text-mute space-y-1 list-disc pl-4">
-          <li>多选 + 批量操作浮条</li>
-          <li>折叠态命令台 popover（hover Logo 触发）</li>
-          <li>键盘导航 J/K/E/P/X</li>
+          <li>Multi-select + floating batch action bar</li>
+          <li>Collapsed-state command center popover (hover Logo trigger)</li>
+          <li>Keyboard navigation J/K/E/P/X</li>
         </ul>
       </div>
     </div>
@@ -751,7 +751,7 @@
 
   <div class="mt-10 text-center text-mute text-[12px]">
     OpenTeam · UX Proposal · 2026-05-23<br/>
-    <span class="text-[11px]">本文档由 UI Designer agent 基于 Playwright 实测产出 · 1 round</span>
+    <span class="text-[11px]">Document produced by UI Designer agent via Playwright testing · 1 round</span>
   </div>
 </section>
 

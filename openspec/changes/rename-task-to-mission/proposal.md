@@ -14,10 +14,10 @@ endpoints, or any type/hook/module whose name is the storage primitive.
 
 ## Why
 
-- "Mission" matches the product positioning ("AI 超级个体的操作系统" — the user
-  dispatches *missions* to an AI fleet, not *tasks*) better than the
-  workmanlike "task". The home page already exposes a `MissionControl`
-  component built on this premise.
+- "Mission" matches the product positioning ("the operating system for AI
+  super-individuals" — the user dispatches *missions* to an AI fleet, not
+  *tasks*) better than the workmanlike "task". The home page already exposes
+  a `MissionControl` component built on this premise.
 - We just paid the cost of a UI-vs-storage split (ADR-2). The discipline is
   cheap to evolve once: change the UI half, leave the storage half. Postponing
   this rename means every new contributor has to learn "task is the UI term,

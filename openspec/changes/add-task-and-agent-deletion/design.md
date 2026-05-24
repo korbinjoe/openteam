@@ -76,9 +76,9 @@ No schema migration. We mutate `chat.expertSessions: Record<agentId, ExpertSessi
 ## Resolution path (Claude)
 
 ```
-session.cwd           = "/Users/joebon/work/openteam"
+session.cwd           = "/Users/username/work/openteam"
 session.cliSessionId  = "abc123-..."
-projectKey            = cwdToClaudeProjectKey(cwd)  // "-Users-joebon-work-openteam"
+projectKey            = cwdToClaudeProjectKey(cwd)  // "-Users-username-work-openteam"
 absPath               = ~/.claude/projects/<projectKey>/<cliSessionId>.jsonl
 ```
 

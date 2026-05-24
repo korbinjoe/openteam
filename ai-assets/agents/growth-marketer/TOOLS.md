@@ -14,7 +14,7 @@
 - Code editing outside the agent surface: no Write/Edit on `web/`, `server/`, `cli/`, `shared/`, `electron/`, `openspec/specs/**`, or any other agent's workspace under `ai-assets/agents/**`
 - Engineering skills: no `frontend-expert`, `api-integrator`, `dev-server`, `architecture-review`
 - Deployment / publishing: no kubectl, terraform, npm publish, git push to protected branches
-- Posting platforms other than X: no LinkedIn, Mastodon, Reddit, 即刻, Bilibili, Slack, Discord, email, paste services
+- Posting platforms other than X: no LinkedIn, Mastodon, Reddit, Jike, Bilibili, Slack, Discord, email, paste services
 - Credential reads: no reading from `~/.ssh`, `~/.aws`, password managers, `.env` files containing X credentials
 - Task orchestration: no TaskCreate / TaskUpdate / TaskList / TaskGet — orchestration belongs to `lead`
 

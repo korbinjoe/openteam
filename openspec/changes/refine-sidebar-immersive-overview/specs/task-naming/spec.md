@@ -34,7 +34,7 @@ When a chat receives its first `user` message and its title is still in the "der
 
 #### Scenario: CJK characters count as one visible character each
 
-**Given** the first user message is `"实现 OAuth 登录,要支持 PKCE 流程并兼容企业 SSO 的回调地址处理"`
+**Given** the first user message is `"Implement OAuth login with PKCE flow and enterprise SSO callback handling"`
 **When** the derivation runs
 **Then** at most 40 CJK / Latin characters are kept
 **And** the title is rendered without garbled multi-byte truncation

@@ -1,123 +1,123 @@
-# 多 Agent 协作模式的纯 UX 评审
+# Pure UX Review of Multi-Agent Collaboration Modes
 
-> 本文档不引用任何代码与现状，只问一个问题：当用户从"我用一个 AI"切换到"我让一群 AI 协作为我工作"时，体验的本质收益与本质代价是什么？
-
----
-
-## 一、多 Agent 模式的本质收益（用户为什么会想要它）
-
-### 1. 时间杠杆——同一段时间内交付物增加
-
-单 Agent 是串行，多 Agent 是并行。用户感受到的不是"AI 更聪明了"，而是"我离开 10 分钟回来看到 5 件事都做完了"。这是多 Agent 唯一**不可被单 Agent 替代**的核心价值。
-
-### 2. 专家化错觉带来的信任感
-
-当用户看到"code-reviewer 在审 PR、ui-designer 在调样式"，比"一个通用 AI 全干"心理上更可信——即使底层是同一个模型。命名即承诺，用户会用更高的信任度去接受结果。
-
-### 3. 责任可归属
-
-出问题时用户能指着具体的 Agent 说"是它干的"。单 Agent 模式下用户只能怪自己 prompt 写得不好，多 Agent 模式给了用户一个**情绪出口**。
-
-### 4. 用户角色从执行者升级为决策者
-
-用户的工作变成"派活 + 验收"，而不是"和 AI 来回对话直到结果对"。这是身份提升带来的体验跃迁——用户感觉自己是 CEO 不是程序员。
+> This document references no code or current implementation. It asks one question: when a user transitions from "I use one AI" to "I have a group of AIs collaborating for me," what are the fundamental UX benefits and costs?
 
 ---
 
-## 二、多 Agent 模式的本质代价（用户必然承担的损耗）
+## I. Core Benefits of Multi-Agent Mode (Why Users Want It)
 
-### 1. 注意力的"碎片化暴露"
+### 1. Time Leverage — More Deliverables in the Same Time Window
 
-单 Agent 模式下，用户的注意力点是一个。多 Agent 模式下，**任何一个 Agent 出问题都可能召唤用户**。如果 5 个 Agent 各有 10% 的概率需要打扰用户，用户被打扰的概率是 41% 不是 10%。
+Single Agent is serial; multi-Agent is parallel. The user doesn't perceive "AI got smarter" but rather "I left for 10 minutes and came back to find 5 things done." This is the only core value of multi-Agent that **cannot be replaced by a single Agent**.
 
-**这是多 Agent 模式最严重的 UX 反噬**——它声称解放注意力，但实际可能比单 Agent 消耗更多注意力。
+### 2. Trust Through Specialization Illusion
 
-### 2. 心智模型的"系统化负担"
+When users see "code-reviewer is reviewing the PR, ui-designer is adjusting styles," it feels more trustworthy than "one generic AI doing everything" — even if the underlying model is the same. Naming is a promise; users accept results with higher confidence.
 
-单 Agent 只需理解"我和它"。多 Agent 用户必须额外理解：
+### 3. Attributable Responsibility
 
-- 每个 Agent 的能力边界（这事该派给谁？）
-- Agent 之间的协作方式（它们怎么交接？）
-- 系统的状态（谁在做什么、做到哪了？）
-- 失败的归因（出错是 Lead 派错了还是 Worker 干错了？）
+When something goes wrong, users can point to a specific Agent and say "it did this." In single-Agent mode, users can only blame their own prompts. Multi-Agent mode gives users an **emotional outlet**.
 
-用户为"团队是怎么运作的"这件事付出的心智成本，可能超过任务本身的复杂度。
+### 4. Role Elevation from Executor to Decision-Maker
 
-### 3. 成本不可预测
-
-单 Agent 模式用户对 token 消耗有直觉。多 Agent 模式下并行触发使消耗指数级放大，且常常发生在用户离开期间。**"睡一觉醒来账单爆炸"是多 Agent 模式特有的 UX 灾难**。
-
-### 4. 进度的"伪进展"
-
-多 Agent 同时输出"我在做……"，但用户无法判断这些进度是真实推进还是"假忙"。单 Agent 时用户可以从输出质量判断状态，多 Agent 时用户只能信任进度条本身。**信任成本**因此显著上升。
-
-### 5. 异常的"沉默成本"
-
-单 Agent 卡住，用户立刻发现（对话停了）。多 Agent 中某一个卡住，可能被其他活跃 Agent 的输出掩盖，**用户在几小时后才发现某个任务实际从未开始**。
-
-### 6. 上下文断裂
-
-当 Agent A 的结果是 Agent B 的输入时，用户经常要做"中转人"——把 A 的输出复制理解后转述给 B。这个工作单 Agent 模式下根本不存在。
+The user's work becomes "dispatch + review" rather than "go back and forth with AI until the result is right." This is an experience leap from identity elevation — the user feels like a CEO, not a programmer.
 
 ---
 
-## 三、不同协作模式的 UX 本质差异
+## II. Core Costs of Multi-Agent Mode (Unavoidable User Burden)
 
-只问一个问题：**用户的注意力点在哪里？**
+### 1. Fragmented Attention Exposure
 
-| 模式 | 用户的注意力点 | 用户感觉自己是 | 适合什么人 |
+In single-Agent mode, the user has one attention point. In multi-Agent mode, **any Agent encountering a problem can summon the user**. If 5 Agents each have a 10% chance of needing the user, the interruption probability is 41%, not 10%.
+
+**This is the most severe UX backlash of multi-Agent mode** — it claims to free attention but may actually consume more attention than a single Agent.
+
+### 2. Systemic Mental Model Burden
+
+Single Agent only requires understanding "me and it." Multi-Agent users must additionally understand:
+
+- Each Agent's capability boundaries (who should I assign this to?)
+- How Agents collaborate (how do they hand off?)
+- System state (who is doing what, how far along?)
+- Failure attribution (did Lead dispatch wrong or did Worker execute wrong?)
+
+The mental cost of understanding "how the team operates" may exceed the complexity of the task itself.
+
+### 3. Unpredictable Costs
+
+In single-Agent mode, users have intuition about token consumption. In multi-Agent mode, parallel execution amplifies consumption exponentially, and this often happens while the user is away. **"Waking up to an exploded bill" is a UX disaster unique to multi-Agent mode**.
+
+### 4. Illusory Progress
+
+Multiple Agents simultaneously output "I'm working on..." but users cannot determine whether this progress is real advancement or "busy-work." In single-Agent mode, users can judge state from output quality; in multi-Agent mode, users can only trust the progress indicator itself. **Trust cost** rises significantly.
+
+### 5. Silent Failure Cost
+
+When a single Agent gets stuck, the user notices immediately (conversation stops). In multi-Agent mode, one stuck Agent may be masked by other active Agents' output — **the user discovers hours later that a task never actually started**.
+
+### 6. Context Fragmentation
+
+When Agent A's result is Agent B's input, users often become "relay operators" — copying, understanding, and re-stating A's output to B. This work simply doesn't exist in single-Agent mode.
+
+---
+
+## III. UX Differences Across Collaboration Modes
+
+One question: **where is the user's attention point?**
+
+| Mode | User's Attention Point | User Feels Like | Best For |
 |---|---|---|---|
-| 单 Lead + 并行 Workers | **一个人**（Lead） | CEO | 想离开的人 |
-| Peer-to-Peer（Swarm） | **N 个人**（每个 Agent 都可能跳出来） | 救火队长 | 想全程在场的人 |
-| 多层 Hierarchy | **顶层** + 出事时各级 | 董事长 | 管理巨型 team 的人 |
-| 用户自己驱动 + 多 Worker | **每一次派发都要用户决策** | 项目经理 | 不信任自动调度的人 |
+| Single Lead + Parallel Workers | **One person** (Lead) | CEO | People who want to leave |
+| Peer-to-Peer (Swarm) | **N people** (any Agent can pop up) | Firefighter | People who want to be present |
+| Multi-layer Hierarchy | **Top level** + each level when issues arise | Chairman | People managing large teams |
+| User-driven + Multiple Workers | **Every dispatch requires user decision** | Project Manager | People who distrust auto-scheduling |
 
-**纯 UX 推荐**：单 Lead + 并行 Workers。理由：它是唯一一种**用户的注意力点不随 Agent 数量增长**的模式。其他模式下，用户的认知负担与 Agent 数量成正比甚至指数关系——这违背"多 Agent 是为了让用户省心"的初衷。
+**Pure UX recommendation**: Single Lead + Parallel Workers. Reason: it's the only mode where **the user's attention point doesn't grow with Agent count**. In other modes, cognitive load scales linearly or exponentially with Agent count — violating the premise that "multi-Agent is meant to save the user effort."
 
-Peer-to-Peer 在工程上更"灵活"，但 UX 上是灾难——用户失去了单一对话窗口，必须同时追踪 N 个对话。
+Peer-to-Peer is more "flexible" in engineering terms, but a UX disaster — the user loses a single conversation window and must track N conversations simultaneously.
 
-Hierarchical 只在 Agent 数量超出单人可管理范围时才有 UX 价值——而到那个数量，用户大概率已经是一个组织而不是个人了。
-
----
-
-## 四、多 Agent 模式必须满足的 6 条 UX 底线
-
-不论选择哪种模式，下面 6 条是用户**必然会感知到**的体验红线，缺一条这个产品就不成立：
-
-1. **单一观察点**：用户必须能在一个地方看到所有 Agent 的状态。不能让用户在多个面板间切换查询进度。
-
-2. **派发即承诺**：一旦派发，必须保证 Agent **要么完成、要么明确失败、要么明确请求用户介入**。绝不能有"消失了"的 Agent。
-
-3. **打扰必须值钱**：Agent 召唤用户必须达到一定门槛（如阻塞超过 N 分钟、成本超过预算、决策超出权限）。不能任何小事都打扰。
-
-4. **成本前置可见**：用户必须在派发**之前**看到预估成本，**进行中**看到累计成本，**超出阈值前**收到预警。事后审计就是失败。
-
-5. **失败可归因**：出错时用户必须能立刻看到"哪个 Agent、哪个环节、为什么"。不能让用户去翻 5 个 Agent 的日志拼凑真相。
-
-6. **离开-回归友好**：用户从离开到回来的体验必须是"一份完整的简报"，而不是"5 个 Agent 各自的流水账"。回来的第一屏必须是结论。
+Hierarchical only provides UX value when Agent count exceeds what one person can manage — and at that count, the user is likely an organization, not an individual.
 
 ---
 
-## 五、被忽视的 UX 反直觉
+## IV. Six UX Baselines Multi-Agent Mode Must Meet
 
-### 1. "更多 Agent" ≠ "更好体验"
+Regardless of the chosen mode, these 6 are experience red lines that users **will inevitably perceive** — missing even one makes the product non-viable:
 
-增加 Agent 在某个临界点（用户经验上大约是 5-7 个）之后开始**负贡献 UX**——心智成本爆炸、打扰概率激增、归因变难。多 Agent 系统的设计目标不应是"支持更多 Agent"，而应是"在合理数量内做到极致"。
+1. **Single observation point**: Users must be able to see all Agent states in one place. Don't make users switch between panels to check progress.
 
-### 2. "更智能的 Lead" 可能是 UX 陷阱
+2. **Dispatch is a promise**: Once dispatched, the Agent **must either complete, explicitly fail, or explicitly request user intervention**. There must never be a "vanished" Agent.
 
-让 Lead 自动决策一切看似减负，但当 Lead 决策错时，用户的反应是"我不知道发生了什么"——比让用户自己派发更糟糕。**UX 上的最优解是 Lead 推荐 + 用户一键确认**，不是 Lead 自动执行。
+3. **Interruptions must be valuable**: Agent summoning the user must meet a threshold (blocked for N+ minutes, cost exceeds budget, decision exceeds authority). Don't interrupt for trivial matters.
 
-### 3. "实时事件流" 不是 UX 增益
+4. **Cost visible upfront**: Users must see estimated cost **before** dispatch, cumulative cost **during** execution, and receive warnings **before** threshold breach. Post-hoc auditing is failure.
 
-向用户推送每个 Agent 的实时进度看似透明，实际是用噪音淹没信号。用户真正需要的推送是**只有状态变化的关键节点**（开始、阻塞、完成、失败）。其他都是干扰。
+5. **Failure is attributable**: On error, users must immediately see "which Agent, which step, why." Don't make users dig through 5 Agents' logs to piece together the truth.
 
-### 4. "Agent 拟人化" 是双刃剑
-
-给 Agent 起名字、配头像、用第一人称对话——提升信任，但也让用户**对失败更敏感**。"它撒谎了"比"AI 输出错误"在情绪上更难处理。设计上必须节制，让用户始终记得这是工具。
+6. **Leave-and-return friendly**: The user's experience from leaving to returning must be "one complete briefing," not "5 Agents' individual activity logs." The first screen on return must be conclusions.
 
 ---
 
-## 六、单句总结
+## V. Overlooked UX Counter-Intuitions
 
-多 Agent 模式的 UX 不是关于"如何让多个 AI 协作"，而是关于**"如何让用户在 N 个 AI 同时工作时仍然只感觉在面对一个系统"**。任何让用户感到"我在管理一个 AI 团队"而不是"我在使用一个能并行的工具"的设计，都是 UX 的失败。
+### 1. "More Agents" ≠ "Better Experience"
+
+Adding Agents begins to **negatively contribute to UX** past a tipping point (empirically around 5-7) — mental model cost explodes, interruption probability surges, attribution becomes difficult. The design goal of a multi-Agent system should not be "support more Agents" but "achieve excellence within a reasonable count."
+
+### 2. "Smarter Lead" Can Be a UX Trap
+
+Having Lead auto-decide everything seems to reduce burden, but when Lead decides wrong, the user's reaction is "I don't know what happened" — worse than the user dispatching themselves. **The UX optimum is Lead recommends + user one-click confirms**, not Lead auto-executes.
+
+### 3. "Real-time Event Stream" Is Not a UX Gain
+
+Pushing every Agent's real-time progress seems transparent but actually drowns signal in noise. What users actually need pushed are **only key state-change nodes** (started, blocked, completed, failed). Everything else is distraction.
+
+### 4. "Agent Anthropomorphism" Is a Double-Edged Sword
+
+Giving Agents names, avatars, first-person voice — increases trust but also makes users **more sensitive to failure**. "It lied" is emotionally harder to handle than "AI output error." Design must exercise restraint; users should always remember this is a tool.
+
+---
+
+## VI. One-Sentence Summary
+
+The UX of multi-Agent mode is not about "how to make multiple AIs collaborate" but about **"how to make the user feel like they're facing one system even when N AIs are working simultaneously."** Any design that makes the user feel "I'm managing an AI team" rather than "I'm using a tool that can work in parallel" is a UX failure.

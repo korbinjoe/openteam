@@ -1,6 +1,6 @@
 # Capability: Agent Cost Ledger and Budget Guardrail
 
-A per-task token/cost budget with soft-warn at 75% and hard-pause at 100%, plus a running per-Expert cost line surfaced through `team-status.sh` and the UI. Directly addresses the attention-pain findings in `AI超级个体工作痛点调研.md` (痛点 B: Token/cost anxiety, with documented \$1,400 Cursor and \$3,167 Flutter incidents). Not a tool firewall (Aegis-style) — that is a separate, larger capability deferred.
+A per-task token/cost budget with soft-warn at 75% and hard-pause at 100%, plus a running per-Expert cost line surfaced through `team-status.sh` and the UI. Directly addresses the attention-pain findings from research (Pain-point B: Token/cost anxiety, with documented \$1,400 Cursor and \$3,167 Flutter incidents). Not a tool firewall (Aegis-style) — that is a separate, larger capability deferred.
 
 ## ADDED Requirements
 

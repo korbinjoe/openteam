@@ -28,7 +28,7 @@ This contradicts the pulse-mode thesis — dispatch the marketer alongside an en
 
 ## Non-Goals
 
-- **Cross-platform posting** (LinkedIn, Mastodon, Reddit, Bilibili, 即刻, etc.) — X only in this change. Multi-platform can be a follow-up that adds new adapters.
+- **Cross-platform posting** (LinkedIn, Mastodon, Reddit, Bilibili, Jike, etc.) — X only in this change. Multi-platform can be a follow-up that adds new adapters.
 - **Scheduled posting / posting queues / drip campaigns** — single one-shot posts only.
 - **Analytics / engagement tracking** — no impression metrics, no reply monitoring.
 - **High-fidelity images, posters, video** — text-only in this change. Image attachments can be a follow-up that delegates to `image-creator`.

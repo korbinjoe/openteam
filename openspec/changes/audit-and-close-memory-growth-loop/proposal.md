@@ -4,7 +4,7 @@
 
 This change does two things in one pass:
 
-1. **Audit** the project's current multi-agent memory and growth mechanism against the patterns and benchmarks surveyed in `~/work/feizhu-share/Agent记忆系统调研.md`, `Agent自我进化机制调研.md`, and `agent-memory-research.md`. The full findings live in `design.md`.
+1. **Audit** the project's current multi-agent memory and growth mechanism against the patterns and benchmarks surveyed in internal research documents (agent memory systems, agent self-evolution mechanisms, and agent-memory-research.md). The full findings live in `design.md`.
 2. **Close the smallest viable capture loop** so the existing `MemoryStore`, `GrowthStore`, `EvolutionLog` UI and `Cross-Session Memory` prompt section actually receive data. Today every one of those surfaces compiles and renders, but no code path inside the agent runtime writes to them — they are all silent.
 
 The audit finds that OpenTeam already has the *storage* layer (SQLite-backed `MemoryStore` / `GrowthStore`, REST CRUD, prompt-injection point, UI surface) but is missing the **capture**, **retrieval**, and **evolution** stages of the standard five-stage memory pipeline (Extract → Consolidate → Store → Retrieve → Forget). This proposal wires the *capture* stage end-to-end and leaves Consolidate / Retrieve-by-value / Forget to follow-up changes once we have real data flowing.
@@ -31,7 +31,7 @@ The audit finds that OpenTeam already has the *storage* layer (SQLite-backed `Me
 
 ### Why this matters
 
-Every research survey in `~/work/feizhu-share` lands the same conclusion: the bottleneck is not "能不能存" but "能不能在正确时刻把正确记忆交给 Agent". A storage-only stack with empty writers means the user experiences "every session starts from scratch" — directly violating OpenTeam's pulse-mode promise ("come back, find your team smarter than you left it"). Closing the capture loop is the smallest change that converts the existing scaffolding from dead UI into a real signal.
+Every research survey lands the same conclusion: the bottleneck is not "can we store" but "can we deliver the right memory to the Agent at the right moment." A storage-only stack with empty writers means the user experiences "every session starts from scratch" — directly violating OpenTeam's pulse-mode promise ("come back, find your team smarter than you left it"). Closing the capture loop is the smallest change that converts the existing scaffolding from dead UI into a real signal.
 
 ## Goals
 

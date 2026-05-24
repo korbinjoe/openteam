@@ -19,50 +19,50 @@ Keep this managed block so 'openspec update' can refresh the instructions.
 
 # Project Rules
 
-## 项目概述
+## Project Overview
 
-OpenTeam 是 **AI 超级个体的操作系统** — 让一个人通过编排多个 AI Agent 并行工作，独立完成过去需要一个小团队才能交付的工作量。核心用户工作节奏是脉冲式的：批量派发任务 → 离开去做更高价值的事 → 回来批量验收审查结果。
+OpenTeam is **the operating system for AI super-individuals** — enabling one person to orchestrate multiple AI Agents working in parallel, independently delivering what used to require a whole team. The core user rhythm is pulse-mode: batch-dispatch tasks → leave for higher-value work → come back to batch-review results.
 
-**设计原则**：注意力优先（节省而非消耗注意力）、离开友好（离开后系统独立运行）、批量操作、成本透明、信任递增。
+**Design Principles**: Attention-first (conserve, not consume attention), Leave-friendly (system runs independently while you're away), Batch operations, Cost transparency, Progressive trust.
 
 ---
 
-## 技术栈
+## Tech Stack
 
-- 前端：React 18 + TypeScript + Vite + TailwindCSS
-- 终端：xterm.js + node-pty
-- 后端：Express + tsx
-- 桌面：Electron
-- CLI：Commander.js + Ink（React for CLI）
-- 数据库：better-sqlite3（WAL 模式）
-- 包管理：npm
+- Frontend: React 18 + TypeScript + Vite + TailwindCSS
+- Terminal: xterm.js + node-pty
+- Backend: Express + tsx
+- Desktop: Electron
+- CLI: Commander.js + Ink (React for CLI)
+- Database: better-sqlite3 (WAL mode)
+- Package manager: npm
 
-## 关键路径与约定
+## Key Paths & Conventions
 
-| 路径 | 说明 |
-|------|------|
-| `@/` | Vite 路径别名，指向 `web/` |
-| `~/.openteam/` | 运行时数据根目录（DB、Agent workspace、临时文件） |
-| `~/.openteam/openteam.db` | SQLite 数据库，schema 通过 `server/stores/migrations/` 版本迁移 |
-| `openteam.json` | 项目级 Agent 团队配置（Agent 列表、默认模型、Provider） |
-| `ai-assets/` | Bundled 资源：Agent 定义 MD、MCP 服务器、Skills、Hooks 脚本 |
-| `shared/` | 前后端共享类型（`ws-types.ts`、`ports.ts`） |
+| Path | Description |
+|------|-------------|
+| `@/` | Vite path alias, points to `web/` |
+| `~/.openteam/` | Runtime data root (DB, Agent workspace, temp files) |
+| `~/.openteam/openteam.db` | SQLite database, schema versioned via `server/stores/migrations/` |
+| `openteam.json` | Project-level Agent team config (Agent list, default model, Provider) |
+| `ai-assets/` | Bundled resources: Agent definition MDs, MCP servers, Skills, Hook scripts |
+| `shared/` | Shared types between frontend and backend (`ws-types.ts`, `ports.ts`) |
 
-## 多 CLI Provider 架构
+## Multi CLI Provider Architecture
 
-支持两种 CLI Provider：`claude` | `codex`，核心差异在 session 发现和 JSONL 解析：
+Two CLI Providers are supported: `claude` | `codex`, with core differences in session discovery and JSONL parsing:
 
-- **SessionDiscovery**：策略模式，按 provider 创建不同的文件发现逻辑（`server/terminal/SessionDiscovery.ts`）
-- **OutputParser**：接口模式，Claude 用 `ConversationParser`，Codex 用 `CodexParser`
-- **SessionFileWatcher**：100% 复用，只注入不同的 parser
+- **SessionDiscovery**: Strategy pattern, creates different file discovery logic per provider (`server/terminal/SessionDiscovery.ts`)
+- **OutputParser**: Interface pattern, Claude uses `ConversationParser`, Codex uses `CodexParser`
+- **SessionFileWatcher**: 100% reused, only injects a different parser
 
-新增 CLI Provider 只需实现 `SessionDiscovery` + `OutputParser` 两个接口。
+Adding a new CLI Provider only requires implementing the `SessionDiscovery` + `OutputParser` interfaces.
 
-## 消息数据源原则
+## Message Data Source Principle
 
-- **JSONL 文件是对话消息的唯一真实源（Single Source of Truth）**，不在数据库中另建 messages 表
-- 消息恢复链路：`chats.expert_sessions` → cliSessionId → JSONL 文件 → `SessionFileWatcher` 解析
-- 不得提议将消息持久化到 SQLite，这是项目的设计原则
+- **JSONL files are the single source of truth for conversation messages** — no separate messages table in the database
+- Message recovery chain: `chats.expert_sessions` → cliSessionId → JSONL file → `SessionFileWatcher` parsing
+- Do NOT propose persisting messages to SQLite — this is a design principle of the project
 
 ## Status Indicator Conventions
 
@@ -88,74 +88,74 @@ instead of duplicating the color logic.
 
 ---
 
-## 规则 1：方案先行
+## Rule 1: Plan Before Code
 
-- 涉及 **3 个以上文件** 的改动，必须先输出方案（md 或文字说明），获得确认后再写代码
-- **Bug 修复**必须先输出根因分析（含代码路径追踪），确认后再动手
-- 用户说"先方案"/"先分析"/"先设计"时，**禁止直接写代码**
-- 技术方案应包含：问题描述 → 根因分析 → 解决思路 → 影响范围 → 实施步骤
+- Changes touching **3+ files** must produce a plan (md or text) and get confirmation before writing code
+- **Bug fixes** must produce a root cause analysis (with code path trace) and get confirmation before implementing
+- When the user says "plan first" / "analyze first" / "design first", **do not write code directly**
+- Technical plans should include: Problem description → Root cause → Solution approach → Impact scope → Implementation steps
 
-## 规则 2：最小改动原则
+## Rule 2: Minimal Change Principle
 
-- **只修改与当前任务直接相关的代码**，不做额外重构、优化、美化
-- 不引入用户未要求的新抽象层（Buffer、Cache、Queue、Middleware 等）
-- 不引入用户未要求的新依赖或新设计模式
-- 不擅自更改现有的状态管理方案（不在 props/zustand/context 之间切换）
-- 如认为需要额外改动，先说明理由并获得用户确认
+- **Only modify code directly related to the current task** — no extra refactoring, optimization, or beautification
+- Do not introduce abstraction layers the user didn't request (Buffer, Cache, Queue, Middleware, etc.)
+- Do not introduce new dependencies or design patterns the user didn't request
+- Do not unilaterally change the existing state management approach (no switching between props/zustand/context)
+- If you believe additional changes are needed, explain the reasoning and get user confirmation first
 
-## 规则 3：修复后必须输出影响面验证
+## Rule 3: Post-Fix Impact Verification
 
-每次 bug 修复或功能修改完成后，必须输出以下内容：
+After every bug fix or feature modification, output the following:
 
 ```
-## 影响面验证
+## Impact Verification
 
-### 本次修改的文件
-- file1.ts: 改了什么
-- file2.tsx: 改了什么
+### Files Modified
+- file1.ts: what changed
+- file2.tsx: what changed
 
-### 可能受影响的功能
-- [ ] 功能A：预期是否正常（说明理由）
-- [ ] 功能B：预期是否正常（说明理由）
+### Potentially Affected Features
+- [ ] Feature A: expected to work? (reasoning)
+- [ ] Feature B: expected to work? (reasoning)
 
-### 高危区域自查
-- [ ] 终端渲染（初始加载/刷新/resize）
-- [ ] 会话恢复（进入历史会话/刷新后恢复）
-- [ ] 页面刷新后状态保持
+### High-Risk Area Checklist
+- [ ] Terminal rendering (initial load / refresh / resize)
+- [ ] Session recovery (entering historical sessions / post-refresh recovery)
+- [ ] State persistence after page refresh
 ```
 
-## 规则 4：xterm / PTY 专项规则
+## Rule 4: xterm / PTY Rules
 
-这是项目中 bug 最高发的区域，修改前必须格外谨慎：
+This is the highest-bug-density area of the project — exercise extra caution before modifying:
 
-- 修改 xterm 相关代码前，**先完整阅读**当前的终端组件和 PTY 管理代码
-- xterm 尺寸/渲染修改必须覆盖以下 **四个场景**：
-  1. 初始加载
-  2. 页面刷新
-  3. 窗口 resize
-  4. 历史会话恢复
-- PTY 进程管理改动必须评估对**会话恢复**的影响
-- 不添加 PTY 超时回收/自动清理逻辑，除非用户明确要求
-- xterm fit addon 的调用时序要考虑 DOM 实际挂载完成
+- Before modifying xterm-related code, **read the full** terminal component and PTY management code first
+- xterm size/rendering changes must cover these **four scenarios**:
+  1. Initial load
+  2. Page refresh
+  3. Window resize
+  4. Historical session recovery
+- PTY process management changes must assess impact on **session recovery**
+- Do not add PTY timeout/auto-cleanup logic unless the user explicitly requests it
+- xterm fit addon call timing must account for actual DOM mount completion
 
-## 规则 5：禁止项
+## Rule 5: Prohibited Actions
 
-以下行为被明确禁止：
+The following are explicitly prohibited:
 
-- 不添加用户未要求的 OutputBuffer / DataCache / MessageQueue 等中间层
-- 不修改 `~/.claude/settings.json`，除非用户明确要求
-- 不在"修 bug"的过程中顺便重构周边代码
-- 不添加超时回收、自动清理、定时轮询等后台逻辑，除非用户要求
-- 不把用户要求用已有 skill 完成的工作，改为自己重新实现
+- Do not add OutputBuffer / DataCache / MessageQueue or similar middleware layers the user didn't request
+- Do not modify `~/.claude/settings.json` unless the user explicitly requests it
+- Do not refactor surrounding code while fixing a bug
+- Do not add timeout recycling, auto-cleanup, or polling logic unless the user requests it
+- Do not reimplement work that the user asked to be done using an existing skill
 
-## 规则 6：代码规范
+## Rule 6: Code Standards
 
-- 始终用中文回复
-- **代码、注释、文档、commit message 必须使用全英文**（对话回复仍用中文，但所有写入文件的内容一律英文）
-- 使用 TypeScript strict 模式风格
-- 样式只用 Tailwind classes
-- 使用 const 箭头函数，不使用分号
-- 事件处理函数使用 handle 前缀
-- 条件类名使用 cn()
-- **单文件代码行数不超过 500 行**，超出时须拆分为 hooks、子组件或工具模块
-- **被注释或禁用的代码块必须配 TODO 注释**，包含恢复条件或追踪 link（如 `// TODO(#123): 恢复条件说明`）。无 TODO 的大段注释应删除或恢复
+- Always respond in English
+- **Code, comments, documentation, and commit messages must all be in English**
+- Use TypeScript strict mode style
+- Use only Tailwind classes for styling
+- Use const arrow functions, no semicolons
+- Event handlers use `handle` prefix
+- Conditional classnames use `cn()`
+- **Single file must not exceed 500 lines** — split into hooks, subcomponents, or utility modules when exceeded
+- **Commented-out or disabled code blocks must have a TODO comment** with restore conditions or tracking link (e.g., `// TODO(#123): restore condition description`). Large comment blocks without TODO should be deleted or restored

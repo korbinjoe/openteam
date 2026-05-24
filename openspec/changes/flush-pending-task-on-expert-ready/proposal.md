@@ -71,4 +71,4 @@ When `enqueuePendingTask` fires, also schedule (via the existing `setPendingTask
 ## Decisions Locked
 
 - **TTL = 30 s, hardcoded constant** (`PENDING_TASK_TTL_MS`). Not a setting. Cold-start `ConfigCompiler` + `ACPClient.initialize` is comfortably under 5 s in practice; 30 s gives 6× headroom without a long silent tail. If field reports show MCP cold-cache starts pushing past 30 s, bump in a follow-up — not now.
-- **`pending_task_dropped` carries the queued `task` text.** UI surfaces a non-blocking inline notice with one-click retry that re-sends the same text. This is the離開友好 (leave-friendly) shape: the user comes back to a clear "your message didn't send — retry" affordance, not a vanished input.
+- **`pending_task_dropped` carries the queued `task` text.** UI surfaces a non-blocking inline notice with one-click retry that re-sends the same text. This is the leave-friendly shape: the user comes back to a clear "your message didn't send — retry" affordance, not a vanished input.

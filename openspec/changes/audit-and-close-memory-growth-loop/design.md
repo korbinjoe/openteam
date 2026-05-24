@@ -6,7 +6,7 @@ This document holds the architectural review that motivates the proposal, follow
 
 ## Part A — Architecture Review
 
-Scope: the project's multi-agent memory mechanism and agent growth/evolution mechanism. Method: 9-dimension architectural review cross-referenced with the three feizhu-share surveys.
+Scope: the project's multi-agent memory mechanism and agent growth/evolution mechanism. Method: 9-dimension architectural review cross-referenced with three external research surveys.
 
 ### 1. Inventory of what exists today
 
@@ -31,7 +31,7 @@ Scope: the project's multi-agent memory mechanism and agent growth/evolution mec
 | Hook | `wb-post-tool-write.sh` — captures artifact / handoff from tool calls | `ai-assets/hooks/wb-post-tool-write.sh` | Functional |
 | Skill | `whiteboard` — wb-write / wb-snapshot / wb-query / wb-supersede / wb-archive | `ai-assets/skills/whiteboard/` | Functional |
 
-### 2. Mapping to the five-stage pipeline (feizhu §3.1)
+### 2. Mapping to the five-stage pipeline (research §3.1)
 
 ```
                 Extract  →  Consolidate  →  Store  →  Retrieve  →  Forget
@@ -45,7 +45,7 @@ OpenTeam today: manual    none           OK       importance     LRU cap
 - **Retrieve**: `ORDER BY importance DESC, updated_at DESC LIMIT 20`. No semantic match, no time decay, no value/utility scoring. Acceptable for an empty store; not acceptable once data flows.
 - **Forget**: only the implicit LRU cap on `MemoryStore` (max 2000 rows, evict by `updated_at`). No utility-driven pruning.
 
-### 3. Mapping to CoALA's four memory types (feizhu §2.3)
+### 3. Mapping to CoALA's four memory types (research §2.3)
 
 | Type | OpenTeam today | Gap |
 |------|----------|-----|
@@ -54,7 +54,7 @@ OpenTeam today: manual    none           OK       importance     LRU cap
 | Semantic memory | None | **Medium** — could be reused from `MemoryStore.category='general'` once writers exist |
 | Procedural memory | Skills directory (`ai-assets/skills/`) | Partial — static, no auto-generation; Sensei could generate but doesn't yet |
 
-### 4. Multi-agent dimension (feizhu §6)
+### 4. Multi-agent dimension (research §6)
 
 OpenTeam already has two of the three classical multi-agent memory primitives:
 
@@ -66,7 +66,7 @@ OpenTeam already has two of the three classical multi-agent memory primitives:
 
 The war-room covers the **in-task** shared context exceptionally well — it is the system's strongest piece. The gap is **cross-task knowledge accumulation** ("we tried this pattern in chat X, it failed, every agent should avoid it"). Phase-2 work, out of scope here.
 
-### 5. Evolution / growth dimension (feizhu evolution §3-§5)
+### 5. Evolution / growth dimension (research evolution §3-§5)
 
 The evolution doc enumerates four levers: Memory → Strategy/Skill → Model → Architecture. OpenTeam's posture:
 

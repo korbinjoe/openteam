@@ -4,7 +4,7 @@
 
 OpenTeam targets a single AI super-individual driving a 5–10 agent team in pulse-mode batches. The current collab mechanism evolved organically: dispatcher skill → mailbox files → whiteboard → plan.md → per-agent memory. Each piece was added to solve a real problem and works in isolation, but there is no document that says *"the orchestration is a Supervisor topology with these dispatch states, these escalation paths, and these termination guarantees."* New agents reverse-engineer the rules.
 
-The feizhu-share research corpus is unusually directly applicable because (a) it includes a 痛点 report grounded in 50K+ GitHub stars of attention-management tooling, and (b) it surveys the protocol space (MCP/A2A/ACP) and orchestration patterns (Supervisor/Swarm/Hierarchical/etc.) with concrete framework references.
+The research corpus is unusually directly applicable because (a) it includes a pain-point report grounded in 50K+ GitHub stars of attention-management tooling, and (b) it surveys the protocol space (MCP/A2A/ACP) and orchestration patterns (Supervisor/Swarm/Hierarchical/etc.) with concrete framework references.
 
 The review-driven question this design answers: **which of the surveyed patterns/protocols are worth adopting, which are not, and how do we lock in the parts that are already correct?**
 
@@ -15,8 +15,8 @@ The review-driven question this design answers: **which of the surveyed patterns
 **Decision**: Single Lead + parallel Worker experts stays. No handoff between peers, no multi-tier manager hierarchy.
 
 **Alternatives considered**:
-- *Swarm (handoff between peers)*: gives flexibility but the 多Agent编排模式调研 documents "loss of global state visibility" and "debug difficulty" (`多Agent编排模式调研.md:228-235`). For a single operator who wants pulse-mode visibility, losing global state is a regression.
-- *Hierarchical (Director → Managers → Workers)*: justified only at 50+ agents (`多Agent编排模式调研.md:328`). OpenTeam has 9.
+- *Swarm (handoff between peers)*: gives flexibility but the multi-agent orchestration research documents "loss of global state visibility" and "debug difficulty." For a single operator who wants pulse-mode visibility, losing global state is a regression.
+- *Hierarchical (Director → Managers → Workers)*: justified only at 50+ agents. OpenTeam has 9.
 
 **Consequences**:
 - Lead remains the single bottleneck — this is a feature for attention management, not a bug to fix.
@@ -26,7 +26,7 @@ The review-driven question this design answers: **which of the surveyed patterns
 
 **Decision**: Rename internal task states to match the A2A/ACP canonical names so future interop is cheap; keep mailbox files + SSE as the transport.
 
-**Why**: A2A and ACP both converged on `submitted → working → input-required → completed | failed | canceled` (`A2A协议调研.md:112-118`, `ACP协议调研.md:97-105`). OpenTeam currently uses an ad-hoc mix (`task:progress`, `task:idle`, `task:blocked`, `task:milestone`). Aligning names costs little; emitting JSON-RPC + Agent Cards would cost a lot and gain nothing for a single-machine use case.
+**Why**: A2A and ACP both converged on `submitted → working → input-required → completed | failed | canceled`. OpenTeam currently uses an ad-hoc mix (`task:progress`, `task:idle`, `task:blocked`, `task:milestone`). Aligning names costs little; emitting JSON-RPC + Agent Cards would cost a lot and gain nothing for a single-machine use case.
 
 **Mapping**:
 
@@ -46,7 +46,7 @@ Old names accepted as aliases for one release; emit deprecation log.
 
 **Decision**: Build a read-only index of `~/.openteam/tasks/{taskId}/result.md` files per agent, surfaced as a pre-task lookup hook ("similar tasks you completed: …"). Do not introduce a vector DB.
 
-**Why**: The substrate is already there (`server/mailbox/ExecutionPlanManager.ts:22`). The Agent记忆系统调研 calls out that "episodic memory = task trajectories" (`Agent记忆系统调研.md:99-106`) and that EvolveR / CASCADE achieve their gains from indexing trajectories, not from new storage (`Agent自我进化机制调研.md:84-120`). Adding a vector DB is a big infrastructure jump that the data volume (~tens to low hundreds of tasks per user) does not justify.
+**Why**: The substrate is already there (`server/mailbox/ExecutionPlanManager.ts:22`). The agent memory research calls out that "episodic memory = task trajectories" and that EvolveR / CASCADE achieve their gains from indexing trajectories, not from new storage. Adding a vector DB is a big infrastructure jump that the data volume (~tens to low hundreds of tasks per user) does not justify.
 
 **Implementation sketch**:
 - `EpisodicMemoryIndex.ts` in `server/memory/` reads `result.md` summaries on completion, stores `{agentId, taskId, title, summary, outcome, tags}` in SQLite (new table, ~one row per task).
@@ -61,7 +61,7 @@ Old names accepted as aliases for one release; emit deprecation log.
 
 **Decision**: Add `taskBudget.tokens` and `taskBudget.cost` fields to `TaskEnvelope`. The expert lifecycle tracks cumulative consumption (already done via `ExpertTokenTracker`) and hits two thresholds: **soft warn at 75%** (write `task:warning` to mailbox), **hard pause at 100%** (suspend expert, emit `task:input-required` asking the Lead/user to extend or terminate).
 
-**Why not Aegis-style tool firewall**: Aegis intercepts every tool call and classifies (`AI超级个体工作痛点调研.md:120`). Powerful, but it's a separate large project. Token/cost budget is the highest-ROI guardrail because the 痛点 evidence is overwhelmingly cost-focused (Cursor \$1,400, Flutter \$3,167 incidents). Tool-call interception can come later as a separate capability.
+**Why not Aegis-style tool firewall**: Aegis intercepts every tool call and classifies. Powerful, but it's a separate large project. Token/cost budget is the highest-ROI guardrail because the pain-point evidence is overwhelmingly cost-focused (Cursor \$1,400, Flutter \$3,167 incidents). Tool-call interception can come later as a separate capability.
 
 **UI surface**: `team-status.sh` already returns per-expert phase + currentTool; add `cost.tokensUsed`, `cost.tokensBudget`, `cost.usdEstimate`. The UI's expert list adds a single running line. No new panel.
 

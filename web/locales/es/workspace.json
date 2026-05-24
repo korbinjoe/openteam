@@ -237,6 +237,7 @@
     "delete": "Eliminar",
     "addToChat": "Agregar al chat actual",
     "revealInFinder": "Mostrar en Finder",
+    "openInBrowser": "Abrir en navegador",
     "deleteConfirm": "¿Está seguro de eliminar <strong>{{name}}</strong>? Esta acción no se puede deshacer."
   },
   "browser": {

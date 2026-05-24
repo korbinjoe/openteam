@@ -239,6 +239,7 @@
     "delete": "Delete",
     "addToChat": "Add to current chat",
     "revealInFinder": "Reveal in Finder",
+    "openInBrowser": "Open in Browser",
     "deleteConfirm": "Are you sure you want to delete <strong>{{name}}</strong>? This cannot be undone."
   },
   "browser": {

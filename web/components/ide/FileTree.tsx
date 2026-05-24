@@ -5,6 +5,7 @@ import {
   ChevronRight, ChevronDown, RefreshCcw, Loader2, File, Folder, FolderOpen,
   Search, ArrowLeft, SearchCode, Trash2, FilePlus, FolderPlus, Scissors,
   Copy, ClipboardPaste, Pencil, ExternalLink, Eye, EyeOff, MessageSquarePlus,
+  Globe,
 } from 'lucide-react'
 import { API_BASE, authFetch } from '@/config/api'
 import type { ChangeStatus, DirAggregate } from '@/lib/changeTree'
@@ -926,6 +927,9 @@ const FileTree = ({ roots, onFileSelect, selectedFile, changeMap, dirAggregate, 
       case 'reveal':
         await actions.handleReveal(path)
         break
+      case 'open-in-browser':
+        await actions.handleOpenInBrowser(path)
+        break
       case 'add-to-chat': {
         window.dispatchEvent(new CustomEvent('chat:add-files', {
           detail: { files: [{ name, path, type }] },
@@ -1137,6 +1141,9 @@ const FileTree = ({ roots, onFileSelect, selectedFile, changeMap, dirAggregate, 
           <MenuDivider />
           <MenuItem icon={<MessageSquarePlus size={10} />} label={t('fileTree.addToChat')} onClick={() => handleMenuAction('add-to-chat')} />
           <MenuDivider />
+          {contextMenu.type === 'file' && /\.html?$/i.test(contextMenu.name) && (
+            <MenuItem icon={<Globe size={10} />} label={t('fileTree.openInBrowser')} onClick={() => handleMenuAction('open-in-browser')} />
+          )}
           <MenuItem icon={<ExternalLink size={10} />} label={t('fileTree.revealInFinder')} onClick={() => handleMenuAction('reveal')} />
         </div>
       )}

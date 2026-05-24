@@ -66,6 +66,15 @@ export const revealInFinder = async (filePath: string): Promise<boolean> => {
   return res.ok
 }
 
+export const openInBrowser = async (filePath: string): Promise<boolean> => {
+  const res = await fetch(`${API_BASE}/api/open-in-browser`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ path: filePath }),
+  })
+  return res.ok
+}
+
 // ── Hook ──
 
 export const useFileTreeActions = (
@@ -158,6 +167,10 @@ export const useFileTreeActions = (
     await revealInFinder(path)
   }, [])
 
+  const handleOpenInBrowser = useCallback(async (path: string) => {
+    await openInBrowser(path)
+  }, [])
+
   return {
     clipboard,
     inlineInput,
@@ -173,6 +186,7 @@ export const useFileTreeActions = (
     handleRename,
     handleInlineSubmit,
     handleReveal,
+    handleOpenInBrowser,
     setInlineInput,
   }
 }

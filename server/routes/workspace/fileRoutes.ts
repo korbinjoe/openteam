@@ -303,4 +303,25 @@ router.post('/api/reveal-in-finder', (req, res) => {
   })
 })
 
+router.post('/api/open-in-browser', (req, res) => {
+  const { path: filePath } = req.body as { path?: string }
+  if (!filePath || typeof filePath !== 'string') {
+    return res.status(400).json({ error: 'path is required' })
+  }
+  const resolved = resolve(filePath)
+  if (!existsSync(resolved)) {
+    return res.status(404).json({ error: 'Path not found' })
+  }
+
+  const url = `file://${resolved}`
+  const platform = process.platform
+  const cmd = platform === 'darwin' ? 'open' : platform === 'win32' ? 'cmd' : 'xdg-open'
+  const args = platform === 'win32' ? ['/c', 'start', '', url] : [url]
+
+  execFile(cmd, args, { timeout: 5000 }, (err) => {
+    if (err) return res.status(500).json({ error: 'Cannot open in browser' })
+    res.json({ ok: true })
+  })
+})
+
 export default router

@@ -237,6 +237,7 @@
     "delete": "Löschen",
     "addToChat": "Zum aktuellen Chat hinzufügen",
     "revealInFinder": "Im Finder anzeigen",
+    "openInBrowser": "Im Browser öffnen",
     "deleteConfirm": "Möchten Sie <strong>{{name}}</strong> wirklich löschen? Dies kann nicht rückgängig gemacht werden."
   },
   "browser": {

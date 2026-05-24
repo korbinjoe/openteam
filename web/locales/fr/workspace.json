@@ -237,6 +237,7 @@
     "delete": "Supprimer",
     "addToChat": "Ajouter au chat actuel",
     "revealInFinder": "Révéler dans le Finder",
+    "openInBrowser": "Ouvrir dans le navigateur",
     "deleteConfirm": "Êtes-vous sûr de vouloir supprimer <strong>{{name}}</strong> ? Cette action est irréversible."
   },
   "browser": {

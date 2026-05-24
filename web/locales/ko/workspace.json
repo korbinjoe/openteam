@@ -237,6 +237,7 @@
     "delete": "삭제",
     "addToChat": "현재 채팅에 추가",
     "revealInFinder": "Finder에서 보기",
+    "openInBrowser": "브라우저에서 열기",
     "deleteConfirm": "<strong>{{name}}</strong>을(를) 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다."
   },
   "browser": {

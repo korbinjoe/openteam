@@ -239,6 +239,7 @@
     "delete": "删除",
     "addToChat": "加入当前会话",
     "revealInFinder": "在 Finder 中显示",
+    "openInBrowser": "在浏览器中打开",
     "deleteConfirm": "确定删除 <strong>{{name}}</strong> 吗？此操作不可撤销。"
   },
   "browser": {

@@ -237,6 +237,7 @@
     "delete": "削除",
     "addToChat": "現在のチャットに追加",
     "revealInFinder": "Finder で表示",
+    "openInBrowser": "ブラウザで開く",
     "deleteConfirm": "<strong>{{name}}</strong> を削除しますか？この操作は元に戻せません。"
   },
   "browser": {

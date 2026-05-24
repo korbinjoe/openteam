@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# Pre-commit hook: catch TypeScript errors before they reach main.
+#
+# Why: missing-export / wrong-import errors (e.g. buildTaskOpenUrl after the
+# task→mission rename) compile-pass on stale editor caches but break
+# `npm run build:electron` in CI. Running `tsc --noEmit` against staged
+# .ts/.tsx changes catches them locally.
+#
+# Skip with: git commit --no-verify  (use sparingly)
+set -euo pipefail
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "$REPO_ROOT"
+
+STAGED_TS=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '\.(ts|tsx)$' || true)
+if [[ -z "$STAGED_TS" ]]; then
+  exit 0
+fi
+
+echo "[pre-commit] Running tsc --noEmit on the project..."
+if ! npx --no-install tsc --noEmit; then
+  echo ""
+  echo "[pre-commit] TypeScript check failed. Fix the errors above, or bypass with --no-verify."
+  exit 1
+fi

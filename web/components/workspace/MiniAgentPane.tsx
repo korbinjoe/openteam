@@ -3,7 +3,7 @@ import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { useAgents } from '../../hooks/useAgents'
 import { cn } from '../../lib/utils'
 import { buildMissionUrl } from './urls'
-import { buildTaskOpenUrl } from './MissionSessionRows'
+import { buildMissionOpenUrl } from './MissionSessionRows'
 import { Maximize } from './icons'
 import type { Chat, ChatMember } from '../workspace/types'
 
@@ -84,10 +84,10 @@ const MiniAgentPane = ({ chat, member, parentChat, agentId, agentName, status, r
       chat={chat}
       isActive={activeChatId === chat.id}
       shortcutKey={shortcutKey}
-      onSelect={() => workspaceId && navigate(buildTaskOpenUrl(chat))}
+      onSelect={() => workspaceId && navigate(buildMissionOpenUrl(chat))}
       onZoom={() => {
         if (!workspaceId) return
-        navigate(buildTaskOpenUrl(chat))
+        navigate(buildMissionOpenUrl(chat))
         setLayoutMode('single')
       }}
     />

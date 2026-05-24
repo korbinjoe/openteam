@@ -43,7 +43,7 @@
     "test:session-isolation": "node scripts/check-session-isolation.mjs",
     "perf:sample": "bash scripts/perf-sample.sh 20",
     "perf:sample:quick": "bash scripts/perf-sample.sh 5",
-    "postinstall": "chmod +x node_modules/node-pty/prebuilds/darwin-*/spawn-helper 2>/dev/null || true",
+    "postinstall": "chmod +x node_modules/node-pty/prebuilds/darwin-*/spawn-helper 2>/dev/null || true; { test -d .git && git config core.hooksPath .githooks; } 2>/dev/null || true",
     "release": "npm version prerelease --preid=beta --no-git-tag-version && npm run build:cli && npm publish",
     "stop:daemon": "launchctl bootout gui/$(id -u)/ai.openteam.daemon 2>/dev/null; { test -f ~/.openteam/daemon.pid && kill $(cat ~/.openteam/daemon.pid); } 2>/dev/null; { test -f ~/.openteam/daemon.dev.pid && kill $(cat ~/.openteam/daemon.dev.pid); } 2>/dev/null; rm -f ~/.openteam/daemon.port ~/.openteam/daemon.pid ~/.openteam/daemon.dev.port ~/.openteam/daemon.dev.pid; true",
     "predev:electron": "npm run stop:daemon --silent"

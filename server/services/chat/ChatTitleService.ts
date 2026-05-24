@@ -15,7 +15,6 @@ export class ChatTitleService {
 
     const result = await cliPrompt({
       prompt,
-      model: 'claude-haiku-4-5-20251001',
       timeoutMs: TIMEOUT_MS,
     })
 

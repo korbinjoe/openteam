@@ -1,14 +1,28 @@
 /**
- * cliPrompt — Execute lightweight LLM calls via local Claude CLI (`claude -p`)
+ * cliPrompt — Lightweight one-shot LLM calls.
  *
- * Reuses the user's existing CLI login session, no additional ANTHROPIC_API_KEY needed.
+ * Default path: Anthropic SDK (no JSONL session files written to disk).
+ *   Auth source priority:
+ *     1. ANTHROPIC_API_KEY (x-api-key header)
+ *     2. ANTHROPIC_AUTH_TOKEN (Bearer token, e.g. proxied gateways)
+ *   Honors ANTHROPIC_BASE_URL for self-hosted / proxied endpoints.
+ *
+ * Fallback: local `claude --print` CLI when neither auth env var is set.
+ *   Kept for backward compatibility — same JSONL-creating behavior as before.
  */
 
+import Anthropic from '@anthropic-ai/sdk'
 import { execFile } from 'child_process'
 import { createLogger } from './logger'
 import { resolveCliCommandAsync, resolveInterpreter } from './resolveCliCommand'
 
 const log = createLogger('cliPrompt')
+
+const FALLBACK_MODEL = 'claude-haiku-4-5-20251001'
+const DEFAULT_MAX_TOKENS = 1024
+
+const resolveDefaultModel = (): string =>
+  process.env.OPENTEAM_LIGHT_MODEL || FALLBACK_MODEL
 
 export interface CliPromptOptions {
   prompt: string
@@ -24,7 +38,64 @@ export interface CliPromptResult {
   error?: string
 }
 
+let cachedClient: Anthropic | null = null
+
+const getClient = (): Anthropic | null => {
+  const apiKey = process.env.ANTHROPIC_API_KEY
+  const authToken = process.env.ANTHROPIC_AUTH_TOKEN
+  if (!apiKey && !authToken) return null
+  if (cachedClient) return cachedClient
+  cachedClient = new Anthropic({
+    apiKey: apiKey || undefined,
+    authToken: !apiKey && authToken ? authToken : undefined,
+    baseURL: process.env.ANTHROPIC_BASE_URL || undefined,
+  })
+  return cachedClient
+}
+
 export const cliPrompt = async (options: CliPromptOptions): Promise<CliPromptResult> => {
+  const client = getClient()
+  if (client) {
+    return promptViaSdk(client, options)
+  }
+  return promptViaCli(options)
+}
+
+const promptViaSdk = async (
+  client: Anthropic,
+  options: CliPromptOptions,
+): Promise<CliPromptResult> => {
+  const { prompt, systemPrompt, model = resolveDefaultModel(), timeoutMs = 15_000 } = options
+
+  try {
+    const resp = await client.messages.create(
+      {
+        model,
+        max_tokens: DEFAULT_MAX_TOKENS,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: prompt }],
+      },
+      { timeout: timeoutMs },
+    )
+
+    const text = resp.content
+      .filter((block): block is Anthropic.TextBlock => block.type === 'text')
+      .map((block) => block.text)
+      .join('')
+      .trim()
+
+    if (!text) {
+      return { success: false, error: 'SDK returned empty response' }
+    }
+    return { success: true, text }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    log.debug('cliPrompt SDK call failed', { error: message })
+    return { success: false, error: message }
+  }
+}
+
+const promptViaCli = async (options: CliPromptOptions): Promise<CliPromptResult> => {
   const { prompt, systemPrompt, model, maxTurns = 1, timeoutMs = 15_000 } = options
 
   const resolvedClaude = await resolveCliCommandAsync('claude')
@@ -58,7 +129,7 @@ export const cliPrompt = async (options: CliPromptOptions): Promise<CliPromptRes
         const errMsg = err.killed
           ? `CLI timeout (${timeoutMs}ms)`
           : stderr.trim() || err.message
-        log.debug('cliPrompt failed', { error: errMsg })
+        log.debug('cliPrompt CLI call failed', { error: errMsg })
         resolve({ success: false, error: errMsg })
         return
       }

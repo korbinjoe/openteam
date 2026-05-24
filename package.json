@@ -99,6 +99,7 @@
     "nativeRebuilder": "sequential"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.98.0",
     "better-sqlite3": "^12.8.0",
     "diff": "^5.2.2",
     "monaco-editor": "^0.55.1",

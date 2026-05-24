@@ -54,3 +54,6 @@ npm-debug.log*
 
 # Playwright CLI recordings (contain absolute paths and local task content)
 .playwright-cli/
+
+# Internal research notes (not for open-source distribution)
+research/

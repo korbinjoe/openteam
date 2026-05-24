@@ -18,12 +18,16 @@ import type { Chat, ChatMember, ChatMemberRole, ChatMemberStatus } from '../conf
 import type { SessionRegistry } from '../terminal/SessionRegistry'
 import type { AgentActivitySnapshot } from '../terminal/ActivityAggregator'
 
+// `waiting` here means "real block, needs user attention" (AskUserQuestion /
+// ExitPlanMode / EnterPlanMode → waiting_confirmation). `waiting_input` is the
+// post-turn idle phase the CLI sits in between messages — not a real block —
+// so it maps to `idle`, keeping yellow reserved for true demands on the user.
 const PHASE_TO_STATUS: Record<string, ChatMemberStatus> = {
   thinking: 'running',
   responding: 'running',
   tool_running: 'running',
   initializing: 'running',
-  waiting_input: 'waiting',
+  waiting_input: 'idle',
   waiting_confirmation: 'waiting',
   error: 'error',
   completed: 'done',

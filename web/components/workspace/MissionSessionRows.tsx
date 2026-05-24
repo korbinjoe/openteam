@@ -20,18 +20,6 @@ import type { Chat, ChatMember, ChatMemberStatus } from '../workspace/types'
 const INDENT_AGENT = 'pl-9'      // 36px — every agent row, peer of "Add Agent"
 const INDENT_ADD_AGENT = 'pl-9'  // 36px — peer of agent rows
 
-export const chatStatusDot = (chat: Chat): string => {
-  if (chat.status === 'running') return 'bg-accent-brand animate-pulse'
-  const missionStatus = (chat as Chat & { missionStatus?: string }).missionStatus
-  if (missionStatus === 'error') return 'bg-accent-red'
-  // Yellow means "blocked on user". `waiting_input` is the post-turn idle
-  // phase the CLI sits in between messages — not a real block — so only
-  // `waiting_confirm` (AskUserQuestion / ExitPlanMode / EnterPlanMode)
-  // earns the warning color.
-  if (missionStatus === 'waiting_confirm') return 'bg-accent-yellow'
-  return 'bg-text-muted'
-}
-
 export const memberStatusDot = (status: ChatMemberStatus | undefined): string => {
   switch (status) {
     case 'running': return 'bg-accent-brand animate-pulse'
@@ -40,6 +28,26 @@ export const memberStatusDot = (status: ChatMemberStatus | undefined): string =>
     case 'done': return 'bg-accent-green'
     default: return 'bg-text-muted'
   }
+}
+
+// Mission-level dot rolls up from members[] using the same worst-wins priority
+// the server uses (MemberAggregator.rollupStatus): error > waiting > running >
+// done > idle. This keeps the mission row and the agent rows below it in the
+// same color vocabulary — yellow at chat level only when *some* member is in
+// `waiting` (i.e. waiting_confirmation), never for the between-turn idle.
+const ROLLUP_PRIORITY: ChatMemberStatus[] = ['error', 'waiting', 'running', 'done', 'idle']
+
+export const chatStatusDot = (chat: Chat): string => {
+  const members = chat.members ?? []
+  if (members.length === 0) {
+    // Legacy payload without enriched members[]: fall back to the chat-level
+    // running flag. Anything else stays neutral.
+    return chat.status === 'running' ? 'bg-accent-brand animate-pulse' : 'bg-text-muted'
+  }
+  for (const status of ROLLUP_PRIORITY) {
+    if (members.some((m) => m.status === status)) return memberStatusDot(status)
+  }
+  return 'bg-text-muted'
 }
 
 export const ageLabel = (input: number | string | undefined): string => {

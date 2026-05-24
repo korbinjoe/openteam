@@ -134,6 +134,14 @@ const ChatInstance = ({ chatId, workspaceId, isActive, isNewChat = false, initAg
     currentMergedActivity,
   } = useExpertActivities()
 
+  // In singleAgentMode (Quad tile / ?agent=X route), every chat-level "merged"
+  // activity must collapse to just the locked agent's slot — otherwise a sibling
+  // agent's tool run lights up this view's input/heartbeat/IDE indicators and
+  // the conversation appears to bleed across agents.
+  const activeMergedActivity = singleAgentMode && lockedAgentKey
+    ? expertActivities[lockedAgentKey] ?? null
+    : currentMergedActivity
+
   const [groupActivities, setGroupActivities] = useState<Record<string, AgentActivity>>({})
   const [input, setInput] = useState('')
   const [terminalWidth, setTerminalWidth] = useState(58)
@@ -222,7 +230,7 @@ const ChatInstance = ({ chatId, workspaceId, isActive, isNewChat = false, initAg
 
   const { statusMap: multiGitStatus, aggregate: gitAggregate, optimisticUpdate: multiOptimisticUpdate } = useMultiRepoGitStatus({
     worktreeSessions: allWorktreeSessions,
-    agentActivity: currentMergedActivity,
+    agentActivity: activeMergedActivity,
     repositories: wsRepositories,
     chatId,
   })
@@ -306,9 +314,9 @@ const ChatInstance = ({ chatId, workspaceId, isActive, isNewChat = false, initAg
   }, [lastUserGroupId])
 
   useEffect(() => {
-    if (!currentMergedActivity) return
-    if (lastUserGroupId) setGroupActivity(lastUserGroupId, currentMergedActivity)
-  }, [currentMergedActivity, lastUserGroupId, setGroupActivity])
+    if (!activeMergedActivity) return
+    if (lastUserGroupId) setGroupActivity(lastUserGroupId, activeMergedActivity)
+  }, [activeMergedActivity, lastUserGroupId, setGroupActivity])
 
   useEffect(() => {
     if (!isActive) return
@@ -351,7 +359,9 @@ const ChatInstance = ({ chatId, workspaceId, isActive, isNewChat = false, initAg
     removeQueuedMessage, clearQueue,
   } = useChatActions({
     chatId, wsClient, currentSessionId, currentWorkingDirectory, wsRepositories,
-    availableAgents, targetAgentId, expertActivities, currentMergedActivity,
+    availableAgents, targetAgentId, expertActivities,
+    currentMergedActivity: activeMergedActivity,
+    lockedAgentId: singleAgentMode ? lockedAgentKey : null,
     messages: mergedMessages, input, setInput, addAgentMessage, uid, handleScrollToBottom,
     setExpertActivities, setTargetAgentId, setLoading, chatTitle, setChatTitle,
     openDirPicker: dirPicker.openDirPicker,
@@ -431,7 +441,7 @@ const ChatInstance = ({ chatId, workspaceId, isActive, isNewChat = false, initAg
           )}
           <ChatBody
             messages={visibleMessages} groups={groups} viewKey={singleAgentMode ? lockedAgentKey : (filterAgentId ?? '__all__')}
-            currentMergedActivity={currentMergedActivity} groupActivities={groupActivities}
+            currentMergedActivity={activeMergedActivity} groupActivities={groupActivities}
             expertActivities={expertActivities} agentNames={agentNames} agentPersonalities={agentPersonalities}
             thinking={thinking} currentAgentName={currentAgentName}
             connected={connected} currentSessionId={currentSessionId}
@@ -456,7 +466,7 @@ const ChatInstance = ({ chatId, workspaceId, isActive, isNewChat = false, initAg
           <QueuedMessagesBar queue={queuedMessages} onRemove={removeQueuedMessage} onClear={clearQueue} />
           <InputArea ref={inputAreaRef} value={input} onChange={setInput} onSend={handleSend}
             onInterrupt={handleInterrupt}
-            disabled={!canSend} activity={currentMergedActivity} slashCommands={currentSlashCommands}
+            disabled={!canSend} activity={activeMergedActivity} slashCommands={currentSlashCommands}
             model={chatModel} onModelChange={handleModelChange} availableModels={availableModels}
             agents={inputAgents} expertActivities={expertActivities} targetAgentId={targetAgentId}
             onTargetChange={(agent) => setTargetAgentId(agent.id ?? agent.name)}
@@ -476,7 +486,7 @@ const ChatInstance = ({ chatId, workspaceId, isActive, isNewChat = false, initAg
               gitStatus={primaryGitStatus}
               multiGitStatus={multiGitStatus}
               onMultiOptimisticUpdate={multiOptimisticUpdate}
-              agentActive={!!currentMergedActivity && !['completed', 'waiting_input', 'error', 'initializing'].includes(currentMergedActivity.phase)}
+              agentActive={!!activeMergedActivity && !['completed', 'waiting_input', 'error', 'initializing'].includes(activeMergedActivity.phase)}
               connected={connected}
               workingDirectory={currentWorkingDirectory}
               repositories={wsRepositories}
@@ -513,7 +523,7 @@ const ChatInstance = ({ chatId, workspaceId, isActive, isNewChat = false, initAg
                   gitStatus={primaryGitStatus}
                   multiGitStatus={multiGitStatus}
                   onMultiOptimisticUpdate={multiOptimisticUpdate}
-                  agentActive={!!currentMergedActivity && !['completed', 'waiting_input', 'error', 'initializing'].includes(currentMergedActivity.phase)}
+                  agentActive={!!activeMergedActivity && !['completed', 'waiting_input', 'error', 'initializing'].includes(activeMergedActivity.phase)}
                   connected={connected}
                   workingDirectory={currentWorkingDirectory}
                   repositories={wsRepositories}

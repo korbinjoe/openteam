@@ -14,6 +14,7 @@ import { isElectron, ELECTRON_TITLEBAR_PADDING } from '../utils/env'
 
 import { API_BASE, authFetch } from '@/config/api'
 import { useChatTabs } from '@/contexts/ChatTabContext'
+import { deleteChatWithJsonl, formatPurgeFailures } from '@/services/chatService'
 
 interface ChatRecord {
   id: string
@@ -28,6 +29,7 @@ interface ChatRecord {
   totalTokens?: { input: number; output: number; cacheRead?: number; cacheCreation?: number }
   totalToolCalls?: number
   worktreeSessions?: WorktreeSession[]
+  expertSessions?: Record<string, unknown>
   createdAt: string
   lastMessageAt: string
 }
@@ -169,14 +171,24 @@ const ChatHistoryPage = ({
   const handleDelete = async () => {
     if (!deleteTarget) return
     try {
-      await authFetch(`${API_BASE}/api/chats/${deleteTarget.id}`, { method: 'DELETE' })
+      const result = await deleteChatWithJsonl(deleteTarget.id)
       setChats((prev) => prev.filter((c) => c.id !== deleteTarget.id))
       closeTab(deleteTarget.id)
+      const failures = formatPurgeFailures(result.purged)
+      if (failures.length > 0) {
+        // Non-blocking surfacing; project has no toast primitive imported here.
+        // eslint-disable-next-line no-console
+        console.warn('Some JSONL files could not be deleted:\n' + failures.join('\n'))
+      }
     } catch { /* ignore */ } finally {
       setDeleteConfirmOpen(false)
       setDeleteTarget(null)
     }
   }
+
+  const deleteJsonlCount = deleteTarget?.expertSessions
+    ? Object.keys(deleteTarget.expertSessions).length
+    : 0
 
   return (
     <div className="flex flex-col h-full bg-bg-primary">
@@ -386,6 +398,14 @@ const ChatHistoryPage = ({
             <DialogTitle>{t('chat:history.deleteTitle')}</DialogTitle>
             <DialogDescription>
               {t('chat:history.deleteDesc', { title: deleteTarget?.title })}
+              {deleteJsonlCount > 0 && (
+                <span className="block mt-2 text-text-secondary">
+                  {t('chat:history.deletePurgeWarn', {
+                    defaultValue: 'Also delete {{count}} local CLI session file(s) (cannot be undone).',
+                    count: deleteJsonlCount,
+                  })}
+                </span>
+              )}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

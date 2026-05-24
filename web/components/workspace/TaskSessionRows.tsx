@@ -1,12 +1,17 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ChevronRight, Pin, PinOff, Archive, Plus } from './icons'
+import { ChevronRight, Pin, PinOff, Archive, Plus, Trash } from './icons'
 import { cn } from '../../lib/utils'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { buildTaskUrl } from './urls'
+import { removeAgentFromChat, deleteChatWithJsonl, formatPurgeFailures } from '../../services/chatService'
 import type { Chat, ChatMember, ChatMemberStatus } from '../workspace/types'
 
-export const TASK_EXPANDED_KEY = 'openteam:v2-task-expanded'
+// Sidebar expansion is intentionally session-local and not persisted: the
+// sidebar is a cross-workspace overview, and remembering "everything expanded"
+// across reloads buries the signal in noise. Only the currently focused
+// task auto-opens to show its agents; everything else stays collapsed until
+// the user explicitly drills in.
 
 // Sidebar row indents. Task is root; all agents (lead + workers) sit as peers
 // directly beneath it. The data model has no parent/child relation between
@@ -14,19 +19,6 @@ export const TASK_EXPANDED_KEY = 'openteam:v2-task-expanded'
 // the same indent.
 const INDENT_AGENT = 'pl-9'      // 36px — every agent row, peer of "Add Agent"
 const INDENT_ADD_AGENT = 'pl-9'  // 36px — peer of agent rows
-
-export const loadMap = (key: string): Record<string, boolean> => {
-  try {
-    const raw = localStorage.getItem(key)
-    return raw ? JSON.parse(raw) : {}
-  } catch {
-    return {}
-  }
-}
-
-export const saveMap = (key: string, map: Record<string, boolean>) => {
-  try { localStorage.setItem(key, JSON.stringify(map)) } catch { /* quota */ }
-}
 
 export const chatStatusDot = (chat: Chat): string => {
   if (chat.status === 'running') return 'bg-accent-brand animate-pulse'
@@ -85,8 +77,6 @@ export const buildTaskOpenUrl = (chat: Chat): string =>
     ? buildTaskUrl(chat.workspaceId, chat.id, chat.primaryAgentId)
     : buildTaskUrl(chat.workspaceId, chat.id)
 
-const loadTaskExpandedMap = (): Record<string, boolean> => loadMap(TASK_EXPANDED_KEY)
-
 interface TaskRowProps {
   chat: Chat
   isSelected: boolean
@@ -102,21 +92,42 @@ interface TaskRowProps {
 export const TaskRow = ({ chat, isSelected, agentNames, onPin, onArchive, onAddAgent, isPinned = false }: TaskRowProps) => {
   const navigate = useNavigate()
   const { selectedAgentId } = useWorkspace()
-  const [expanded, setExpanded] = useState<boolean>(() => loadTaskExpandedMap()[chat.id] ?? true)
+  // Default collapsed; the selected task auto-opens to surface its agents.
+  // No persistence — each session starts clean.
+  const [expanded, setExpanded] = useState<boolean>(isSelected)
+
+  // Navigating to a task should reveal its agents even if the row was mounted
+  // collapsed. We only auto-open (never auto-close) so a user who manually
+  // collapses the active task keeps it collapsed.
+  useEffect(() => {
+    if (isSelected) setExpanded(true)
+  }, [isSelected])
 
   const toggle = useCallback((e: React.MouseEvent) => {
     e.stopPropagation()
-    setExpanded((prev) => {
-      const next = !prev
-      const map = loadTaskExpandedMap()
-      map[chat.id] = next
-      saveMap(TASK_EXPANDED_KEY, map)
-      return next
-    })
-  }, [chat.id])
+    setExpanded((prev) => !prev)
+  }, [])
 
   // Single-agent → agent 1:1 (JSONL replay). Multi-agent → task-overview (whiteboard rollup).
   const handleOpen = () => navigate(buildTaskOpenUrl(chat))
+
+  const handleDeleteTask = useCallback(async () => {
+    if (!window.confirm(
+      `Delete task "${chat.title}" and all its local CLI session files?\n\nThis cannot be undone.`,
+    )) return
+    try {
+      const result = await deleteChatWithJsonl(chat.id)
+      const failures = formatPurgeFailures(result.purged)
+      if (failures.length > 0) {
+        // eslint-disable-next-line no-console
+        console.warn('Some JSONL files could not be deleted:\n' + failures.join('\n'))
+      }
+      window.dispatchEvent(new CustomEvent('openteam:chat-updated', { detail: { chatId: chat.id } }))
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('deleteChatWithJsonl failed', err)
+    }
+  }, [chat.id, chat.title])
 
   // Prefer server-derived members (carries per-agent status). Fall back to the
   // teamAgentIds shape when the API hasn't enriched yet (legacy callers, race).
@@ -162,7 +173,7 @@ export const TaskRow = ({ chat, isSelected, agentNames, onPin, onArchive, onAddA
         {isPinned && (
           <Pin size={9} className="text-accent-brand flex-shrink-0 -ml-0.5" />
         )}
-        <span className="text-xs font-medium text-text-primary flex-1 truncate">{chat.title}</span>
+        <span className="text-[12px] font-medium text-text-primary flex-1 truncate">{chat.title}</span>
         {agentCount > 1 && (
           <span className="font-mono text-[10px] px-1.5 rounded bg-bg-tertiary text-text-secondary tabular-nums flex-shrink-0">
             {agentCount}
@@ -181,6 +192,7 @@ export const TaskRow = ({ chat, isSelected, agentNames, onPin, onArchive, onAddA
               ? { title: 'Unpin task', onClick: onPin, children: <PinOff size={11} /> }
               : { title: 'Pin task', onClick: onPin, children: <Pin size={11} /> },
             { title: 'Archive task', onClick: onArchive, children: <Archive size={11} /> },
+            { title: 'Delete task (purges local CLI session files)', onClick: handleDeleteTask, children: <Trash size={11} /> },
           ]}
         />
       </div>
@@ -229,27 +241,88 @@ export const AgentRow = ({ agentId, agentName, isLead, chat, member, isSelected 
   // payloads (no members[]) still light up.
   const dotClass = member ? memberStatusDot(member.status) : chatStatusDot(chat)
   const ageInput = member?.lastMessageAt ?? chat.lastMessageAt
+
+  // Worker rows: per-agent removal (deletes that agent's session + JSONL).
+  // Lead rows: there's no "remove just the lead" operation — semantically
+  // deleting the lead == deleting the whole task, so the Trash on the lead
+  // row triggers task-level deletion. Either way we hide the Trash if the
+  // agent is currently running.
+  const removable = member?.status !== 'running'
+  const handleRemove = useCallback(async (e: React.MouseEvent | React.KeyboardEvent) => {
+    e.stopPropagation()
+    if (!removable) return
+    if (isLead) {
+      if (!window.confirm(
+        `Delete task "${chat.title}" and all its local CLI session files?\n\nThis cannot be undone.`,
+      )) return
+      try {
+        const result = await deleteChatWithJsonl(chat.id)
+        const failures = formatPurgeFailures(result.purged)
+        if (failures.length > 0) {
+          // eslint-disable-next-line no-console
+          console.warn('Some JSONL files could not be deleted:\n' + failures.join('\n'))
+        }
+        window.dispatchEvent(new CustomEvent('openteam:chat-updated', { detail: { chatId: chat.id } }))
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.error('deleteChatWithJsonl failed', err)
+      }
+      return
+    }
+    if (!window.confirm(`Remove ${agentName} from this task and delete its local session file?`)) return
+    try {
+      const result = await removeAgentFromChat(chat.id, agentId)
+      const failures = formatPurgeFailures([result.purged])
+      if (failures.length > 0) {
+        // eslint-disable-next-line no-console
+        console.warn('Failed to purge JSONL:\n' + failures.join('\n'))
+      }
+      window.dispatchEvent(new CustomEvent('openteam:chat-updated', { detail: { chatId: chat.id } }))
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('removeAgentFromChat failed', err)
+    }
+  }, [removable, isLead, agentName, chat.id, chat.title, agentId])
+
   return (
-    <button
+    <div
       onClick={handleOpen}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleOpen(e as unknown as React.MouseEvent) } }}
+      role="button"
+      tabIndex={0}
       title={`${agentName}${isLead ? ' · lead' : ''}`}
       className={cn(
-        'group relative flex items-center gap-1.5 py-[5px] pr-2 rounded-md transition-colors text-left',
+        'group relative flex items-center gap-1.5 py-[5px] pr-2 rounded-md transition-colors text-left cursor-pointer',
         INDENT_AGENT,
         isSelected ? 'bg-accent-brand/[0.08]' : 'hover:bg-bg-hover',
       )}
     >
       <span className={cn('w-[6px] h-[6px] rounded-full flex-shrink-0', dotClass)} />
       <span className={cn(
-        'text-[12px] truncate flex-1',
+        'text-[11px] truncate flex-1',
         isSelected ? 'text-accent-brand-light font-medium' : 'text-text-secondary',
       )}>
         {agentName}
       </span>
-      <span className="font-mono text-[11px] text-text-muted tabular-nums flex-shrink-0">
+      <span className="font-mono text-[10px] text-text-muted tabular-nums flex-shrink-0 transition-opacity duration-100 group-hover:opacity-0">
         {ageLabel(ageInput)}
       </span>
-    </button>
+      {removable && (
+        <span
+          role="button"
+          tabIndex={-1}
+          onClick={handleRemove}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleRemove(e) }}
+          title={isLead
+            ? 'Delete task (purges local CLI session files)'
+            : 'Remove from task (deletes local session file)'}
+          aria-label={isLead ? 'Delete task' : 'Remove from task'}
+          className="absolute right-1.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded flex items-center justify-center text-text-muted hover:text-red-400 hover:bg-bg-hover cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity duration-100"
+        >
+          <Trash size={11} />
+        </span>
+      )}
+    </div>
   )
 }
 
@@ -263,6 +336,23 @@ export const CompletedRow = ({ chat, isSelected, archived, agentNames, onPin, on
 }) => {
   const navigate = useNavigate()
   const handleOpen = () => navigate(buildTaskOpenUrl(chat))
+  const handleDeleteTask = useCallback(async () => {
+    if (!window.confirm(
+      `Delete task "${chat.title}" and all its local CLI session files?\n\nThis cannot be undone.`,
+    )) return
+    try {
+      const result = await deleteChatWithJsonl(chat.id)
+      const failures = formatPurgeFailures(result.purged)
+      if (failures.length > 0) {
+        // eslint-disable-next-line no-console
+        console.warn('Some JSONL files could not be deleted:\n' + failures.join('\n'))
+      }
+      window.dispatchEvent(new CustomEvent('openteam:chat-updated', { detail: { chatId: chat.id } }))
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error('deleteChatWithJsonl failed', err)
+    }
+  }, [chat.id, chat.title])
   return (
     <button
       onClick={handleOpen}
@@ -284,6 +374,7 @@ export const CompletedRow = ({ chat, isSelected, archived, agentNames, onPin, on
         actions={[
           { title: 'Pin task', onClick: onPin, children: <Pin size={11} /> },
           ...(onUnarchive ? [{ title: 'Restore from archive', onClick: onUnarchive, children: <Archive size={11} /> }] : []),
+          { title: 'Delete task (purges local CLI session files)', onClick: handleDeleteTask, children: <Trash size={11} /> },
         ]}
       />
     </button>

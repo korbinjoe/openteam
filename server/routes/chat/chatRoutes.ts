@@ -11,6 +11,7 @@ import { MemberAggregator } from '../../stores/MemberAggregator'
 import { WorktreeManager } from '../../git/WorktreeManager'
 import { createLogger } from '../../lib/logger'
 import { cwdToClaudeProjectKey } from '../../../shared/projectKey'
+import { purgeExpertSessionJsonl, type PurgeResult } from '../../services/sessionFilePurger'
 
 const log = createLogger('ChatRoutes')
 
@@ -176,6 +177,12 @@ export const createChatRoutes = ({ chatStore, chatService, tokenUsageStore, sess
     const chat = chatStore.get(req.params.id)
     if (!chat) return res.status(404).json({ error: 'Chat not found' })
 
+    const purgeJsonl = req.query.purgeJsonl === '1' || req.query.purgeJsonl === 'true'
+
+    if (purgeJsonl && chat.status === 'running') {
+      return res.status(409).json({ error: 'Cannot purge a running chat. Stop it first.' })
+    }
+
     if (chat.worktreeSessions && chat.worktreeSessions.length > 0) {
       for (const wt of chat.worktreeSessions) {
         try {
@@ -193,9 +200,40 @@ export const createChatRoutes = ({ chatStore, chatService, tokenUsageStore, sess
       }
     }
 
+    const purged: PurgeResult[] = []
+    if (purgeJsonl && chat.expertSessions) {
+      for (const [agentId, session] of Object.entries(chat.expertSessions)) {
+        purged.push(purgeExpertSessionJsonl(session, { chatId: chat.id, agentId }))
+      }
+    }
+
     const deleted = await chatStore.remove(req.params.id)
     if (!deleted) return res.status(404).json({ error: 'Chat not found' })
-    res.json({ success: true })
+    res.json({ success: true, purged })
+  })
+
+  router.delete('/api/chats/:id/sessions/:agentId', async (req, res) => {
+    const { id: chatId, agentId } = req.params
+    const chat = chatStore.get(chatId)
+    if (!chat) return res.status(404).json({ error: 'Chat not found' })
+
+    const session = chat.expertSessions?.[agentId]
+    if (!session) return res.status(404).json({ error: 'Expert session not found for this agent' })
+
+    const member = memberAggregator.enrich(chat).find((m) => m.agentId === agentId)
+    if (member?.status === 'running') {
+      return res.status(409).json({ error: 'Cannot remove a running agent session. Stop it first.' })
+    }
+
+    const purged = purgeExpertSessionJsonl(session, { chatId, agentId })
+
+    const nextSessions = { ...chat.expertSessions }
+    delete nextSessions[agentId]
+    const updated = await chatStore.update(chatId, { expertSessions: nextSessions })
+    if (!updated) return res.status(404).json({ error: 'Chat not found' })
+
+    const [enriched] = enrichWithMembers(enrichWithTokenUsage([updated]))
+    res.json({ chat: enriched, purged })
   })
 
   return router

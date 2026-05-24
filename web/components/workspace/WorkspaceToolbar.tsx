@@ -7,22 +7,16 @@ import LayoutControls from './LayoutControls'
 import { UsersGroup, ChevronRight, FolderGit } from './icons'
 import { cn } from '../../lib/utils'
 import { buildTaskUrl } from './urls'
-import { memberStatusDot, ageLabel } from './TaskSessionRows'
+import { memberStatusDot } from './TaskSessionRows'
 import type { Chat, ChatMember } from '../workspace/types'
 
 // Unified workspace bar — replaces the old 38px Toolbar + 28px StatusBar pair.
-// Layout: [crumb · chat info] · flex spacer · [branch · tools · elapsed] · [layout][ide]
+// Layout: [crumb · chat info] · flex spacer · [layout][ide]
 // Terminal button lives inside WebIDEPanel's tab bar (the only IDE-column header).
 
 const WorkspaceToolbar = () => {
-  const { viewMode, workspaceId, activeChatId, selectedAgentId } = useWorkspace()
+  const { viewMode, workspaceId } = useWorkspace()
   const { meta } = useWorkspaceMeta(workspaceId)
-  const { chats } = useWorkspaceChats(workspaceId)
-  const chat = activeChatId ? chats.find((c) => c.id === activeChatId) : undefined
-  // Pick the active member's lastMessageAt as the elapsed label, when in agent
-  // mode and the server has enriched members.
-  const activeMember = selectedAgentId ? chat?.members?.find((m) => m.agentId === selectedAgentId) : undefined
-  const duration = activeMember ? ageLabel(activeMember.lastMessageAt) : null
 
   return (
     <div className="h-8 border-b border-border-subtle flex items-center px-3 gap-2 flex-shrink-0 bg-bg-tertiary">
@@ -32,54 +26,7 @@ const WorkspaceToolbar = () => {
 
       <span className="flex-1" />
 
-      <StatusChips duration={duration} chat={chat} />
-      <Separator />
       <LayoutControls />
-    </div>
-  )
-}
-
-const Separator = () => <span className="w-px h-3.5 bg-border flex-shrink-0" />
-
-const StatusChips = ({ duration, chat }: { duration: string | null; chat?: Chat }) => {
-  const toolCalls = chat?.totalToolCalls ?? null
-  const cost = chat?.totalCost ?? null
-  // Aggregate live agent state at the toolbar level so users can locate
-  // "what needs me" without entering each pane (pulse-mode return).
-  const members = chat?.members ?? []
-  const runningCount = members.filter((m) => m.status === 'running').length
-  const errorCount = members.filter((m) => m.status === 'error').length
-  const waitingCount = members.filter((m) => m.status === 'waiting').length
-
-  return (
-    <div className="flex items-center gap-2 font-mono text-[10px] text-text-muted">
-      {errorCount > 0 && (
-        <span className="inline-flex items-center gap-1 px-1.5 py-px rounded-[3px] bg-accent-red/10 text-accent-red font-semibold tabular-nums" title={`${errorCount} agent(s) errored`}>
-          <span className="w-1.5 h-1.5 rounded-full bg-accent-red" />
-          {errorCount}
-        </span>
-      )}
-      {waitingCount > 0 && (
-        <span className="inline-flex items-center gap-1 px-1.5 py-px rounded-[3px] bg-accent-yellow/10 text-accent-yellow font-semibold tabular-nums" title={`${waitingCount} agent(s) waiting on input`}>
-          <span className="w-1.5 h-1.5 rounded-full bg-accent-yellow" />
-          {waitingCount}
-        </span>
-      )}
-      {runningCount > 0 && (
-        <span className="inline-flex items-center gap-1 px-1.5 py-px rounded-[3px] bg-accent-brand/10 text-accent-brand-light font-semibold tabular-nums" title={`${runningCount} agent(s) running`}>
-          <span className="w-1.5 h-1.5 rounded-full bg-accent-brand animate-pulse" />
-          {runningCount}
-        </span>
-      )}
-      {typeof cost === 'number' && cost > 0 && (
-        <span className="hidden md:inline truncate tabular-nums" title="Total cost">${cost.toFixed(2)}</span>
-      )}
-      {typeof toolCalls === 'number' && toolCalls > 0 && (
-        <span className="hidden lg:inline truncate tabular-nums">{toolCalls} tools</span>
-      )}
-      {duration && (
-        <span className="text-accent-purple tabular-nums">{duration}</span>
-      )}
     </div>
   )
 }

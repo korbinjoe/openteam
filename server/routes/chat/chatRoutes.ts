@@ -20,6 +20,7 @@ interface ChatRouteDeps {
   chatService: ChatService
   tokenUsageStore?: TokenUsageStore
   sessionRegistry?: SessionRegistry
+  broadcast?: (msg: Record<string, unknown>) => void
 }
 
 const CHAT_UPDATABLE_FIELDS: Array<keyof Chat> = [
@@ -46,7 +47,7 @@ const pickUpdatableFields = (body: Record<string, unknown>): Partial<Chat> => {
   return updates as Partial<Chat>
 }
 
-export const createChatRoutes = ({ chatStore, chatService, tokenUsageStore, sessionRegistry }: ChatRouteDeps): Router => {
+export const createChatRoutes = ({ chatStore, chatService, tokenUsageStore, sessionRegistry, broadcast }: ChatRouteDeps): Router => {
   const router = Router()
   const memberAggregator = new MemberAggregator(sessionRegistry)
 
@@ -136,6 +137,9 @@ export const createChatRoutes = ({ chatStore, chatService, tokenUsageStore, sess
       }
       const chat = await chatStore.update(req.params.id, updates)
       if (!chat) return res.status(404).json({ error: 'Chat not found' })
+      if (broadcast && typeof updates.title === 'string') {
+        broadcast({ type: 'chat:title-updated', payload: { chatId: chat.id, title: updates.title } })
+      }
       res.json(chat)
     } catch (err) {
       res.status(500).json({ error: err instanceof Error ? err.message : 'Failed to update chat' })

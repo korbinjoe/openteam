@@ -132,7 +132,7 @@ export const setupRoutes = (app: Express, d: RouteDeps) => {
   app.use(createExpertRoutes({ expertHandler: d.expertHandler, agentRegistry: d.agentRegistry, mailboxManager: d.mailboxManager, executionPlanManager: d.executionPlanManager }))
   app.use(createWorkspaceApiRoutes({ workspaceStore: d.workspaceStore, chatStore: d.chatStore, chatService: d.chatService }))
   app.use(createExternalSessionRoutes({ workspaceStore: d.workspaceStore, chatStore: d.chatStore }))
-  app.use(createChatRoutes({ chatStore: d.chatStore, chatService: d.chatService, tokenUsageStore: d.tokenUsageStore, sessionRegistry: d.sessionRegistry }))
+  app.use(createChatRoutes({ chatStore: d.chatStore, chatService: d.chatService, tokenUsageStore: d.tokenUsageStore, sessionRegistry: d.sessionRegistry, broadcast: d.broadcast }))
   app.use(createWhiteboardRoutes({ whiteboardManager: d.whiteboardManager, chatStore: d.chatStore, broadcastToChat: d.broadcastToChat }))
   app.use(createExecutionLogRoutes(d.executionLogStore))
   app.use(createCronJobRoutes({ cronJobStore: d.cronJobStore, cronScheduler: d.cronScheduler, nlCronParser: d.nlCronParser, workspaceStore: d.workspaceStore, agentStore: d.agentStore }))

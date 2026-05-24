@@ -17,6 +17,10 @@ interface UseChatActionsParams {
   targetAgentId: string | null
   expertActivities: Record<string, AgentActivity>
   currentMergedActivity: AgentActivity | null
+  /** When set (Quad tile / ?agent=X route), busy-state and interrupt scope
+   *  collapse to this single agent so a sibling's run does not freeze this view's input
+   *  or cancel that sibling on interrupt. */
+  lockedAgentId?: string | null
   messages: Message[]
   input: string
   setInput: (v: string) => void
@@ -34,6 +38,7 @@ interface UseChatActionsParams {
 export const useChatActions = ({
   chatId, wsClient, currentSessionId, currentWorkingDirectory, wsRepositories,
   availableAgents, targetAgentId, expertActivities, currentMergedActivity,
+  lockedAgentId,
   messages, input, setInput, addAgentMessage, uid, handleScrollToBottom,
   setExpertActivities, setTargetAgentId, setLoading, chatTitle, setChatTitle,
   openDirPicker,
@@ -184,13 +189,16 @@ export const useChatActions = ({
     wsClient.send('expert:direct-input', { chatId, agentId, message: answer })
   }, [chatId, wsClient])
 
+  // In single-agent mode (Quad tile / ?agent=X), interrupt must NOT cascade to
+  // sibling agents — they belong to other tiles and have their own input/stop.
   const stopAllExperts = useCallback(() => {
     Object.entries(expertActivities).forEach(([agentId, activity]) => {
+      if (lockedAgentId && agentId !== lockedAgentId) return
       if (activity.phase !== 'completed') {
         wsClient.send('expert:stop', { agentId, chatId })
       }
     })
-  }, [expertActivities, wsClient, chatId])
+  }, [expertActivities, wsClient, chatId, lockedAgentId])
 
   const handleInterrupt = useCallback(() => {
     stopAllExperts()
@@ -199,6 +207,7 @@ export const useChatActions = ({
       const next = { ...prev }
       let changed = false
       for (const [agentId, activity] of Object.entries(next)) {
+        if (lockedAgentId && agentId !== lockedAgentId) continue
         if (activity.phase !== 'completed') {
           next[agentId] = { ...activity, phase: 'completed' as const, updatedAt: Date.now() }
           changed = true
@@ -207,7 +216,7 @@ export const useChatActions = ({
       return changed ? next : prev
     })
     clearQueue()
-  }, [stopAllExperts, setLoading, setExpertActivities, clearQueue])
+  }, [stopAllExperts, setLoading, setExpertActivities, clearQueue, lockedAgentId])
 
   const prevPhaseRef = useRef<string | undefined>(undefined)
   useEffect(() => {

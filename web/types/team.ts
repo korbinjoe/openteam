@@ -67,8 +67,8 @@ export interface AgentSkill {
   name: string
   level: number
   maxLevel: number
-  taskCount: number
-  tasksToNextLevel: number
+  missionCount: number
+  missionsToNextLevel: number
 }
 
 export interface AgentMetrics {

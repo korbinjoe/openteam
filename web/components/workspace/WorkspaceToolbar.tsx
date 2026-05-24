@@ -6,8 +6,8 @@ import { useAgents } from '../../hooks/useAgents'
 import LayoutControls from './LayoutControls'
 import { UsersGroup, ChevronRight, FolderGit } from './icons'
 import { cn } from '../../lib/utils'
-import { buildTaskUrl } from './urls'
-import { memberStatusDot } from './TaskSessionRows'
+import { buildMissionUrl } from './urls'
+import { memberStatusDot } from './MissionSessionRows'
 import type { Chat, ChatMember } from '../workspace/types'
 
 // Unified workspace bar — replaces the old 38px Toolbar + 28px StatusBar pair.
@@ -22,7 +22,7 @@ const WorkspaceToolbar = () => {
     <div className="h-8 border-b border-border-subtle flex items-center px-3 gap-2 flex-shrink-0 bg-bg-tertiary">
       <WorkspaceCrumb name={meta?.name ?? workspaceId ?? '—'} repoCount={meta?.repositories.length ?? 0} />
       <ChevronRight size={11} className="text-text-muted flex-shrink-0" />
-      {viewMode === 'task-overview' ? <TaskInfoBar /> : <ActiveChatInfoBar />}
+      {viewMode === 'mission-overview' ? <MissionInfoBar /> : <ActiveChatInfoBar />}
 
       <span className="flex-1" />
 
@@ -52,7 +52,7 @@ const ActiveChatInfoBar = () => {
   const chat = activeChatId ? chats.find((c) => c.id === activeChatId) : undefined
 
   if (!chat) {
-    return <span className="text-[11px] text-text-muted">No task selected</span>
+    return <span className="text-[11px] text-text-muted">No mission selected</span>
   }
 
   // Members source-of-truth: server-derived members[] when present, else synth
@@ -78,7 +78,7 @@ const ActiveChatInfoBar = () => {
   const activeName = agentNames[active.agentId] ?? active.agentId
   const handleBackToTask = () => {
     if (!workspaceId) return
-    navigate(buildTaskUrl(workspaceId, chat.id))
+    navigate(buildMissionUrl(workspaceId, chat.id))
   }
 
   return (
@@ -102,7 +102,7 @@ const ActiveChatInfoBar = () => {
           agentNames={agentNames}
           onSelect={(agentId) => {
             if (!workspaceId) return
-            navigate(buildTaskUrl(workspaceId, chat.id, agentId))
+            navigate(buildMissionUrl(workspaceId, chat.id, agentId))
           }}
         />
       )}
@@ -166,16 +166,16 @@ const SiblingDots = ({ siblings, agentNames, onSelect }: {
   )
 }
 
-const TaskInfoBar = () => {
-  const { workspaceId, selectedTaskId } = useWorkspace()
+const MissionInfoBar = () => {
+  const { workspaceId, selectedMissionId } = useWorkspace()
   const { chats } = useWorkspaceChats(workspaceId)
-  const chat = selectedTaskId ? chats.find((c) => c.id === selectedTaskId) : undefined
-  const title = chat?.title ?? selectedTaskId ?? 'No task selected'
+  const chat = selectedMissionId ? chats.find((c) => c.id === selectedMissionId) : undefined
+  const title = chat?.title ?? selectedMissionId ?? 'No mission selected'
 
   return (
     <div className="flex items-center gap-2">
       <UsersGroup size={12} className="text-accent-brand" />
-      <span className="text-xs font-semibold text-text-primary">Task Chat</span>
+      <span className="text-xs font-semibold text-text-primary">Mission Chat</span>
       <span className="text-[10px] px-1.5 py-0.5 rounded-[3px] bg-accent-purple/10 text-accent-purple font-semibold">
         GROUP
       </span>

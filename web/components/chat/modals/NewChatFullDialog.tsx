@@ -15,11 +15,9 @@ interface NewChatFullDialogProps {
   onOpenChange: (open: boolean) => void
   currentWorkspaceId?: string
   currentAgentId?: string | null
-  routePrefix?: string
-  chatSegment?: string
 }
 
-const NewChatFullDialog = ({ open, onOpenChange, currentWorkspaceId, currentAgentId, routePrefix, chatSegment }: NewChatFullDialogProps) => {
+const NewChatFullDialog = ({ open, onOpenChange, currentWorkspaceId, currentAgentId }: NewChatFullDialogProps) => {
   const { t } = useTranslation(['workspace'])
 
   return (
@@ -36,8 +34,6 @@ const NewChatFullDialog = ({ open, onOpenChange, currentWorkspaceId, currentAgen
               currentWorkspaceId={currentWorkspaceId}
               currentAgentId={currentAgentId}
               onCreated={() => onOpenChange(false)}
-              routePrefix={routePrefix}
-              chatSegment={chatSegment}
             />
           )}
         </div>

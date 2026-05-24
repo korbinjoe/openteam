@@ -501,7 +501,7 @@ const InputArea = forwardRef<InputAreaHandle, Props>(({
     : isWorking
       ? (queueSize > 0
           ? t('input.queuedCount', { count: queueSize })
-          : t('input.taskInProgress'))
+          : t('input.missionInProgress'))
       : singleAgentMode && lockedAgentName
         ? `Message ${lockedAgentName}…`
         : 'Send a message...'

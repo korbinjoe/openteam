@@ -14,18 +14,18 @@
   "chatsSection": "Chats",
   "noChats": "No chats yet. Create one to get started.",
   "newChat": {
-    "button": "New Task",
-    "title": "New Task",
-    "desc": "Configure a new task.",
+    "button": "New Mission",
+    "title": "New Mission",
+    "desc": "Configure a new mission.",
     "titleLabel": "Title",
-    "titlePlaceholder": "New Task",
+    "titlePlaceholder": "New Mission",
     "modelLabel": "Model",
     "creating": "Creating...",
-    "createFailed": "Failed to create task",
-    "sessionName": "Task name",
+    "createFailed": "Failed to create mission",
+    "sessionName": "Mission name",
     "quickStart": "Quick Start",
     "continueLast": "Continue with last setup",
-    "configureNew": "Or configure new task",
+    "configureNew": "Or configure new mission",
     "shortcutHint": "Open this dialog",
     "hintEnter": "to start",
     "hintEsc": "to cancel"
@@ -181,7 +181,7 @@
       "newChat": "New Chat",
       "switchTab": "Switch Tab",
       "closeTab": "Close Current Tab",
-      "parallelHint": "Each tab runs an independent Agent task"
+      "parallelHint": "Each tab runs an independent Agent mission"
     }
   },
   "skills": {

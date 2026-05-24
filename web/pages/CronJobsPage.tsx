@@ -22,14 +22,10 @@ interface Agent {
   role: string
 }
 
-interface CronJobsPageProps {
-  /** Prefix used to build chat-open links. */
-  workspaceRoutePrefix?: string
-  /** URL segment for the chat/task id. */
-  chatSegment?: string
-}
+const WORKSPACE_BASE = '/workspace'
+const MISSION_SEGMENT = 'mission'
 
-const CronJobsPage = ({ workspaceRoutePrefix = '/workspace', chatSegment = 'task' }: CronJobsPageProps = {}) => {
+const CronJobsPage = () => {
   const { t } = useTranslation(['cron', 'common'])
   const navigate = useNavigate()
 
@@ -306,11 +302,11 @@ const CronJobsPage = ({ workspaceRoutePrefix = '/workspace', chatSegment = 'task
                           )}
                           {exec.chatId && (() => {
                             // Cron-spawned chats are always single-agent (one job → one agentId).
-                            // V2 task URL without `?agent=` lands on the empty whiteboard
+                            // V2 mission URL without `?agent=` lands on the empty whiteboard
                             // overview; append the cron's agentId so it routes into the
                             // 1:1 ChatInstance where the real JSONL conversation renders.
-                            const base = `${workspaceRoutePrefix}/${job.workspaceId}/${chatSegment}/${exec.chatId}`
-                            const target = chatSegment === 'task' && job.agentId
+                            const base = `${WORKSPACE_BASE}/${job.workspaceId}/${MISSION_SEGMENT}/${exec.chatId}`
+                            const target = job.agentId
                               ? `${base}?agent=${encodeURIComponent(job.agentId)}`
                               : base
                             return (

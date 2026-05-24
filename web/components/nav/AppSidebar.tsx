@@ -56,9 +56,9 @@ const PRIMARY_NAV_CONFIG: NavItemConfig[] = [
   },
   {
     icon: History,
-    labelKey: 'common:nav.chatHistory',
-    path: '/chats',
-    match: (p) => p === '/chats',
+    labelKey: 'common:nav.missionHistory',
+    path: '/missions',
+    match: (p) => p === '/missions',
   },
   {
     icon: UsersThree,

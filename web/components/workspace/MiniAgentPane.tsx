@@ -2,8 +2,8 @@ import { useNavigate } from 'react-router-dom'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { useAgents } from '../../hooks/useAgents'
 import { cn } from '../../lib/utils'
-import { buildTaskUrl } from './urls'
-import { buildTaskOpenUrl } from './TaskSessionRows'
+import { buildMissionUrl } from './urls'
+import { buildTaskOpenUrl } from './MissionSessionRows'
 import { Maximize } from './icons'
 import type { Chat, ChatMember } from '../workspace/types'
 
@@ -29,11 +29,11 @@ const memberStatusToAgent = (s: ChatMember['status']): AgentStatus => {
   return s
 }
 
-const taskStatusOf = (chat: Chat): AgentStatus => {
-  const taskStatus = (chat as Chat & { taskStatus?: string }).taskStatus
-  if (taskStatus === 'error') return 'error'
-  if (taskStatus === 'waiting_input' || taskStatus === 'waiting_confirm') return 'waiting'
-  if (chat.status === 'running' || taskStatus === 'running') return 'running'
+const missionStatusOf = (chat: Chat): AgentStatus => {
+  const missionStatus = (chat as Chat & { missionStatus?: string }).missionStatus
+  if (missionStatus === 'error') return 'error'
+  if (missionStatus === 'waiting_input' || missionStatus === 'waiting_confirm') return 'waiting'
+  if (chat.status === 'running' || missionStatus === 'running') return 'running'
   return 'done'
 }
 
@@ -147,7 +147,7 @@ const ChatBackedPane = ({ chat, isActive, shortcutKey, onSelect, onZoom }: {
   onSelect: () => void
   onZoom: () => void
 }) => {
-  const status = taskStatusOf(chat)
+  const status = missionStatusOf(chat)
   const stripeColor = statusStripeColor(status)
   const lastActivity = chat.lastMessageAt ? relativeAgo(chat.lastMessageAt) : null
 
@@ -203,7 +203,7 @@ const ChatBackedPane = ({ chat, isActive, shortcutKey, onSelect, onZoom }: {
         )}
         {status === 'error' && (
           <div className="px-1.5 py-1 rounded bg-accent-red/[0.06] border border-accent-red/15 text-[11px] text-accent-red">
-            ✗ Task stopped on error
+            ✗ Mission stopped on error
           </div>
         )}
         {status === 'running' && (
@@ -239,11 +239,11 @@ const MemberBackedPane = ({ member, parentChat, isActive, shortcutKey }: {
 
   const handleSelect = () => {
     if (!workspaceId) return
-    navigate(buildTaskUrl(workspaceId, parentChat.id, member.agentId))
+    navigate(buildMissionUrl(workspaceId, parentChat.id, member.agentId))
   }
   const handleZoom = () => {
     if (!workspaceId) return
-    navigate(buildTaskUrl(workspaceId, parentChat.id, member.agentId))
+    navigate(buildMissionUrl(workspaceId, parentChat.id, member.agentId))
     setLayoutMode('single')
   }
 

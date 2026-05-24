@@ -62,7 +62,7 @@ export interface WsReceiveEventMap {
   }
   // Chat
   'chat:title-updated': { chatId: string; title: string }
-  'chat:status-changed': { chatId: string; status: string; taskStatus?: string | null }
+  'chat:status-changed': { chatId: string; status: string; missionStatus?: string | null }
   'chat:activity': {
     chatId: string
     phase: string

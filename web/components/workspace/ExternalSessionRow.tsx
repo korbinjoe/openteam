@@ -1,6 +1,6 @@
 /**
  * ExternalSessionRow — single-row representation of an un-adopted local CLI
- * jsonl session (Claude or Codex). Shape-mirrors `TaskRow` so the sidebar can
+ * jsonl session (Claude or Codex). Shape-mirrors `MissionRow` so the sidebar can
  * mix native and external sessions in one mtime-sorted list without visual
  * dissonance. Click anywhere on the row triggers POST /adopt + navigates
  * straight into the resulting chat.
@@ -20,8 +20,8 @@ import { API_BASE, authFetch } from '@/config/api'
 import type { ExternalSession } from '@/hooks/useExternalCwdSessions'
 import { cn } from '../../lib/utils'
 import { ChevronRight, Pin, Archive, Plus } from './icons'
-import { buildTaskUrl } from './urls'
-import { ageLabel, RowEndSlotWithLabel } from './TaskSessionRows'
+import { buildMissionUrl } from './urls'
+import { ageLabel, RowEndSlotWithLabel } from './MissionSessionRows'
 
 interface ExternalSessionRowProps {
   session: ExternalSession
@@ -81,7 +81,7 @@ export const ExternalSessionRow = ({
       const chatRes = await authFetch(`${API_BASE}/api/chats/${chatId}`)
       if (chatRes.ok) {
         const chat = (await chatRes.json()) as { workspaceId: string; primaryAgentId: string }
-        navigate(buildTaskUrl(chat.workspaceId, chatId, chat.primaryAgentId))
+        navigate(buildMissionUrl(chat.workspaceId, chatId, chat.primaryAgentId))
         return
       }
     } catch {
@@ -112,7 +112,7 @@ export const ExternalSessionRow = ({
         adopting && 'opacity-60 cursor-progress',
       )}
     >
-      {/* Chevron slot kept for visual alignment with TaskRow even though
+      {/* Chevron slot kept for visual alignment with MissionRow even though
           external rows have no children to expand. */}
       <span className="w-4 h-4 flex items-center justify-center text-text-muted -mr-0.5 flex-shrink-0">
         <ChevronRight size={9} />
@@ -126,8 +126,8 @@ export const ExternalSessionRow = ({
         label={ageLabel(session.mtimeMs)}
         actions={[
           { title: 'Add agent', onClick: () => { void runWithAdopt(onAddAgent)() }, children: <Plus size={11} /> },
-          { title: 'Pin task', onClick: () => { void runWithAdopt(onPin)() }, children: <Pin size={11} /> },
-          { title: 'Archive task', onClick: () => { void runWithAdopt(onArchive)() }, children: <Archive size={11} /> },
+          { title: 'Pin mission', onClick: () => { void runWithAdopt(onPin)() }, children: <Pin size={11} /> },
+          { title: 'Archive mission', onClick: () => { void runWithAdopt(onArchive)() }, children: <Archive size={11} /> },
         ]}
       />
     </div>

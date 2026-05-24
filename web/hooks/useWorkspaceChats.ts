@@ -1,6 +1,6 @@
 /**
  * useWorkspaceChats — Live list of chats belonging to a workspace, used as
- * the "tasks" data source in workspace sidebar/cards.
+ * the "missions" data source in workspace sidebar/cards.
  *
  * Subscribes to chat:status-changed and chat:activity WS events so counts and
  * statuses stay live without polling.
@@ -54,9 +54,9 @@ export const useWorkspaceChats = (workspaceId: string | null | undefined): Works
     const wsClient = getWebSocketClient()
     wsClient.connect().catch(() => {})
 
-    const handleStatusChanged = ({ chatId, status, taskStatus }: { chatId: string; status: string; taskStatus?: string }) => {
+    const handleStatusChanged = ({ chatId, status, missionStatus }: { chatId: string; status: string; missionStatus?: string }) => {
       setChats((prev) => prev.map((c) => c.id === chatId
-        ? { ...c, status: status as Chat['status'], ...(taskStatus ? { taskStatus } : {}) } as Chat
+        ? { ...c, status: status as Chat['status'], ...(missionStatus ? { missionStatus } : {}) } as Chat
         : c))
     }
 
@@ -64,12 +64,12 @@ export const useWorkspaceChats = (workspaceId: string | null | undefined): Works
       const { chatId, phase } = payload
       setChats((prev) => prev.map((c) => {
         if (c.id !== chatId) return c
-        const next = { ...c } as Chat & { taskStatus?: string }
-        if (phase === 'completed') { next.status = 'stopped'; next.taskStatus = 'success' }
-        else if (phase === 'error') { next.status = 'stopped'; next.taskStatus = 'error' }
-        else if (phase === 'waiting_input') { next.status = 'idle'; next.taskStatus = 'waiting_input' }
-        else if (phase === 'waiting_confirmation') { next.status = 'idle'; next.taskStatus = 'waiting_confirm' }
-        else if (ACTIVE_PHASES.has(phase)) { next.status = 'running'; next.taskStatus = 'running' }
+        const next = { ...c } as Chat & { missionStatus?: string }
+        if (phase === 'completed') { next.status = 'stopped'; next.missionStatus = 'success' }
+        else if (phase === 'error') { next.status = 'stopped'; next.missionStatus = 'error' }
+        else if (phase === 'waiting_input') { next.status = 'idle'; next.missionStatus = 'waiting_input' }
+        else if (phase === 'waiting_confirmation') { next.status = 'idle'; next.missionStatus = 'waiting_confirm' }
+        else if (ACTIVE_PHASES.has(phase)) { next.status = 'running'; next.missionStatus = 'running' }
         return next
       }))
     }
@@ -109,8 +109,8 @@ export const useWorkspaceChats = (workspaceId: string | null | undefined): Works
   }, [workspaceId, refresh])
 
   const awaitingReview = chats.filter((c) => {
-    const taskStatus = (c as Chat & { taskStatus?: string }).taskStatus
-    return taskStatus && WAITING_TASK_STATUSES.has(taskStatus)
+    const missionStatus = (c as Chat & { missionStatus?: string }).missionStatus
+    return missionStatus && WAITING_TASK_STATUSES.has(missionStatus)
   })
   const running = chats.filter((c) => c.status === 'running')
   const done = chats.filter((c) => c.status === 'stopped' || c.status === 'merged')

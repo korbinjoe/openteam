@@ -4,7 +4,7 @@ import { Copy, RefreshCw, FileText } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { DevSnapshot, DevSessionSnapshot, DevJsonlMessage, DevRawJsonlContent } from '@/hooks/useDevPanel'
 import { DevJsonlViewer } from '../DevJsonlViewer'
-import { KV, Section, CopyableText, chatStatusColor, taskStatusColor, phaseColor, dot, fmtTime, fmtAgo, fmtSize } from './helpers'
+import { KV, Section, CopyableText, chatStatusColor, missionStatusColor, phaseColor, dot, fmtTime, fmtAgo, fmtSize } from './helpers'
 import { ACPStateTag, ACPPromptLive, ACPUpdateList } from './ACPInspector'
 
 export const DevOverview = ({ snapshot }: { snapshot: DevSnapshot }) => {
@@ -15,8 +15,8 @@ export const DevOverview = ({ snapshot }: { snapshot: DevSnapshot }) => {
       <KV label="chat.status" value={
         <span className={chatStatusColor(snapshot.chat?.status ?? '')}>{snapshot.chat?.status ?? 'unknown'}</span>
       } />
-      <KV label="chat.taskStatus" value={
-        <span className={taskStatusColor(snapshot.chat?.taskStatus ?? '')}>{snapshot.chat?.taskStatus ?? '—'}</span>
+      <KV label="chat.missionStatus" value={
+        <span className={missionStatusColor(snapshot.chat?.missionStatus ?? '')}>{snapshot.chat?.missionStatus ?? '—'}</span>
       } />
       <KV label="Sessions" value={snapshot.totalSessions} />
       <KV label={t('dev.snapshotTime')} value={fmtTime(snapshot.timestamp)} />

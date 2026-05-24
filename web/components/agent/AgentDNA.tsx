@@ -57,7 +57,7 @@ const SkillBar = ({ skill }: { skill: AgentSkill }) => {
   const { t } = useTranslation('agents')
 
   const progress = skill.maxLevel > 0
-    ? ((skill.level + (skill.taskCount / Math.max(skill.tasksToNextLevel, 1))) / skill.maxLevel) * 100
+    ? ((skill.level + (skill.missionCount / Math.max(skill.missionsToNextLevel, 1))) / skill.maxLevel) * 100
     : 0
   const clampedProgress = Math.min(progress, 100)
 
@@ -80,8 +80,8 @@ const SkillBar = ({ skill }: { skill: AgentSkill }) => {
         />
       </div>
       <div className="text-xs text-text-secondary mt-0.5">
-        {t('dna.taskCompleted', { count: skill.taskCount })}
-        {skill.level < skill.maxLevel && ` · ${t('dna.tasksToUpgrade', { count: skill.tasksToNextLevel - skill.taskCount })}`}
+        {t('dna.missionCompleted', { count: skill.missionCount })}
+        {skill.level < skill.maxLevel && ` · ${t('dna.missionsToUpgrade', { count: skill.missionsToNextLevel - skill.missionCount })}`}
       </div>
     </div>
   )

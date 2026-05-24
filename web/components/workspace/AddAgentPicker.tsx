@@ -5,7 +5,7 @@ import { useAgents } from '../../hooks/useAgents'
 import { API_BASE, authFetch } from '@/config/api'
 import { toast } from 'sonner'
 import { Users } from './icons'
-import { buildTaskUrl } from './urls'
+import { buildMissionUrl } from './urls'
 
 const AddAgentPicker = () => {
   const { workspaceId, addAgentOpen, addAgentTaskId, closeAddAgent } = useWorkspace()
@@ -24,7 +24,7 @@ const AddAgentPicker = () => {
     }
   }, [addAgentOpen])
 
-  // Pre-load existing members so we can disable agents already on the task.
+  // Pre-load existing members so we can disable agents already on the mission.
   useEffect(() => {
     if (!addAgentOpen || !addAgentTaskId) {
       setExistingIds(new Set())
@@ -61,7 +61,7 @@ const AddAgentPicker = () => {
   const handleSelect = async (agentId: string) => {
     if (!addAgentTaskId || busyAgentId) return
     if (existingIds.has(agentId)) {
-      toast.message('Agent already on this task')
+      toast.message('Agent already on this mission')
       return
     }
     setBusyAgentId(agentId)
@@ -71,7 +71,7 @@ const AddAgentPicker = () => {
       const chat = await getRes.json()
       const teamAgentIds: string[] = Array.isArray(chat.teamAgentIds) ? [...chat.teamAgentIds] : []
       if (chat.primaryAgentId === agentId || teamAgentIds.includes(agentId)) {
-        toast.message('Agent already on this task')
+        toast.message('Agent already on this mission')
         closeAddAgent()
         return
       }
@@ -85,12 +85,12 @@ const AddAgentPicker = () => {
       window.dispatchEvent(new CustomEvent('openteam:chat-updated', {
         detail: { workspaceId, chatId: addAgentTaskId },
       }))
-      toast.success('Agent added to task')
+      toast.success('Agent added to mission')
       closeAddAgent()
       // V2: each added agent gets its own 1:1 conversation thread. Jump to it
       // so the user immediately sees the independent surface, not the group.
       if (workspaceId) {
-        navigate(buildTaskUrl(workspaceId, addAgentTaskId, agentId))
+        navigate(buildMissionUrl(workspaceId, addAgentTaskId, agentId))
       }
     } catch (err) {
       console.error('[AddAgentPicker] add failed:', err)
@@ -110,7 +110,7 @@ const AddAgentPicker = () => {
         <div className="px-4 py-3.5 border-b border-border">
           <div className="flex items-center gap-2 mb-2.5">
             <Users size={14} className="text-accent-brand" />
-            <span className="text-[13px] font-semibold text-text-primary">Add Agent to Task</span>
+            <span className="text-[13px] font-semibold text-text-primary">Add Agent to Mission</span>
           </div>
           <input
             ref={inputRef}
@@ -167,7 +167,7 @@ const AddAgentPicker = () => {
 
         {/* Footer */}
         <div className="px-4 py-2.5 border-t border-border flex items-center gap-2">
-          <span className="text-[10px] text-text-muted flex-1">Agent will inherit task context and war room.</span>
+          <span className="text-[10px] text-text-muted flex-1">Agent will inherit mission context and war room.</span>
           <button
             className="px-2.5 py-1 rounded-[5px] border border-border bg-transparent text-text-secondary text-[10px] cursor-pointer"
             onClick={closeAddAgent}

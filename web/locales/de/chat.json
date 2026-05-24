@@ -154,7 +154,7 @@
   "expertResumeCwdNotFound": "Das Arbeitsverzeichnis von Experte {{name}} existiert nicht mehr, Sitzung kann nicht wiederhergestellt werden ({{message}})",
   "input": {
     "queuedCount": "{{count}} in Warteschlange · automatischer Versand nach aktuellem Task",
-    "taskInProgress": "Aufgabe läuft · Enter zum Einreihen",
+    "missionInProgress": "Aufgabe läuft · Enter zum Einreihen",
     "agentSwitchTitle": "{{name}} · {{shortcut}} zum Wechseln",
     "local": "Lokal",
     "queueTooltip": "In Warteschlange einreihen (automatischer Versand nach aktuellem Task)",
@@ -225,7 +225,7 @@
   "completion": {
     "title": "Aufgabe abgeschlossen",
     "toolCalls": "Aufrufe",
-    "taskDone": "Aufgabe abgeschlossen",
+    "missionDone": "Aufgabe abgeschlossen",
     "toolCallsDone": "{{count}} Tool-Aufrufe abgeschlossen",
     "reviewOk": "Review abgeschlossen, alles OK",
     "done": "Fertig",

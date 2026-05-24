@@ -67,7 +67,7 @@ export interface DevSnapshot {
   mode: DevPanelMode
   chat: {
     status: string | null
-    taskStatus: string | null
+    missionStatus: string | null
     expertSessions: Record<string, unknown> | null
   } | null
   sessions: DevSessionSnapshot[]
@@ -139,7 +139,7 @@ export interface PipelineZone {
 export interface PipelineSnapshot {
   chatId: string
   mode: DevPanelMode
-  taskId: string | null
+  missionId: string | null
   zones: PipelineZone[]
   totalElapsedMs: number | null
   health: 'green' | 'yellow' | 'red'
@@ -152,7 +152,7 @@ export interface TimelineEntry {
   source: 'ws' | 'matrix' | 'oss' | 'internal'
   direction: 'in' | 'out' | 'internal'
   type: string
-  taskId: string | null
+  missionId: string | null
   agentId: string | null
   summary: string
   detail?: Record<string, unknown>
@@ -270,17 +270,17 @@ export const useDevPanel = (chatId: string, isOpen: boolean) => {
     }
 
     const handleChatStatusChanged = (data: unknown) => {
-      const d = data as { chatId: string; status: string; taskStatus?: string | null }
+      const d = data as { chatId: string; status: string; missionStatus?: string | null }
       if (d.chatId !== chatId) return
       setSnapshot((prev) => {
         if (!prev) return prev
-        const prevChat = prev.chat ?? { status: null, taskStatus: null, expertSessions: null }
+        const prevChat = prev.chat ?? { status: null, missionStatus: null, expertSessions: null }
         return {
           ...prev,
           chat: {
             ...prevChat,
             status: d.status,
-            taskStatus: d.taskStatus ?? prevChat.taskStatus ?? null,
+            missionStatus: d.missionStatus ?? prevChat.missionStatus ?? null,
           },
         }
       })
@@ -326,8 +326,8 @@ export const useDevPanel = (chatId: string, isOpen: boolean) => {
     }
   }, [chatId, isOpen, wsClient])
 
-  const refreshTimeline = useCallback((taskId?: string) => {
-    wsClient.send('dev:timeline', { chatId, taskId })
+  const refreshTimeline = useCallback((missionId?: string) => {
+    wsClient.send('dev:timeline', { chatId, missionId })
   }, [wsClient, chatId])
 
   return {

@@ -13,7 +13,7 @@ interface AgentSessionItemProps {
     dispatch: 'user' | 'auto'
     handoffFrom?: string
   }
-  taskId?: string
+  missionId?: string
 }
 
 const statusDotColor = (s: AgentStatus): string => {

@@ -36,7 +36,7 @@ export class WorkspaceStore extends SqliteBaseStore<Workspace> {
     const row = this.db.prepare("SELECT id FROM workspaces WHERE id = 'default'").get() as { id: string } | undefined
     if (!row) return
 
-    const newId = nanoid(24)
+    const newId = nanoid(10)
     this.db.pragma('foreign_keys = OFF')
     try {
       this.db.transaction(() => {
@@ -61,7 +61,7 @@ export class WorkspaceStore extends SqliteBaseStore<Workspace> {
 
     const now = new Date().toISOString()
     const workspace: Workspace = {
-      id: nanoid(24),
+      id: nanoid(10),
       name: DEFAULT_WORKSPACE_NAME,
       repositories: [{
         id: createHash('sha256').update(DEFAULT_WORKSPACE_PATH).digest('hex').slice(0, 12),
@@ -112,7 +112,7 @@ export class WorkspaceStore extends SqliteBaseStore<Workspace> {
     }))
 
     const workspace: Workspace = {
-      id: params.userId ? generateId(params.userId, 8, 16) : nanoid(24),
+      id: params.userId ? generateId(params.userId, 2, 8) : nanoid(10),
       name: params.name || repos[0]?.name || 'Untitled',
       repositories: repos,
       agentTeam: params.agentTeam,

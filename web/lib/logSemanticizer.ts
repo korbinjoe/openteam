@@ -49,7 +49,7 @@ const PHASE_DESCRIPTIONS: Record<AgentPhase, string> = {
   responding: 'Organizing results...',
   waiting_input: 'Waiting for input',
   waiting_confirmation: 'Awaiting confirmation',
-  completed: 'Task complete',
+  completed: 'Mission complete',
   error: 'encountered an issue',
 }
 

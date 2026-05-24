@@ -18,12 +18,9 @@ import { TeamTab, MarketTab } from './AgentListSection'
 
 type Tab = 'team' | 'market'
 
-interface AgentsHubPageProps {
-  /** URL prefix used to build agent-edit links. Defaults to V1 root. */
-  agentsRoutePrefix?: string
-}
+const AGENTS_BASE = '/agents'
 
-const AgentsHubPage = ({ agentsRoutePrefix = '/agents' }: AgentsHubPageProps = {}) => {
+const AgentsHubPage = () => {
   const { t } = useTranslation(['agents', 'common'])
   const [searchParams, setSearchParams] = useSearchParams()
   const navigate = useNavigate()
@@ -223,7 +220,7 @@ const AgentsHubPage = ({ agentsRoutePrefix = '/agents' }: AgentsHubPageProps = {
             <RefreshCw size={12} />
           </button>
           <button
-            onClick={() => navigate(`${agentsRoutePrefix}/new/edit`, {
+            onClick={() => navigate(`${AGENTS_BASE}/new/edit`, {
               state: { [AGENT_NEW_OPEN_AI_GENERATE_STATE_KEY]: true },
             })}
             aria-label={t('agents:recruitNew')}
@@ -247,9 +244,9 @@ const AgentsHubPage = ({ agentsRoutePrefix = '/agents' }: AgentsHubPageProps = {
           ) : activeTab === 'team' ? (
             <TeamTab
               members={teamMembers}
-              onClickAgent={(a) => navigate(`${agentsRoutePrefix}/${encodeURIComponent(a.id)}/edit`)}
+              onClickAgent={(a) => navigate(`${AGENTS_BASE}/${encodeURIComponent(a.id)}/edit`)}
               onFire={handleFireClick}
-              onEdit={(a) => navigate(`${agentsRoutePrefix}/${encodeURIComponent(a.id)}/edit`)}
+              onEdit={(a) => navigate(`${AGENTS_BASE}/${encodeURIComponent(a.id)}/edit`)}
               onGoMarket={() => handleTabChange('market')}
             />
           ) : (
@@ -261,7 +258,7 @@ const AgentsHubPage = ({ agentsRoutePrefix = '/agents' }: AgentsHubPageProps = {
               onSearchChange={setSearch}
               onHire={handleHire}
               onFire={handleFireClick}
-              onEdit={(a) => navigate(`${agentsRoutePrefix}/${encodeURIComponent(a.id)}/edit`)}
+              onEdit={(a) => navigate(`${AGENTS_BASE}/${encodeURIComponent(a.id)}/edit`)}
               onDelete={handleDeleteClick}
               onClone={handleCloneClick}
             />

@@ -1,5 +1,5 @@
 /**
- * useTaskPinArchive — Persist user-controlled task organization (pin / archive)
+ * useMissionPinArchive — Persist user-controlled mission organization (pin / archive)
  * for the v2 sidebar. Storage is workspace-scoped via localStorage so each
  * workspace keeps its own pinned and archived sets.
  *
@@ -12,28 +12,28 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { Chat } from '../components/workspace/types'
 
-const STORAGE_PREFIX = 'openteam:v2:taskOrg:'
+const STORAGE_PREFIX = 'openteam:v2:missionOrg:'
 const AUTO_ARCHIVE_DAYS = 2
 const AUTO_ARCHIVE_MS = AUTO_ARCHIVE_DAYS * 24 * 60 * 60 * 1000
 // Re-evaluate auto-archive periodically so chats cross the threshold without
 // requiring a page refresh. Exact cadence isn't important.
 const RECHECK_INTERVAL_MS = 30 * 60 * 1000
 
-interface TaskOrgState {
+interface MissionOrgState {
   pinned: string[]
   archived: string[]
   pinnedAt: Record<string, number>
   unarchivedManually: string[]
 }
 
-const emptyState = (): TaskOrgState => ({
+const emptyState = (): MissionOrgState => ({
   pinned: [],
   archived: [],
   pinnedAt: {},
   unarchivedManually: [],
 })
 
-const readState = (workspaceId: string | null | undefined): TaskOrgState => {
+const readState = (workspaceId: string | null | undefined): MissionOrgState => {
   if (!workspaceId || typeof window === 'undefined') return emptyState()
   try {
     const raw = window.localStorage.getItem(STORAGE_PREFIX + workspaceId)
@@ -50,7 +50,7 @@ const readState = (workspaceId: string | null | undefined): TaskOrgState => {
   }
 }
 
-const writeState = (workspaceId: string, state: TaskOrgState) => {
+const writeState = (workspaceId: string, state: MissionOrgState) => {
   if (typeof window === 'undefined') return
   try {
     window.localStorage.setItem(STORAGE_PREFIX + workspaceId, JSON.stringify(state))
@@ -86,7 +86,7 @@ const computeAutoArchived = (chats: Chat[], now: number): Set<string> => {
   return out
 }
 
-export interface TaskPinArchiveApi {
+export interface MissionPinArchiveApi {
   pinnedIds: Set<string>
   archivedIds: Set<string>
   pinnedAt: Record<string, number>
@@ -97,11 +97,11 @@ export interface TaskPinArchiveApi {
   archiveAll: (chatIds: string[]) => void
 }
 
-export const useTaskPinArchive = (
+export const useMissionPinArchive = (
   workspaceId: string | null | undefined,
   chats: Chat[] = [],
-): TaskPinArchiveApi => {
-  const [state, setState] = useState<TaskOrgState>(() => readState(workspaceId))
+): MissionPinArchiveApi => {
+  const [state, setState] = useState<MissionOrgState>(() => readState(workspaceId))
 
   useEffect(() => {
     setState(readState(workspaceId))
@@ -133,7 +133,7 @@ export const useTaskPinArchive = (
   }, [state.archived, state.unarchivedManually, state.pinned, autoArchived])
 
   const persist = useCallback(
-    (updater: (prev: TaskOrgState) => TaskOrgState) => {
+    (updater: (prev: MissionOrgState) => MissionOrgState) => {
       setState((prev) => {
         const next = updater(prev)
         if (workspaceId) writeState(workspaceId, next)

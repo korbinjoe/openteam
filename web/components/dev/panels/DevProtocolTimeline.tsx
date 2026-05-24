@@ -50,8 +50,8 @@ const TimelineRow = ({ entry }: { entry: TimelineEntry }) => {
         </span>
         <span className={cn('font-medium shrink-0', typeColor(entry.type))}>{entry.type}</span>
         <span className="text-zinc-500 truncate ml-1">{entry.summary}</span>
-        {entry.taskId && (
-          <span className="text-zinc-700 font-mono shrink-0 ml-auto">{entry.taskId.slice(0, 8)}</span>
+        {entry.missionId && (
+          <span className="text-zinc-700 font-mono shrink-0 ml-auto">{entry.missionId.slice(0, 8)}</span>
         )}
         {hasDetail && (
           <span className="text-zinc-600 shrink-0 ml-1">{expanded ? '▼' : '▶'}</span>

@@ -4,7 +4,7 @@ import { API_BASE, authFetch } from '@/config/api'
 export interface AgentDNASkill {
   name: string
   level: number
-  taskCount: number
+  missionCount: number
 }
 
 export interface AgentDNAMetrics {

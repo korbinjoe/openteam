@@ -33,13 +33,12 @@ interface NewChatFormProps {
   currentWorkspaceId?: string
   currentAgentId?: string | null
   onCreated?: () => void
-  /** Route prefix the form should navigate to after create. Defaults to "/workspace". */
-  routePrefix?: string
-  /** URL segment for the chat/task id. Defaults to "task". */
-  chatSegment?: string
 }
 
-const NewChatForm = ({ currentWorkspaceId, currentAgentId, onCreated, routePrefix = '/workspace', chatSegment = 'task' }: NewChatFormProps) => {
+const WORKSPACE_BASE = '/workspace'
+const MISSION_SEGMENT = 'mission'
+
+const NewChatForm = ({ currentWorkspaceId, currentAgentId, onCreated }: NewChatFormProps) => {
   const navigate = useNavigate()
   const { t } = useTranslation(['home', 'workspace', 'common'])
 
@@ -190,7 +189,7 @@ const NewChatForm = ({ currentWorkspaceId, currentAgentId, onCreated, routePrefi
         detail: { workspaceId: workspace.id, chatId: chat.id },
       }))
       onCreated?.()
-      navigate(`${routePrefix}/${workspace.id}/${chatSegment}/${chat.id}`, {
+      navigate(`${WORKSPACE_BASE}/${workspace.id}/${MISSION_SEGMENT}/${chat.id}`, {
         state: { isNew: true, agentId: opts.agent?.id },
       })
     } catch (err) {
@@ -199,7 +198,7 @@ const NewChatForm = ({ currentWorkspaceId, currentAgentId, onCreated, routePrefi
     } finally {
       setCreating(false)
     }
-  }, [navigate, onCreated, t, routePrefix, chatSegment])
+  }, [navigate, onCreated, t])
 
   const handleCreate = useCallback(() => {
     if (!selectedWs) return

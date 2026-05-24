@@ -154,7 +154,7 @@
   "expertResumeCwdNotFound": "エキスパート{{name}}の作業ディレクトリが存在しないため、セッションを復元できません（{{message}}）",
   "input": {
     "queuedCount": "{{count}}件キュー済み · 現在のタスク完了後自動送信",
-    "taskInProgress": "タスク実行中 · Enterでキューに追加",
+    "missionInProgress": "タスク実行中 · Enterでキューに追加",
     "agentSwitchTitle": "{{name}} · {{shortcut}} で切り替え",
     "local": "ローカル",
     "queueTooltip": "キューに追加（現在のタスク完了後自動送信）",
@@ -225,7 +225,7 @@
   "completion": {
     "title": "タスク完了",
     "toolCalls": "回呼び出し",
-    "taskDone": "タスクを完了しました",
+    "missionDone": "タスクを完了しました",
     "toolCallsDone": "{{count}} 回のツール呼び出しを完了",
     "reviewOk": "レビュー完了、問題なし",
     "done": "完了",

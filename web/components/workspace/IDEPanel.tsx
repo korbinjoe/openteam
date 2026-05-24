@@ -136,9 +136,9 @@ const ExpandedPanel = () => {
 const EmptyState = () => (
   <div className="flex-1 flex flex-col items-center justify-center gap-2 text-text-muted px-6 text-center">
     <FolderGit size={32} className="opacity-60" />
-    <div className="text-xs text-text-secondary">No task selected</div>
+    <div className="text-xs text-text-secondary">No mission selected</div>
     <div className="text-[11px] text-text-muted max-w-[260px] leading-relaxed">
-      Pick a task from the sidebar to see its files, terminal, browser preview, and git changes.
+      Pick a mission from the sidebar to see its files, terminal, browser preview, and git changes.
     </div>
   </div>
 )

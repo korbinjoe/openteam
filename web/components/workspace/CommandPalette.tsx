@@ -4,15 +4,15 @@ import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { useWorkspaceChats } from '../../hooks/useWorkspaceChats'
 import { useAgents } from '../../hooks/useAgents'
 import { Search } from './icons'
-import { buildTaskUrl } from './urls'
-import { buildTaskOpenUrl } from './TaskSessionRows'
+import { buildMissionUrl } from './urls'
+import { buildMissionOpenUrl } from './MissionSessionRows'
 import type { Chat, ChatMember } from '../workspace/types'
 
 interface PaletteEntry {
-  type: 'task' | 'member' | 'action'
+  type: 'mission' | 'member' | 'action'
   id: string
-  /** Members carry their parent task id so visual grouping survives filtering. */
-  parentTaskId?: string
+  /** Members carry their parent mission id so visual grouping survives filtering. */
+  parentMissionId?: string
   label: string
   group?: string
   status?: string
@@ -41,10 +41,10 @@ const formatTimeAgo = (iso: string | undefined): string => {
 }
 
 const chatStatusLabel = (chat: Chat): { status: string; time: string } => {
-  const taskStatus = (chat as Chat & { taskStatus?: string }).taskStatus
+  const missionStatus = (chat as Chat & { missionStatus?: string }).missionStatus
   let status = chat.status
-  if (taskStatus === 'error') status = 'error' as Chat['status']
-  else if (taskStatus === 'waiting_input' || taskStatus === 'waiting_confirm') status = 'waiting' as Chat['status']
+  if (missionStatus === 'error') status = 'error' as Chat['status']
+  else if (missionStatus === 'waiting_input' || missionStatus === 'waiting_confirm') status = 'waiting' as Chat['status']
   return { status: String(status), time: formatTimeAgo(chat.lastMessageAt) }
 }
 
@@ -57,7 +57,7 @@ const CommandPalette = () => {
   const {
     workspaceId,
     commandPaletteOpen, closeCommandPalette,
-    openNewTask, togglePanel, toggleTerminal, cycleLayoutMode, toggleIde,
+    openNewMission, togglePanel, toggleTerminal, cycleLayoutMode, toggleIde,
   } = useWorkspace()
   const { chats } = useWorkspaceChats(workspaceId)
   const { agentNames } = useAgents()
@@ -74,72 +74,72 @@ const CommandPalette = () => {
     }
   }, [commandPaletteOpen])
 
-  // Build entries flat-mapped: each task becomes [task header, ...members].
-  // Visual grouping is reconstructed at render time via `parentTaskId`.
+  // Build entries flat-mapped: each mission becomes [mission header, ...members].
+  // Visual grouping is reconstructed at render time via `parentMissionId`.
   const entries: PaletteEntry[] = useMemo(() => {
     const out: PaletteEntry[] = []
     for (const c of chats) {
       const { status, time } = chatStatusLabel(c)
       out.push({
-        type: 'task',
-        id: `task:${c.id}`,
-        parentTaskId: c.id,
+        type: 'mission',
+        id: `mission:${c.id}`,
+        parentMissionId: c.id,
         label: c.title,
         group: 'overview',
         status,
         time,
-        run: () => { if (workspaceId) navigate(buildTaskOpenUrl(c)) },
+        run: () => { if (workspaceId) navigate(buildMissionOpenUrl(c)) },
       })
       const members = c.members ?? []
       for (const m of members) {
         out.push({
           type: 'member',
           id: `member:${c.id}:${m.agentId}`,
-          parentTaskId: c.id,
+          parentMissionId: c.id,
           label: agentNames[m.agentId] ?? m.agentId,
           group: m.role === 'lead' ? 'lead' : 'worker',
           status: memberStatusToString(m.status),
           time: formatTimeAgo(m.lastMessageAt),
-          run: () => { if (workspaceId) navigate(buildTaskUrl(workspaceId, c.id, m.agentId)) },
+          run: () => { if (workspaceId) navigate(buildMissionUrl(workspaceId, c.id, m.agentId)) },
         })
       }
     }
     const actionEntries: PaletteEntry[] = [
-      { type: 'action', id: 'new-task',        label: 'New Task',         shortcut: '⌘N', run: openNewTask },
+      { type: 'action', id: 'new-mission',        label: 'New Mission',         shortcut: '⌘N', run: openNewMission },
       { type: 'action', id: 'toggle-panel',    label: 'Toggle Sidebar',   shortcut: '⌘B', run: togglePanel },
       { type: 'action', id: 'toggle-terminal', label: 'Toggle Terminal',  shortcut: '⌘`', run: toggleTerminal },
       { type: 'action', id: 'toggle-ide',      label: 'Toggle IDE Panel', shortcut: '⌘J', run: toggleIde },
       { type: 'action', id: 'cycle-layout',    label: 'Cycle Layout',     shortcut: '⌘\\', run: cycleLayoutMode },
     ]
     return [...out, ...actionEntries]
-  }, [chats, agentNames, workspaceId, navigate, openNewTask, togglePanel, toggleTerminal, toggleIde, cycleLayoutMode])
+  }, [chats, agentNames, workspaceId, navigate, openNewMission, togglePanel, toggleTerminal, toggleIde, cycleLayoutMode])
 
-  // Filter: a task title match surfaces the task header + all its members; a
+  // Filter: a mission title match surfaces the mission header + all its members; a
   // member name match surfaces the parent header + that member only (so the
-  // user sees which task it belongs to).
+  // user sees which mission it belongs to).
   const filtered = useMemo(() => {
     const q = query.trim()
     if (!q) return entries
-    const taskMatch = new Set<string>()
+    const missionMatch = new Set<string>()
     const memberMatch = new Set<string>()
     for (const e of entries) {
-      if (e.type === 'task' && fuzzyMatch(q, e.label)) {
-        taskMatch.add(e.parentTaskId!)
+      if (e.type === 'mission' && fuzzyMatch(q, e.label)) {
+        missionMatch.add(e.parentMissionId!)
       } else if (e.type === 'member' && fuzzyMatch(q, e.label)) {
         memberMatch.add(e.id)
       }
     }
-    const matchedTaskIds = new Set<string>([
-      ...taskMatch,
+    const matchedMissionIds = new Set<string>([
+      ...missionMatch,
       ...Array.from(memberMatch).map((id) => id.split(':')[1]),
     ])
     return entries.filter((e) => {
       if (e.type === 'action') return fuzzyMatch(q, e.label)
-      if (e.type === 'task') return matchedTaskIds.has(e.parentTaskId!)
+      if (e.type === 'mission') return matchedMissionIds.has(e.parentMissionId!)
       // member row
-      const taskId = e.parentTaskId!
-      // Include all members of a task whose title matched; otherwise only the matched member.
-      return taskMatch.has(taskId) || memberMatch.has(e.id)
+      const missionId = e.parentMissionId!
+      // Include all members of a mission whose title matched; otherwise only the matched member.
+      return missionMatch.has(missionId) || memberMatch.has(e.id)
     })
   }, [entries, query])
 
@@ -169,7 +169,7 @@ const CommandPalette = () => {
     if (e.target === e.currentTarget) closeCommandPalette()
   }
 
-  const taskAndMemberEntries = filtered.filter((e) => e.type === 'task' || e.type === 'member')
+  const missionAndMemberEntries = filtered.filter((e) => e.type === 'mission' || e.type === 'member')
   const actionEntries = filtered.filter((e) => e.type === 'action')
 
   let flatIndex = 0
@@ -185,7 +185,7 @@ const CommandPalette = () => {
           <input
             ref={inputRef}
             className="flex-1 bg-transparent border-none outline-none text-sm text-text-primary font-sans placeholder:text-text-muted"
-            placeholder="Search tasks, actions, navigation..."
+            placeholder="Search missions, actions, navigation..."
             value={query}
             onChange={(e) => { setQuery(e.target.value); setSelectedIndex(0) }}
             onKeyDown={handleKeyDown}
@@ -196,14 +196,14 @@ const CommandPalette = () => {
         </div>
 
         <div className="p-2 max-h-[300px] overflow-y-auto">
-          {taskAndMemberEntries.length > 0 && (
+          {missionAndMemberEntries.length > 0 && (
             <>
               <div className="text-[10px] font-bold uppercase tracking-wider text-text-muted px-2.5 py-2 pt-2">
-                Tasks
+                Missions
               </div>
-              {taskAndMemberEntries.map((entry) => {
+              {missionAndMemberEntries.map((entry) => {
                 const idx = flatIndex++
-                if (entry.type === 'task') {
+                if (entry.type === 'mission') {
                   return (
                     <PaletteItem
                       key={entry.id}

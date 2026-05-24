@@ -1,11 +1,11 @@
 import { useEffect, useMemo } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { WorkspaceProvider, useWorkspace } from '../contexts/WorkspaceContext'
-import { buildTaskUrl } from '../components/workspace/urls'
-import { isSingleAgent } from '../components/workspace/TaskSessionRows'
+import { buildMissionUrl } from '../components/workspace/urls'
+import { isSingleAgent } from '../components/workspace/MissionSessionRows'
 import { useChatTabs } from '../contexts/ChatTabContext'
 import { useWorkspaceChats } from '../hooks/useWorkspaceChats'
-import TaskSidebar from '../components/workspace/TaskSidebar'
+import MissionSidebar from '../components/workspace/MissionSidebar'
 import WorkspaceToolbar from '../components/workspace/WorkspaceToolbar'
 import WorkspaceContent from '../components/workspace/WorkspaceContent'
 import CommandPalette from '../components/workspace/CommandPalette'
@@ -22,13 +22,13 @@ const WorkspaceLayoutInner = () => {
     panelCollapsed,
     commandPaletteOpen,
     addAgentOpen,
-    newTaskOpen,
-    newTaskWorkspaceId,
+    newMissionOpen,
+    newMissionWorkspaceId,
     openCommandPalette,
     closeCommandPalette,
     closeAddAgent,
-    openNewTask,
-    closeNewTask,
+    openNewMission,
+    closeNewMission,
     cycleLayoutMode,
     togglePanel,
     toggleTerminal,
@@ -46,7 +46,7 @@ const WorkspaceLayoutInner = () => {
     if (workspaceId && activeChatId) openTab(activeChatId, workspaceId)
   }, [workspaceId, activeChatId, openTab])
 
-  // URL normalization: a task URL without ?agent= renders task-overview (whiteboard).
+  // URL normalization: a mission URL without ?agent= renders mission-overview (whiteboard).
   // For single-agent chats the whiteboard is empty by design, so the page looks
   // blank when arrived at via direct link / bookmark / refresh. Redirect to the
   // agent 1:1 view so JSONL replay kicks in. Navigation entry points apply the
@@ -55,7 +55,7 @@ const WorkspaceLayoutInner = () => {
     if (!workspaceId || !activeChatId || selectedAgentId) return
     const chat = chats.find((c) => c.id === activeChatId)
     if (!chat || !isSingleAgent(chat)) return
-    navigate(buildTaskUrl(workspaceId, activeChatId, chat.primaryAgentId), { replace: true })
+    navigate(buildMissionUrl(workspaceId, activeChatId, chat.primaryAgentId), { replace: true })
   }, [workspaceId, activeChatId, selectedAgentId, chats, navigate])
 
   useEffect(() => {
@@ -80,7 +80,7 @@ const WorkspaceLayoutInner = () => {
 
       if (e.key === 'Escape') {
         if (commandPaletteOpen) closeCommandPalette()
-        else if (newTaskOpen) closeNewTask()
+        else if (newMissionOpen) closeNewMission()
         else if (addAgentOpen) closeAddAgent()
         return
       }
@@ -92,7 +92,7 @@ const WorkspaceLayoutInner = () => {
         openCommandPalette()
       } else if (e.key === 'n') {
         e.preventDefault()
-        openNewTask()
+        openNewMission()
       } else if (e.key === '\\') {
         e.preventDefault()
         cycleLayoutMode()
@@ -110,7 +110,7 @@ const WorkspaceLayoutInner = () => {
         const chatId = quickJumpChats[idx]
         if (chatId && workspaceId) {
           e.preventDefault()
-          navigate(buildTaskUrl(workspaceId, chatId))
+          navigate(buildMissionUrl(workspaceId, chatId))
         }
       }
     }
@@ -120,12 +120,12 @@ const WorkspaceLayoutInner = () => {
   }, [
     commandPaletteOpen,
     addAgentOpen,
-    newTaskOpen,
+    newMissionOpen,
     openCommandPalette,
     closeCommandPalette,
     closeAddAgent,
-    openNewTask,
-    closeNewTask,
+    openNewMission,
+    closeNewMission,
     cycleLayoutMode,
     togglePanel,
     toggleTerminal,
@@ -137,7 +137,7 @@ const WorkspaceLayoutInner = () => {
 
   return (
     <div className="flex h-screen bg-bg-primary overflow-hidden">
-      <TaskSidebar collapsed={panelCollapsed} />
+      <MissionSidebar collapsed={panelCollapsed} />
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <WorkspaceToolbar />
         <WorkspaceContent />
@@ -145,24 +145,22 @@ const WorkspaceLayoutInner = () => {
       <CommandPalette />
       <AddAgentPicker />
       <NewChatFullDialog
-        open={newTaskOpen}
-        onOpenChange={(open) => (open ? openNewTask() : closeNewTask())}
-        currentWorkspaceId={newTaskWorkspaceId ?? workspaceId ?? undefined}
-        routePrefix="/workspace"
-        chatSegment="task"
+        open={newMissionOpen}
+        onOpenChange={(open) => (open ? openNewMission() : closeNewMission())}
+        currentWorkspaceId={newMissionWorkspaceId ?? workspaceId ?? undefined}
       />
     </div>
   )
 }
 
 const WorkspaceLayout = () => {
-  const { workspaceId, taskId } = useParams<{ workspaceId?: string; taskId?: string }>()
+  const { workspaceId, missionId } = useParams<{ workspaceId?: string; missionId?: string }>()
   const [searchParams] = useSearchParams()
   const agentId = searchParams.get('agent')
   return (
     <WorkspaceProvider
       workspaceId={workspaceId ?? null}
-      activeChatId={taskId ?? null}
+      activeChatId={missionId ?? null}
       selectedAgentId={agentId}
     >
       <WorkspaceLayoutInner />

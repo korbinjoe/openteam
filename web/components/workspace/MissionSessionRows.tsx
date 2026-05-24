@@ -3,17 +3,17 @@ import { useNavigate } from 'react-router-dom'
 import { ChevronRight, Pin, PinOff, Archive, Plus, Trash } from './icons'
 import { cn } from '../../lib/utils'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
-import { buildTaskUrl } from './urls'
+import { buildMissionUrl } from './urls'
 import { removeAgentFromChat, deleteChatWithJsonl, formatPurgeFailures } from '../../services/chatService'
 import type { Chat, ChatMember, ChatMemberStatus } from '../workspace/types'
 
 // Sidebar expansion is intentionally session-local and not persisted: the
 // sidebar is a cross-workspace overview, and remembering "everything expanded"
 // across reloads buries the signal in noise. Only the currently focused
-// task auto-opens to show its agents; everything else stays collapsed until
+// mission auto-opens to show its agents; everything else stays collapsed until
 // the user explicitly drills in.
 
-// Sidebar row indents. Task is root; all agents (lead + workers) sit as peers
+// Sidebar row indents. Mission is root; all agents (lead + workers) sit as peers
 // directly beneath it. The data model has no parent/child relation between
 // agents — `role` only distinguishes lead from worker, so they must render at
 // the same indent.
@@ -22,9 +22,13 @@ const INDENT_ADD_AGENT = 'pl-9'  // 36px — peer of agent rows
 
 export const chatStatusDot = (chat: Chat): string => {
   if (chat.status === 'running') return 'bg-accent-brand animate-pulse'
-  const taskStatus = (chat as Chat & { taskStatus?: string }).taskStatus
-  if (taskStatus === 'error') return 'bg-accent-red'
-  if (taskStatus === 'waiting_input' || taskStatus === 'waiting_confirm') return 'bg-accent-yellow'
+  const missionStatus = (chat as Chat & { missionStatus?: string }).missionStatus
+  if (missionStatus === 'error') return 'bg-accent-red'
+  // Yellow means "blocked on user". `waiting_input` is the post-turn idle
+  // phase the CLI sits in between messages — not a real block — so only
+  // `waiting_confirm` (AskUserQuestion / ExitPlanMode / EnterPlanMode)
+  // earns the warning color.
+  if (missionStatus === 'waiting_confirm') return 'bg-accent-yellow'
   return 'bg-text-muted'
 }
 
@@ -54,7 +58,7 @@ export const ageLabel = (input: number | string | undefined): string => {
 
 export const isCompletedStatus = (c: Chat) => c.status === 'stopped' || c.status === 'merged'
 
-// Task-overview is the cross-agent whiteboard timeline. For chats that never
+// Mission-overview is the cross-agent whiteboard timeline. For chats that never
 // wrote whiteboard entries (the vast majority of legacy single-agent chats),
 // it renders blank — the user expects to see the actual conversation. Route
 // "single-team" chats straight to the agent 1:1 view so JSONL replay kicks in.
@@ -63,7 +67,7 @@ export const isCompletedStatus = (c: Chat) => c.status === 'stopped' || c.status
 // "Single-team" = declared team has only the primary agent. We deliberately
 // IGNORE chat.members and expertSessions-derived ad-hoc participants: a chat
 // where the user @-mentioned a code-reviewer mid-conversation is still a
-// single-agent task from a routing perspective — the lead's JSONL is the
+// single-agent mission from a routing perspective — the lead's JSONL is the
 // canonical content the user expects to see on reopen. MemberAggregator
 // inflates members[] from expertSessions, which would otherwise misclassify
 // these legacy chats as multi-agent and strand the user on an empty whiteboard.
@@ -72,12 +76,12 @@ export const isSingleAgent = (chat: Chat): boolean => {
   return !!chat.primaryAgentId
 }
 
-export const buildTaskOpenUrl = (chat: Chat): string =>
+export const buildMissionOpenUrl = (chat: Chat): string =>
   isSingleAgent(chat)
-    ? buildTaskUrl(chat.workspaceId, chat.id, chat.primaryAgentId)
-    : buildTaskUrl(chat.workspaceId, chat.id)
+    ? buildMissionUrl(chat.workspaceId, chat.id, chat.primaryAgentId)
+    : buildMissionUrl(chat.workspaceId, chat.id)
 
-interface TaskRowProps {
+interface MissionRowProps {
   chat: Chat
   isSelected: boolean
   agentNames: Record<string, string>
@@ -89,16 +93,16 @@ interface TaskRowProps {
   isPinned?: boolean
 }
 
-export const TaskRow = ({ chat, isSelected, agentNames, onPin, onArchive, onAddAgent, isPinned = false }: TaskRowProps) => {
+export const MissionRow = ({ chat, isSelected, agentNames, onPin, onArchive, onAddAgent, isPinned = false }: MissionRowProps) => {
   const navigate = useNavigate()
   const { selectedAgentId } = useWorkspace()
-  // Default collapsed; the selected task auto-opens to surface its agents.
+  // Default collapsed; the selected mission auto-opens to surface its agents.
   // No persistence — each session starts clean.
   const [expanded, setExpanded] = useState<boolean>(isSelected)
 
-  // Navigating to a task should reveal its agents even if the row was mounted
+  // Navigating to a mission should reveal its agents even if the row was mounted
   // collapsed. We only auto-open (never auto-close) so a user who manually
-  // collapses the active task keeps it collapsed.
+  // collapses the active mission keeps it collapsed.
   useEffect(() => {
     if (isSelected) setExpanded(true)
   }, [isSelected])
@@ -108,12 +112,12 @@ export const TaskRow = ({ chat, isSelected, agentNames, onPin, onArchive, onAddA
     setExpanded((prev) => !prev)
   }, [])
 
-  // Single-agent → agent 1:1 (JSONL replay). Multi-agent → task-overview (whiteboard rollup).
-  const handleOpen = () => navigate(buildTaskOpenUrl(chat))
+  // Single-agent → agent 1:1 (JSONL replay). Multi-agent → mission-overview (whiteboard rollup).
+  const handleOpen = () => navigate(buildMissionOpenUrl(chat))
 
   const handleDeleteTask = useCallback(async () => {
     if (!window.confirm(
-      `Delete task "${chat.title}" and all its local CLI session files?\n\nThis cannot be undone.`,
+      `Delete mission "${chat.title}" and all its local CLI session files?\n\nThis cannot be undone.`,
     )) return
     try {
       const result = await deleteChatWithJsonl(chat.id)
@@ -189,10 +193,10 @@ export const TaskRow = ({ chat, isSelected, agentNames, onPin, onArchive, onAddA
           actions={[
             { title: 'Add agent', onClick: onAddAgent, children: <Plus size={11} /> },
             isPinned
-              ? { title: 'Unpin task', onClick: onPin, children: <PinOff size={11} /> }
-              : { title: 'Pin task', onClick: onPin, children: <Pin size={11} /> },
-            { title: 'Archive task', onClick: onArchive, children: <Archive size={11} /> },
-            { title: 'Delete task (purges local CLI session files)', onClick: handleDeleteTask, children: <Trash size={11} /> },
+              ? { title: 'Unpin mission', onClick: onPin, children: <PinOff size={11} /> }
+              : { title: 'Pin mission', onClick: onPin, children: <Pin size={11} /> },
+            { title: 'Archive mission', onClick: onArchive, children: <Archive size={11} /> },
+            { title: 'Delete mission (purges local CLI session files)', onClick: handleDeleteTask, children: <Trash size={11} /> },
           ]}
         />
       </div>
@@ -235,7 +239,7 @@ export const AgentRow = ({ agentId, agentName, isLead, chat, member, isSelected 
   // Agent 1:1 navigation: includes ?agent= so viewMode becomes 'agent'.
   const handleOpen = (e: React.MouseEvent) => {
     e.stopPropagation()
-    navigate(buildTaskUrl(chat.workspaceId, chat.id, agentId))
+    navigate(buildMissionUrl(chat.workspaceId, chat.id, agentId))
   }
   // Per-member status when available; fall back to parent chat rollup so legacy
   // payloads (no members[]) still light up.
@@ -244,8 +248,8 @@ export const AgentRow = ({ agentId, agentName, isLead, chat, member, isSelected 
 
   // Worker rows: per-agent removal (deletes that agent's session + JSONL).
   // Lead rows: there's no "remove just the lead" operation — semantically
-  // deleting the lead == deleting the whole task, so the Trash on the lead
-  // row triggers task-level deletion. Either way we hide the Trash if the
+  // deleting the lead == deleting the whole mission, so the Trash on the lead
+  // row triggers mission-level deletion. Either way we hide the Trash if the
   // agent is currently running.
   const removable = member?.status !== 'running'
   const handleRemove = useCallback(async (e: React.MouseEvent | React.KeyboardEvent) => {
@@ -253,7 +257,7 @@ export const AgentRow = ({ agentId, agentName, isLead, chat, member, isSelected 
     if (!removable) return
     if (isLead) {
       if (!window.confirm(
-        `Delete task "${chat.title}" and all its local CLI session files?\n\nThis cannot be undone.`,
+        `Delete mission "${chat.title}" and all its local CLI session files?\n\nThis cannot be undone.`,
       )) return
       try {
         const result = await deleteChatWithJsonl(chat.id)
@@ -269,7 +273,7 @@ export const AgentRow = ({ agentId, agentName, isLead, chat, member, isSelected 
       }
       return
     }
-    if (!window.confirm(`Remove ${agentName} from this task and delete its local session file?`)) return
+    if (!window.confirm(`Remove ${agentName} from this mission and delete its local session file?`)) return
     try {
       const result = await removeAgentFromChat(chat.id, agentId)
       const failures = formatPurgeFailures([result.purged])
@@ -314,9 +318,9 @@ export const AgentRow = ({ agentId, agentName, isLead, chat, member, isSelected 
           onClick={handleRemove}
           onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleRemove(e) }}
           title={isLead
-            ? 'Delete task (purges local CLI session files)'
-            : 'Remove from task (deletes local session file)'}
-          aria-label={isLead ? 'Delete task' : 'Remove from task'}
+            ? 'Delete mission (purges local CLI session files)'
+            : 'Remove from mission (deletes local session file)'}
+          aria-label={isLead ? 'Delete mission' : 'Remove from mission'}
           className="absolute right-1.5 top-1/2 -translate-y-1/2 w-5 h-5 rounded flex items-center justify-center text-text-muted hover:text-red-400 hover:bg-bg-hover cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity duration-100"
         >
           <Trash size={11} />
@@ -335,10 +339,10 @@ export const CompletedRow = ({ chat, isSelected, archived, agentNames, onPin, on
   onUnarchive?: () => void
 }) => {
   const navigate = useNavigate()
-  const handleOpen = () => navigate(buildTaskOpenUrl(chat))
+  const handleOpen = () => navigate(buildMissionOpenUrl(chat))
   const handleDeleteTask = useCallback(async () => {
     if (!window.confirm(
-      `Delete task "${chat.title}" and all its local CLI session files?\n\nThis cannot be undone.`,
+      `Delete mission "${chat.title}" and all its local CLI session files?\n\nThis cannot be undone.`,
     )) return
     try {
       const result = await deleteChatWithJsonl(chat.id)
@@ -372,9 +376,9 @@ export const CompletedRow = ({ chat, isSelected, archived, agentNames, onPin, on
       </span>
       <RowHoverActions
         actions={[
-          { title: 'Pin task', onClick: onPin, children: <Pin size={11} /> },
+          { title: 'Pin mission', onClick: onPin, children: <Pin size={11} /> },
           ...(onUnarchive ? [{ title: 'Restore from archive', onClick: onUnarchive, children: <Archive size={11} /> }] : []),
-          { title: 'Delete task (purges local CLI session files)', onClick: handleDeleteTask, children: <Trash size={11} /> },
+          { title: 'Delete mission (purges local CLI session files)', onClick: handleDeleteTask, children: <Trash size={11} /> },
         ]}
       />
     </button>

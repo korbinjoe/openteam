@@ -2,17 +2,17 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useWorkspace, SIDEBAR_WIDTH_DEFAULT } from '../../contexts/WorkspaceContext'
 import { isElectron, isMacElectron } from '../../utils/env'
-import TaskSessionList from './TaskSessionList'
+import MissionSessionList from './MissionSessionList'
 import SidebarFooter, { ResourcesSection } from './SidebarFooter'
 import ResizeHandle from './ResizeHandle'
 import { PanelLeftClose, PanelLeftOpen, Plus, Handshake, Zap, Repeat, FolderGit, Settings, Search } from './icons'
 
-interface TaskSidebarProps {
+interface MissionSidebarProps {
   collapsed: boolean
 }
 
-const TaskSidebar = ({ collapsed }: TaskSidebarProps) => {
-  const { togglePanel, sidebarWidth, setSidebarWidth, openNewTask, workspaceId } = useWorkspace()
+const MissionSidebar = ({ collapsed }: MissionSidebarProps) => {
+  const { togglePanel, sidebarWidth, setSidebarWidth, openNewMission, workspaceId } = useWorkspace()
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
@@ -71,13 +71,13 @@ const TaskSidebar = ({ collapsed }: TaskSidebarProps) => {
           </button>
         </div>
 
-        {/* New Task — icon-only */}
+        {/* New Mission — icon-only */}
         <div className="py-2 flex flex-col items-center">
           <button
-            onClick={() => openNewTask()}
+            onClick={() => openNewMission()}
             className="w-8 h-8 rounded-md flex items-center justify-center text-text-primary hover:bg-bg-hover transition-colors"
-            title="New Task (⌘N)"
-            aria-label="New Task"
+            title="New Mission (⌘N)"
+            aria-label="New Mission"
           >
             <Plus size={15} />
           </button>
@@ -106,7 +106,7 @@ const TaskSidebar = ({ collapsed }: TaskSidebarProps) => {
       className="bg-bg-secondary border-r border-border-subtle flex flex-col flex-shrink-0 relative"
       style={{ width: sidebarWidth }}
     >
-      {/* Header — logo (web only) + collapse + new task button */}
+      {/* Header — logo (web only) + collapse + new mission button */}
       <div className="px-2.5 pt-2 pb-2 border-b border-border-subtle">
         <div
           className={`flex items-center gap-2 pr-2.5 pb-2 ${isMacElectron ? 'pl-[78px]' : 'pl-2.5'}`}
@@ -126,8 +126,8 @@ const TaskSidebar = ({ collapsed }: TaskSidebarProps) => {
           <button
             onClick={() => setSearchOpen((v) => !v)}
             className={`w-[22px] h-[22px] rounded-md flex items-center justify-center transition-colors ${searchOpen || query ? 'text-text-primary bg-bg-hover' : 'text-text-muted hover:bg-bg-hover hover:text-text-secondary'}`}
-            title="Search tasks (/)"
-            aria-label="Search tasks"
+            title="Search missions (/)"
+            aria-label="Search missions"
             aria-expanded={searchOpen}
           >
             <Search size={13} />
@@ -142,11 +142,11 @@ const TaskSidebar = ({ collapsed }: TaskSidebarProps) => {
           </button>
         </div>
         <button
-          onClick={() => openNewTask()}
+          onClick={() => openNewMission()}
           className="w-full flex items-center gap-2 px-2.5 py-[7px] rounded-md hover:bg-bg-hover transition-colors group"
         >
           <Plus size={14} className="text-text-primary" />
-          <span className="text-[13px] font-medium text-text-primary flex-1 text-left">New Task</span>
+          <span className="text-[13px] font-medium text-text-primary flex-1 text-left">New Mission</span>
           <span className="font-mono text-[11px] text-text-muted">⌘N</span>
         </button>
         {searchOpen && (
@@ -158,8 +158,8 @@ const TaskSidebar = ({ collapsed }: TaskSidebarProps) => {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Escape') handleCloseSearch() }}
-              placeholder="Search tasks…"
-              aria-label="Search tasks"
+              placeholder="Search missions…"
+              aria-label="Search missions"
               className="w-full bg-bg-tertiary text-[12px] text-text-primary placeholder:text-text-muted rounded-md pl-7 pr-7 py-[6px] outline-none border border-transparent focus:border-border focus:bg-bg-primary transition-colors"
             />
             <button
@@ -174,9 +174,9 @@ const TaskSidebar = ({ collapsed }: TaskSidebarProps) => {
         )}
       </div>
 
-      {/* Scrollable task list — grouped by workspace */}
+      {/* Scrollable mission list — grouped by workspace */}
       <div className="flex-1 overflow-y-auto min-h-0 px-1.5 py-1">
-        <TaskSessionList query={query} />
+        <MissionSessionList query={query} />
       </div>
 
       {/* Resources */}
@@ -219,4 +219,4 @@ const Logo = ({ size }: { size: number }) => (
   </svg>
 )
 
-export default TaskSidebar
+export default MissionSidebar

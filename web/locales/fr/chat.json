@@ -154,7 +154,7 @@
   "expertResumeCwdNotFound": "Le répertoire de travail de l'expert {{name}} n'existe plus, impossible de restaurer la session ({{message}})",
   "input": {
     "queuedCount": "{{count}} en file · envoi auto après la tâche en cours",
-    "taskInProgress": "Tâche en cours · Entrée pour mettre en file",
+    "missionInProgress": "Tâche en cours · Entrée pour mettre en file",
     "agentSwitchTitle": "{{name}} · {{shortcut}} pour changer",
     "local": "Local",
     "queueTooltip": "Ajouter à la file (envoi auto après la tâche en cours)",
@@ -225,7 +225,7 @@
   "completion": {
     "title": "Tâche terminée",
     "toolCalls": "appels",
-    "taskDone": "Tâche terminée",
+    "missionDone": "Tâche terminée",
     "toolCallsDone": "{{count}} appels d'outils effectués",
     "reviewOk": "Revue terminée, tout est OK",
     "done": "Terminé",

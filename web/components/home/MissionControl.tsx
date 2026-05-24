@@ -105,7 +105,7 @@ const MissionControl = ({ tabPhases, onSessionClick, className }: MissionControl
           </div>
           <div className="flex-1 min-w-0">
             <div className="text-[13px] font-semibold text-text-emphasis">
-              {t('attentionNeeded', { count: needsAttention, defaultValue: '{{count}} tasks need your attention' })}
+              {t('attentionNeeded', { count: needsAttention, defaultValue: '{{count}} missions need your attention' })}
             </div>
             <div className="text-[11px] text-text-secondary mt-0.5">
               {counts.waiting > 0 && t('waitingCount', { count: counts.waiting, defaultValue: '{{count}} waiting for input' })}
@@ -162,12 +162,12 @@ const MissionControl = ({ tabPhases, onSessionClick, className }: MissionControl
         </div>
       </div>
 
-      {/* Active Tasks */}
+      {/* Active Missions */}
       {activeSessions.length > 0 ? (
         <>
           <div className="flex items-center gap-2 mb-2">
             <span className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">
-              {t('activeTasks', { defaultValue: 'Active Tasks' })}
+              {t('activeTasks', { defaultValue: 'Active Missions' })}
             </span>
             <span className="flex-1 h-px bg-border-subtle/40" />
           </div>
@@ -231,7 +231,7 @@ const MissionControl = ({ tabPhases, onSessionClick, className }: MissionControl
         <div className="flex flex-col items-center gap-2 py-4 text-center">
           <Sparkles size={16} className="text-text-muted opacity-40" />
           <span className="text-[11px] text-text-muted">
-            {t('noActiveTasks', { defaultValue: 'No active tasks — start a new session below' })}
+            {t('noActiveTasks', { defaultValue: 'No active missions — start a new session below' })}
           </span>
         </div>
       )}

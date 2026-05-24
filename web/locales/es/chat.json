@@ -154,7 +154,7 @@
   "expertResumeCwdNotFound": "El directorio de trabajo del experto {{name}} ya no existe, no se puede restaurar la sesión ({{message}})",
   "input": {
     "queuedCount": "{{count}} en cola · envío automático tras tarea actual",
-    "taskInProgress": "Tarea en curso · Enter para encolar",
+    "missionInProgress": "Tarea en curso · Enter para encolar",
     "agentSwitchTitle": "{{name}} · {{shortcut}} para cambiar",
     "local": "Local",
     "queueTooltip": "Añadir a la cola (envío automático tras tarea actual)",
@@ -225,7 +225,7 @@
   "completion": {
     "title": "Tarea completada",
     "toolCalls": "llamadas",
-    "taskDone": "Tarea completada",
+    "missionDone": "Tarea completada",
     "toolCallsDone": "{{count}} llamadas de herramientas completadas",
     "reviewOk": "Revisión completa, todo OK",
     "done": "Hecho",

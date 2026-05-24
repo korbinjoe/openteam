@@ -1,16 +1,16 @@
 import { createContext, useContext, useReducer, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { buildTaskUrl, buildWorkspaceUrl } from '../components/workspace/urls'
+import { buildMissionUrl, buildWorkspaceUrl } from '../components/workspace/urls'
 
 // ── Types ──
 
-export type ViewMode = 'agent' | 'task-overview'
+export type ViewMode = 'agent' | 'mission-overview'
 export type LayoutMode = 'single' | 'split' | 'quad'
 export type IdeTab = 'IDE' | 'War Room'
 const VALID_IDE_TABS: IdeTab[] = ['IDE', 'War Room']
 
 // IDE region defaults to collapsed in single mode (focus on chat),
-// expanded in split/quad mode (coordination needs task context visible)
+// expanded in split/quad mode (coordination needs mission context visible)
 const defaultIdeCollapsedFor = (mode: LayoutMode): boolean => mode === 'single'
 
 // User-resizable panel width bounds
@@ -33,10 +33,10 @@ interface WorkspaceState {
   panelCollapsed: boolean
   terminalOpen: boolean
   activeIdeTab: IdeTab
-  expandedTasks: Record<string, boolean>
+  expandedMissions: Record<string, boolean>
   commandPaletteOpen: boolean
-  newTaskOpen: boolean
-  newTaskWorkspaceId: string | null
+  newMissionOpen: boolean
+  newMissionWorkspaceId: string | null
   addAgentOpen: boolean
   addAgentTaskId: string | null
   ideCollapsed: boolean
@@ -50,13 +50,13 @@ interface WorkspaceContextValue extends WorkspaceState {
   workspaceId: string | null
   activeChatId: string | null
   selectedAgentId: string | null
-  /** Derived: 'agent' when selectedAgentId is set, 'task-overview' otherwise. */
+  /** Derived: 'agent' when selectedAgentId is set, 'mission-overview' otherwise. */
   viewMode: ViewMode
   /** Alias for activeChatId — preserved so legacy consumers keep compiling. */
-  selectedTaskId: string | null
+  selectedMissionId: string | null
 
-  // Transient per-task target index for @target cycle in group chat input.
-  taskChatTargetIndex: number
+  // Transient per-mission target index for @target cycle in group chat input.
+  missionChatTargetIndex: number
   cycleTargetAgent: (agentCount: number) => void
 
   /** DOM node where V2 IDEPanel wants ChatInstance's RightPanel to portal. Null when
@@ -66,7 +66,7 @@ interface WorkspaceContextValue extends WorkspaceState {
 
   // Navigation helpers — all write to the URL, never to local state.
   selectAgent: (agentId: string) => void
-  openTaskOverview: (taskId: string) => void
+  openMissionOverview: (missionId: string) => void
 
   setLayoutMode: (mode: LayoutMode) => void
   cycleLayoutMode: () => void
@@ -75,12 +75,12 @@ interface WorkspaceContextValue extends WorkspaceState {
   expandPanel: () => void
   toggleTerminal: () => void
   setIdeTab: (tab: IdeTab) => void
-  toggleTask: (taskId: string) => void
+  toggleMission: (missionId: string) => void
   openCommandPalette: () => void
   closeCommandPalette: () => void
-  openNewTask: (workspaceId?: string) => void
-  closeNewTask: () => void
-  openAddAgent: (taskId: string) => void
+  openNewMission: (workspaceId?: string) => void
+  closeNewMission: () => void
+  openAddAgent: (missionId: string) => void
   closeAddAgent: () => void
   toggleIde: () => void
   setSidebarWidth: (w: number) => void
@@ -103,12 +103,12 @@ type Action =
   | { type: 'EXPAND_PANEL' }
   | { type: 'TOGGLE_TERMINAL' }
   | { type: 'SET_IDE_TAB'; tab: IdeTab }
-  | { type: 'TOGGLE_TASK'; taskId: string }
+  | { type: 'TOGGLE_MISSION'; missionId: string }
   | { type: 'OPEN_COMMAND_PALETTE' }
   | { type: 'CLOSE_COMMAND_PALETTE' }
-  | { type: 'OPEN_NEW_TASK'; workspaceId?: string | null }
-  | { type: 'CLOSE_NEW_TASK' }
-  | { type: 'OPEN_ADD_AGENT'; taskId: string }
+  | { type: 'OPEN_NEW_MISSION'; workspaceId?: string | null }
+  | { type: 'CLOSE_NEW_MISSION' }
+  | { type: 'OPEN_ADD_AGENT'; missionId: string }
   | { type: 'CLOSE_ADD_AGENT' }
   | { type: 'TOGGLE_IDE' }
   | { type: 'SET_SIDEBAR_WIDTH'; width: number }
@@ -142,8 +142,8 @@ const reducer = (state: WorkspaceState, action: Action): WorkspaceState => {
     case 'SET_IDE_TAB':
       return { ...state, activeIdeTab: action.tab }
 
-    case 'TOGGLE_TASK':
-      return { ...state, expandedTasks: { ...state.expandedTasks, [action.taskId]: !state.expandedTasks[action.taskId] } }
+    case 'TOGGLE_MISSION':
+      return { ...state, expandedMissions: { ...state.expandedMissions, [action.missionId]: !state.expandedMissions[action.missionId] } }
 
     case 'OPEN_COMMAND_PALETTE':
       return { ...state, commandPaletteOpen: true }
@@ -151,19 +151,19 @@ const reducer = (state: WorkspaceState, action: Action): WorkspaceState => {
     case 'CLOSE_COMMAND_PALETTE':
       return { ...state, commandPaletteOpen: false }
 
-    case 'OPEN_NEW_TASK':
+    case 'OPEN_NEW_MISSION':
       return {
         ...state,
-        newTaskOpen: true,
-        newTaskWorkspaceId: action.workspaceId ?? null,
+        newMissionOpen: true,
+        newMissionWorkspaceId: action.workspaceId ?? null,
         commandPaletteOpen: false,
       }
 
-    case 'CLOSE_NEW_TASK':
-      return { ...state, newTaskOpen: false, newTaskWorkspaceId: null }
+    case 'CLOSE_NEW_MISSION':
+      return { ...state, newMissionOpen: false, newMissionWorkspaceId: null }
 
     case 'OPEN_ADD_AGENT':
-      return { ...state, addAgentOpen: true, addAgentTaskId: action.taskId }
+      return { ...state, addAgentOpen: true, addAgentTaskId: action.missionId }
 
     case 'CLOSE_ADD_AGENT':
       return { ...state, addAgentOpen: false, addAgentTaskId: null }
@@ -206,10 +206,10 @@ const defaultState: WorkspaceState = {
   panelCollapsed: false,
   terminalOpen: true,
   activeIdeTab: 'IDE',
-  expandedTasks: {},
+  expandedMissions: {},
   commandPaletteOpen: false,
-  newTaskOpen: false,
-  newTaskWorkspaceId: null,
+  newMissionOpen: false,
+  newMissionWorkspaceId: null,
   addAgentOpen: false,
   addAgentTaskId: null,
   ideCollapsed: false,
@@ -226,8 +226,8 @@ const loadPersistedState = (): Partial<WorkspaceState> => {
     // Strip legacy keys that are now URL-driven; ignore unknown shapes silently.
     delete parsed.viewMode
     delete parsed.selectedAgentId
-    delete parsed.selectedTaskId
-    delete parsed.taskChatTargetIndex
+    delete parsed.selectedMissionId
+    delete parsed.missionChatTargetIndex
     delete parsed.workspaceId
     delete parsed.activeChatId
     return parsed as Partial<WorkspaceState>
@@ -266,10 +266,10 @@ export const WorkspaceProvider = ({
   const navigate = useNavigate()
 
   // viewMode is purely derived from the URL-driven selectedAgentId.
-  const viewMode: ViewMode = selectedAgentId ? 'agent' : 'task-overview'
+  const viewMode: ViewMode = selectedAgentId ? 'agent' : 'mission-overview'
 
-  // Transient @target cycle index, reset whenever the task changes.
-  const [taskChatTargetIndex, setTaskChatTargetIndex] = useState(0)
+  // Transient @target cycle index, reset whenever the mission changes.
+  const [missionChatTargetIndex, setTaskChatTargetIndex] = useState(0)
   useEffect(() => { setTaskChatTargetIndex(0) }, [activeChatId])
   const cycleTargetAgent = useCallback((agentCount: number) => {
     if (agentCount <= 0) return
@@ -282,25 +282,25 @@ export const WorkspaceProvider = ({
       panelCollapsed: state.panelCollapsed,
       terminalOpen: state.terminalOpen,
       activeIdeTab: state.activeIdeTab,
-      expandedTasks: state.expandedTasks,
+      expandedMissions: state.expandedMissions,
       ideCollapsed: state.ideCollapsed,
       sidebarWidth: state.sidebarWidth,
       idePanelWidth: state.idePanelWidth,
       chatSplitWidth: state.chatSplitWidth,
     }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(persisted))
-  }, [state.layoutMode, state.panelCollapsed, state.terminalOpen, state.activeIdeTab, state.expandedTasks, state.ideCollapsed, state.sidebarWidth, state.idePanelWidth, state.chatSplitWidth])
+  }, [state.layoutMode, state.panelCollapsed, state.terminalOpen, state.activeIdeTab, state.expandedMissions, state.ideCollapsed, state.sidebarWidth, state.idePanelWidth, state.chatSplitWidth])
 
   // Navigation helpers — these are the public API. They drive the URL, which
   // is then read back as props by the layout and threaded into this provider.
   const selectAgent = useCallback((agentId: string) => {
     if (!workspaceId || !activeChatId) return
-    navigate(buildTaskUrl(workspaceId, activeChatId, agentId))
+    navigate(buildMissionUrl(workspaceId, activeChatId, agentId))
   }, [navigate, workspaceId, activeChatId])
 
-  const openTaskOverview = useCallback((taskId: string) => {
+  const openMissionOverview = useCallback((missionId: string) => {
     if (!workspaceId) return
-    navigate(buildTaskUrl(workspaceId, taskId))
+    navigate(buildMissionUrl(workspaceId, missionId))
   }, [navigate, workspaceId])
 
   const setLayoutMode = useCallback((mode: LayoutMode) => dispatch({ type: 'SET_LAYOUT_MODE', mode }), [])
@@ -315,12 +315,12 @@ export const WorkspaceProvider = ({
     window.dispatchEvent(new CustomEvent('ide:toggle-terminal'))
   }, [])
   const setIdeTab = useCallback((tab: IdeTab) => dispatch({ type: 'SET_IDE_TAB', tab }), [])
-  const toggleTask = useCallback((taskId: string) => dispatch({ type: 'TOGGLE_TASK', taskId }), [])
+  const toggleMission = useCallback((missionId: string) => dispatch({ type: 'TOGGLE_MISSION', missionId }), [])
   const openCommandPalette = useCallback(() => dispatch({ type: 'OPEN_COMMAND_PALETTE' }), [])
   const closeCommandPalette = useCallback(() => dispatch({ type: 'CLOSE_COMMAND_PALETTE' }), [])
-  const openNewTask = useCallback((wsId?: string) => dispatch({ type: 'OPEN_NEW_TASK', workspaceId: wsId ?? null }), [])
-  const closeNewTask = useCallback(() => dispatch({ type: 'CLOSE_NEW_TASK' }), [])
-  const openAddAgent = useCallback((taskId: string) => dispatch({ type: 'OPEN_ADD_AGENT', taskId }), [])
+  const openNewMission = useCallback((wsId?: string) => dispatch({ type: 'OPEN_NEW_MISSION', workspaceId: wsId ?? null }), [])
+  const closeNewMission = useCallback(() => dispatch({ type: 'CLOSE_NEW_MISSION' }), [])
+  const openAddAgent = useCallback((missionId: string) => dispatch({ type: 'OPEN_ADD_AGENT', missionId }), [])
   const closeAddAgent = useCallback(() => dispatch({ type: 'CLOSE_ADD_AGENT' }), [])
   const toggleIde = useCallback(() => dispatch({ type: 'TOGGLE_IDE' }), [])
   const setSidebarWidth = useCallback((width: number) => dispatch({ type: 'SET_SIDEBAR_WIDTH', width }), [])
@@ -336,14 +336,14 @@ export const WorkspaceProvider = ({
     workspaceId,
     activeChatId,
     selectedAgentId,
-    selectedTaskId: activeChatId,
+    selectedMissionId: activeChatId,
     viewMode,
-    taskChatTargetIndex,
+    missionChatTargetIndex,
     cycleTargetAgent,
     ideMountNode,
     setIdeMountNode,
     selectAgent,
-    openTaskOverview,
+    openMissionOverview,
     setLayoutMode,
     cycleLayoutMode,
     togglePanel,
@@ -351,11 +351,11 @@ export const WorkspaceProvider = ({
     expandPanel,
     toggleTerminal,
     setIdeTab,
-    toggleTask,
+    toggleMission,
     openCommandPalette,
     closeCommandPalette,
-    openNewTask,
-    closeNewTask,
+    openNewMission,
+    closeNewMission,
     openAddAgent,
     closeAddAgent,
     toggleIde,
@@ -364,12 +364,12 @@ export const WorkspaceProvider = ({
     setChatSplitWidth,
   }), [
     state, workspaceId, activeChatId, selectedAgentId, viewMode,
-    taskChatTargetIndex, cycleTargetAgent,
+    missionChatTargetIndex, cycleTargetAgent,
     ideMountNode,
-    selectAgent, openTaskOverview,
+    selectAgent, openMissionOverview,
     setLayoutMode, cycleLayoutMode, togglePanel, collapsePanel, expandPanel,
-    toggleTerminal, setIdeTab, toggleTask,
-    openCommandPalette, closeCommandPalette, openNewTask, closeNewTask,
+    toggleTerminal, setIdeTab, toggleMission,
+    openCommandPalette, closeCommandPalette, openNewMission, closeNewMission,
     openAddAgent, closeAddAgent, toggleIde,
     setSidebarWidth, setIdePanelWidth, setChatSplitWidth,
   ])
@@ -384,4 +384,4 @@ export const useWorkspace = (): WorkspaceContextValue => {
 }
 
 // Re-export for callers that import via the context for convenience.
-export { buildTaskUrl, buildWorkspaceUrl }
+export { buildMissionUrl, buildWorkspaceUrl }

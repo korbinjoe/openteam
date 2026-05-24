@@ -4,7 +4,7 @@ import { useWorkspaceChats } from '../../hooks/useWorkspaceChats'
 import ChatPane from './ChatPane'
 import IDEPanel from './IDEPanel'
 import QuadAgentTile from './QuadAgentTile'
-import TaskInfoSidebar from './TaskInfoSidebar'
+import MissionInfoSidebar from './MissionInfoSidebar'
 import ResizeHandle from './ResizeHandle'
 import { Plus } from './icons'
 
@@ -48,40 +48,40 @@ const useSplitChatWidth = (): string => {
 const WorkspaceContent = () => {
   const { viewMode, layoutMode, ideCollapsed } = useWorkspace()
 
-  // Quad always tiles members of the *active task* — never cross-task chats.
-  // Independent of viewMode: when an agent is selected we still show all task
+  // Quad always tiles members of the *active mission* — never cross-mission chats.
+  // Independent of viewMode: when an agent is selected we still show all mission
   // members and highlight the selected one (MemberBackedPane handles isActive).
   if (layoutMode === 'quad') {
     return <QuadFrame ideCollapsed={ideCollapsed} />
   }
 
   // Single + split share one stable frame so ChatPane + IdeRegion keep their
-  // React positions across viewMode switches. Only TaskInfoSidebar enters/exits
+  // React positions across viewMode switches. Only MissionInfoSidebar enters/exits
   // as a keyed sibling, which lets WebIDEPanel (terminal, file tree) stay alive.
   return <UnifiedFrame viewMode={viewMode} layoutMode={layoutMode} ideCollapsed={ideCollapsed} />
 }
 
-/** Stable frame for single/split layouts. TaskInfoSidebar is the only thing
+/** Stable frame for single/split layouts. MissionInfoSidebar is the only thing
  *  that mounts/unmounts on viewMode toggle — ChatPane and IdeRegion stay put. */
 const UnifiedFrame = ({
   viewMode,
   layoutMode,
   ideCollapsed,
 }: {
-  viewMode: 'agent' | 'task-overview'
+  viewMode: 'agent' | 'mission-overview'
   layoutMode: 'single' | 'split'
   ideCollapsed: boolean
 }) => {
   const splitChatWidth = useSplitChatWidth()
-  // Task overview is the coordination view — IDE is part of the experience,
+  // Mission overview is the coordination view — IDE is part of the experience,
   // not a peripheral toggle. Force-expand it here so the user sees files /
   // changes / terminal next to the group chat.
-  const effectiveIdeCollapsed = viewMode === 'task-overview' ? false : ideCollapsed
-  const isTaskView = viewMode === 'task-overview'
+  const effectiveIdeCollapsed = viewMode === 'mission-overview' ? false : ideCollapsed
+  const isTaskView = viewMode === 'mission-overview'
 
   return (
     <div className="flex-1 flex min-h-0 overflow-hidden">
-      {isTaskView && <TaskInfoSidebar key="taskinfo" />}
+      {isTaskView && <MissionInfoSidebar key="taskinfo" />}
       <ChatColumn
         key="chat"
         layoutMode={layoutMode}
@@ -192,8 +192,8 @@ const IdeRegion = ({ mode, collapsed }: { mode: 'single' | 'split' | 'quad'; col
   )
 }
 
-/** Quad: 2×2 of the active task's agent members.
- *  No active task → guidance placeholder + empty IDE. >4 members → first 3 + "more".
+/** Quad: 2×2 of the active mission's agent members.
+ *  No active mission → guidance placeholder + empty IDE. >4 members → first 3 + "more".
  *  HiddenChatPortalSource feeds the IDE portal (MiniAgentPanes don't mount ChatInstance). */
 const QuadFrame = ({ ideCollapsed }: { ideCollapsed: boolean }) => {
   const QUAD_SIZE = 4
@@ -237,9 +237,9 @@ const QuadFrame = ({ ideCollapsed }: { ideCollapsed: boolean }) => {
 
 const NoTaskHint = () => (
   <div className="col-span-2 row-span-2 bg-bg-primary flex flex-col items-center justify-center gap-2 text-text-muted px-6 text-center">
-    <div className="text-xs text-text-secondary">No task selected</div>
+    <div className="text-xs text-text-secondary">No mission selected</div>
     <div className="text-[11px] text-text-muted max-w-[320px] leading-relaxed">
-      Quad shows the agents of the active task side-by-side. Pick a task from the sidebar to populate this view.
+      Quad shows the agents of the active mission side-by-side. Pick a mission from the sidebar to populate this view.
     </div>
   </div>
 )
@@ -247,7 +247,7 @@ const NoTaskHint = () => (
 const AddAgentSlot = ({ onClick }: { onClick?: () => void }) => (
   <button
     type="button"
-    aria-label="Add agent to this task"
+    aria-label="Add agent to this mission"
     onClick={onClick}
     disabled={!onClick}
     className="bg-bg-primary flex items-center justify-center text-text-muted text-[11px] hover:bg-bg-hover hover:text-text-secondary transition-colors group disabled:opacity-50 disabled:cursor-not-allowed"

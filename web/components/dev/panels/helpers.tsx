@@ -24,7 +24,7 @@ export const chatStatusColor = (status: string) => {
   }
 }
 
-export const taskStatusColor = (status: string) => {
+export const missionStatusColor = (status: string) => {
   switch (status) {
     case 'success': case 'completed': return 'text-green-400'
     case 'running': return 'text-yellow-400'

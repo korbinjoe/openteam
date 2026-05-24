@@ -4,11 +4,11 @@ import type { Message } from '../types/chat'
 /**
  * Per-agent message store for a chat.
  *
- * A Task (chat) hosts N independent agent conversations, each mapping 1:1 to a
+ * A Mission (chat) hosts N independent agent conversations, each mapping 1:1 to a
  * Claude/Codex JSONL session. We keep them in separate slots so that:
  *   - Single-agent surfaces (Quad tile, agent-locked URL) read one slot directly
  *     and are guaranteed not to bleed into another agent's stream.
- *   - The aggregate Task view merges by timestamp without losing per-agent
+ *   - The aggregate Mission view merges by timestamp without losing per-agent
  *     ordering or threading.
  */
 
@@ -26,7 +26,7 @@ export interface AgentMessagesAPI {
   updateAgent: (agentId: string, updater: (prev: Message[]) => Message[]) => void
   /** Read snapshot for an agent slot (empty array if absent). */
   getAgentMessages: (agentId: string) => Message[]
-  /** All messages flattened and timestamp-sorted — for aggregate Task view. */
+  /** All messages flattened and timestamp-sorted — for aggregate Mission view. */
   mergedMessages: Message[]
 }
 

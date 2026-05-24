@@ -155,7 +155,7 @@
   "expertResumeCwdNotFound": "专家 {{name}} 的原始工作目录已不存在，无法恢复会话（{{message}}）",
   "input": {
     "queuedCount": "已排队 {{count}} 条 · 当前任务完成后自动发送",
-    "taskInProgress": "当前任务进行中 · Enter 加入队列",
+    "missionInProgress": "当前任务进行中 · Enter 加入队列",
     "agentSwitchTitle": "{{name}} · {{shortcut}} 切换",
     "local": "本地",
     "queueTooltip": "加入队列（当前任务完成后自动发送）",
@@ -226,7 +226,7 @@
   "completion": {
     "title": "任务完成",
     "toolCalls": "次调用",
-    "taskDone": "已完成任务",
+    "missionDone": "已完成任务",
     "toolCallsDone": "完成了 {{count}} 次工具调用",
     "reviewOk": "审查完成，一切 OK",
     "done": "完成",

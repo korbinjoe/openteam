@@ -36,8 +36,8 @@ export interface RecentChat {
   status: string
   lastMessageAt: string
   activity?: ChatActivity
-  taskStatus?: string
-  taskSummary?: {
+  missionStatus?: string
+  missionSummary?: {
     lastMessage?: string
     errorMessage?: string
     durationSec?: number

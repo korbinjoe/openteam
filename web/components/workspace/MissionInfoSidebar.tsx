@@ -1,15 +1,15 @@
 import { useMemo } from 'react'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
-import { useTask } from '../../hooks/useTask'
+import { useMission } from '../../hooks/useMission'
 import { useAgents } from '../../hooks/useAgents'
 import { useWhiteboard } from '../../hooks/useWhiteboard'
 import { useWorkspaceMeta } from '../../hooks/useWorkspaceMeta'
 import { Plus } from './icons'
 import { cn } from '../../lib/utils'
-import { memberStatusDot } from './TaskSessionRows'
+import { memberStatusDot } from './MissionSessionRows'
 import type { WhiteboardEntry, WhiteboardEntryType } from '@shared/whiteboard-types'
 
-// Whiteboard entry types we surface in the per-task timeline. Picks the signals
+// Whiteboard entry types we surface in the per-mission timeline. Picks the signals
 // a returning user needs to see at a glance: who-handed-off-to-whom, progress
 // milestones, blockers, key decisions.
 const TIMELINE_TYPES: ReadonlySet<WhiteboardEntryType> = new Set([
@@ -30,9 +30,9 @@ const formatTime = (iso: string): string => {
   return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 }
 
-const TaskInfoSidebar = () => {
+const MissionInfoSidebar = () => {
   const { workspaceId, activeChatId, selectAgent, openAddAgent } = useWorkspace()
-  const { chat, members } = useTask(activeChatId)
+  const { chat, members } = useMission(activeChatId)
   const { agentNames } = useAgents()
   const { meta } = useWorkspaceMeta(workspaceId)
   const { goal, active: whiteboardEntries } = useWhiteboard(activeChatId ?? undefined)
@@ -54,7 +54,7 @@ const TaskInfoSidebar = () => {
   if (!chat) {
     return (
       <div className="w-[220px] border-r border-border-subtle flex flex-col overflow-y-auto flex-shrink-0 bg-bg-secondary p-3">
-        <div className="text-[12px] text-text-muted">No task selected.</div>
+        <div className="text-[12px] text-text-muted">No mission selected.</div>
       </div>
     )
   }
@@ -145,4 +145,4 @@ const SectionLabel = ({ children }: { children: React.ReactNode }) => (
   <div className="text-[10px] font-bold uppercase tracking-wide text-text-muted mb-1.5">{children}</div>
 )
 
-export default TaskInfoSidebar
+export default MissionInfoSidebar

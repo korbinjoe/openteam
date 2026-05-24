@@ -6,24 +6,25 @@ import { useCallback, useMemo, useState } from 'react'
 // a network fetch before growing the slice.
 const INITIAL_VISIBLE = 10
 const PAGE_STEP = 10
+import { API_BASE, authFetch } from '@/config/api'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { useAllChats } from '../../hooks/useAllChats'
 import { useAgents } from '../../hooks/useAgents'
-import { useTaskPinArchive } from '../../hooks/useTaskPinArchive'
+import { useMissionPinArchive } from '../../hooks/useMissionPinArchive'
 import { useExternalCwds, type UnmatchedExternalDir } from '../../hooks/useExternalCwds'
 import { useWorkspaceExternalSessions } from '../../hooks/useWorkspaceExternalSessions'
 import { useExternalCwdSessions, type ExternalSession } from '../../hooks/useExternalCwdSessions'
 import { ChevronDown, ChevronRight, FolderGit, Folder, Plus, Archive } from './icons'
 import type { Chat } from './types'
-import { TaskRow, CompletedRow } from './TaskSessionRows'
+import { MissionRow, CompletedRow } from './MissionSessionRows'
 import { ExternalSessionRow } from './ExternalSessionRow'
 
-interface TaskSessionListProps {
+interface MissionSessionListProps {
   query?: string
 }
 
-const TaskSessionList = ({ query = '' }: TaskSessionListProps) => {
-  const { workspaceId, activeChatId, openAddAgent, openNewTask } = useWorkspace()
+const MissionSessionList = ({ query = '' }: MissionSessionListProps) => {
+  const { workspaceId, activeChatId, openAddAgent, openNewMission } = useWorkspace()
   const { chats, workspaces, loading } = useAllChats()
   const { unmatchedDirs } = useExternalCwds()
   const { agentNames } = useAgents()
@@ -31,7 +32,7 @@ const TaskSessionList = ({ query = '' }: TaskSessionListProps) => {
   const q = query.trim().toLowerCase()
   const isSearching = q.length > 0
 
-  const { pinnedIds, pinnedAt, archivedIds, togglePin, toggleArchive, archiveAll } = useTaskPinArchive(workspaceId ?? '__all__', chats)
+  const { pinnedIds, pinnedAt, archivedIds, togglePin, toggleArchive, archiveAll } = useMissionPinArchive(workspaceId ?? '__all__', chats)
   // Session-local expansion only. Default-collapsed so the sidebar opens as a
   // scannable index rather than a wall of nested rows; the active workspace
   // (the one holding the current chat) auto-opens to preserve context.
@@ -71,8 +72,8 @@ const TaskSessionList = ({ query = '' }: TaskSessionListProps) => {
   if (workspaces.length === 0 && visibleUnmatched.length === 0) {
     return (
       <div className="px-3 py-6 text-center">
-        <div className="text-[11px] text-text-secondary mb-1">No tasks yet</div>
-        <div className="text-[10px] text-text-muted leading-relaxed">Create one with ⌘N or the New Task button.</div>
+        <div className="text-[11px] text-text-secondary mb-1">No missions yet</div>
+        <div className="text-[10px] text-text-muted leading-relaxed">Create one with ⌘N or the New Mission button.</div>
       </div>
     )
   }
@@ -117,7 +118,7 @@ const TaskSessionList = ({ query = '' }: TaskSessionListProps) => {
             onArchive={toggleArchive}
             onArchiveAll={archiveAll}
             onAddAgent={openAddAgent}
-            onNewTask={openNewTask}
+            onNewTask={openNewMission}
           />
         )
       })}
@@ -135,7 +136,7 @@ const TaskSessionList = ({ query = '' }: TaskSessionListProps) => {
 
       {isSearching && !hasMatches && (
         <div className="px-3 py-6 text-center">
-          <div className="text-[11px] text-text-secondary mb-1">No matching tasks</div>
+          <div className="text-[11px] text-text-secondary mb-1">No matching missions</div>
           <div className="text-[10px] text-text-muted">Try a different keyword.</div>
         </div>
       )}
@@ -174,6 +175,7 @@ const WorkspaceGroup = ({
   onNewTask: (workspaceId: string) => void
 }) => {
   const { sessions, hasMore, loading, loadMore, hide } = useWorkspaceExternalSessions(wsId, expanded)
+  const [archivingAll, setArchivingAll] = useState(false)
   const isSearching = query.length > 0
   // Workspace name match keeps every chat under it; otherwise filter by title.
   const chatMatches = useCallback((c: Chat): boolean => {
@@ -223,6 +225,66 @@ const WorkspaceGroup = ({
   const [archivedOpen, setArchivedOpen] = useState<boolean>(false)
   const showArchived = isSearching ? archivedChats.length > 0 : archivedOpen
 
+  // Pull every unadopted external session for this workspace, paging the
+  // server until the cursor runs out. Sidebar lazy-loads only the first page,
+  // so archive-all must explicitly drain the rest before adopting — otherwise
+  // unloaded sessions stay live and reappear on next expand.
+  const fetchAllUnadopted = useCallback(async (): Promise<ExternalSession[]> => {
+    const all: ExternalSession[] = []
+    let cursor: number | null = null
+    for (;;) {
+      const params = new URLSearchParams()
+      params.set('limit', '100')
+      if (cursor !== null) params.set('cursor', String(cursor))
+      const url = `${API_BASE}/api/workspaces/${encodeURIComponent(wsId)}/external-sessions?${params}`
+      const res = await authFetch(url)
+      if (!res.ok) break
+      const body = (await res.json()) as { sessions: ExternalSession[]; nextCursor: number | null; hasMore: boolean }
+      all.push(...body.sessions)
+      if (!body.hasMore || body.nextCursor === null) break
+      cursor = body.nextCursor
+    }
+    return all
+  }, [wsId])
+
+  // Adopt sessions in parallel, returning their newly assigned chat IDs.
+  // Adoption is idempotent server-side; failures are skipped so a single bad
+  // session does not block the batch.
+  const adoptAllSessions = useCallback(async (toAdopt: ExternalSession[]): Promise<string[]> => {
+    const results = await Promise.all(toAdopt.map(async (s) => {
+      try {
+        const res = await authFetch(
+          `${API_BASE}/api/external-sessions/${encodeURIComponent(s.id)}/adopt`,
+          { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' },
+        )
+        if (!res.ok) return null
+        const { chatId } = (await res.json()) as { chatId: string }
+        hide(s.id)
+        return chatId
+      } catch {
+        return null
+      }
+    }))
+    return results.filter((id): id is string => id !== null)
+  }, [hide])
+
+  const handleArchiveAllClick = useCallback(async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (archivingAll) return
+    const nativeIds = [...activeChats, ...pinnedChats].map((c) => c.id)
+    setArchivingAll(true)
+    try {
+      const allSessions = await fetchAllUnadopted()
+      const adoptedIds = allSessions.length > 0 ? await adoptAllSessions(allSessions) : []
+      if (adoptedIds.length > 0) {
+        window.dispatchEvent(new Event('openteam:chat-created'))
+      }
+      onArchiveAll([...nativeIds, ...adoptedIds])
+    } finally {
+      setArchivingAll(false)
+    }
+  }, [archivingAll, activeChats, pinnedChats, fetchAllUnadopted, adoptAllSessions, onArchiveAll])
+
   // Two-stage Load more: first consume already-fetched items, then fetch the
   // next external page once the local slice is exhausted. Keeps the click
   // cheap for the common case where the user just wants the next 10 rows.
@@ -257,22 +319,19 @@ const WorkspaceGroup = ({
         </button>
         <button
           onClick={(e) => { e.stopPropagation(); onNewTask(wsId) }}
-          title={`New task in ${name} (⌘N)`}
-          aria-label={`New task in ${name}`}
+          title={`New mission in ${name} (⌘N)`}
+          aria-label={`New mission in ${name}`}
           className="w-[18px] h-[18px] rounded flex items-center justify-center text-text-muted opacity-0 group-hover:opacity-100 hover:bg-bg-hover hover:text-text-primary transition-opacity flex-shrink-0"
         >
           <Plus size={11} />
         </button>
-        {activeChats.length + pinnedChats.length > 0 && (
+        {activeChats.length + pinnedChats.length + sessions.length > 0 && (
           <button
-            onClick={(e) => {
-              e.stopPropagation()
-              const ids = [...activeChats, ...pinnedChats].map((c) => c.id)
-              onArchiveAll(ids)
-            }}
-            title={`Archive all tasks in ${name}`}
-            aria-label={`Archive all tasks in ${name}`}
-            className="w-[18px] h-[18px] rounded flex items-center justify-center text-text-muted opacity-0 group-hover:opacity-100 hover:bg-bg-hover hover:text-text-primary transition-opacity flex-shrink-0"
+            onClick={(e) => { void handleArchiveAllClick(e) }}
+            disabled={archivingAll}
+            title={`Archive all missions in `}
+            aria-label={`Archive all missions in `}
+            className="w-[18px] h-[18px] rounded flex items-center justify-center text-text-muted opacity-0 group-hover:opacity-100 hover:bg-bg-hover hover:text-text-primary transition-opacity flex-shrink-0 disabled:opacity-50 disabled:cursor-progress"
           >
             <Archive size={11} />
           </button>
@@ -283,7 +342,7 @@ const WorkspaceGroup = ({
           {pinnedChats.length > 0 && (
             <div className="flex flex-col gap-0.5 pb-1 mb-0.5 border-b border-border/30">
               {pinnedChats.map((c) => (
-                <TaskRow
+                <MissionRow
                   key={`p:${c.id}`}
                   chat={c}
                   isSelected={activeChatId === c.id}
@@ -298,11 +357,11 @@ const WorkspaceGroup = ({
           )}
           {items.length === 0 && pinnedChats.length === 0 && archivedChats.length === 0 ? (
             <div className="px-3 py-1 text-[10px] text-text-muted italic">
-              {isSearching ? 'No matching tasks' : 'No sessions'}
+              {isSearching ? 'No matching missions' : 'No sessions'}
             </div>
           ) : visibleItems.map((it) => (
             it.kind === 'chat' ? (
-              <TaskRow
+              <MissionRow
                 key={`c:${it.chat.id}`}
                 chat={it.chat}
                 isSelected={activeChatId === it.chat.id}
@@ -508,4 +567,4 @@ const ExternalCwdGroup = ({ cwd, count, expanded, onToggle, onPin, onArchive, on
   )
 }
 
-export default TaskSessionList
+export default MissionSessionList

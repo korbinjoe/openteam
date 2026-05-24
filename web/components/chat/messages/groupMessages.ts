@@ -65,7 +65,7 @@ export function groupMessages(messages: Message[]): MessageGroup[] {
       if (currentGroup && currentGroup.agentId === msg.agentId) {
         currentGroup.agentMessages.push(msg)
       } else {
-        // The merged Task view interleaves messages from agents running in
+        // The merged Mission view interleaves messages from agents running in
         // parallel, so the current group often belongs to a different agent.
         // Attach to the most recent group bound to this agent (the one that
         // the user kicked off); otherwise open a new orphan group rather than

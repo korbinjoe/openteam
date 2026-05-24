@@ -90,7 +90,7 @@ const ChatInstance = ({ chatId, workspaceId, isActive, isNewChat = false, initAg
   const { t } = useTranslation(['chat', 'common'])
   const navigate = useNavigate()
   const { updateTabTitle, updateTabStatus } = useChatTabs()
-  // URL-derived single-agent lock: when /workspace/:ws/task/:task?agent=:id is
+  // URL-derived single-agent lock: when /workspace/:ws/mission/:mission?agent=:id is
   // active, the workspace pins the conversation to one agent. All cross-agent
   // affordances (mention menu, agent switcher, etc.) must be hidden inside this
   // view — talking to a different agent there means leaving the 1:1 surface.
@@ -125,7 +125,7 @@ const ChatInstance = ({ chatId, workspaceId, isActive, isNewChat = false, initAg
   }, [singleAgentMode, lockedAgent, targetAgentId, setTargetAgentId])
 
   // V2: an agent route (?agent=X) is a 1:1 conversation. The chat body must
-  // show only that agent's groups, otherwise switching agents inside a task
+  // show only that agent's groups, otherwise switching agents inside a mission
   // reveals the same merged stream and the 1:1 promise breaks.
   const lockedAgentKey = lockedAgent?.id ?? lockedAgent?.name ?? null
 
@@ -177,7 +177,7 @@ const ChatInstance = ({ chatId, workspaceId, isActive, isNewChat = false, initAg
 
   // Single-agent surfaces (Quad tile, ?agent=X route) and the toolbar agent
   // filter read their slot directly so cross-agent traffic is excluded at the
-  // source; the aggregate Task view falls back to the merged, timestamp-sorted
+  // source; the aggregate Mission view falls back to the merged, timestamp-sorted
   // stream. ChatBody no longer needs a post-hoc filter pass.
   const visibleMessages = useMemo(() => {
     if (singleAgentMode && lockedAgentKey) return agentMessages[lockedAgentKey] ?? []

@@ -154,7 +154,7 @@
   "expertResumeCwdNotFound": "O diretório de trabalho do especialista {{name}} não existe mais, não é possível restaurar a sessão ({{message}})",
   "input": {
     "queuedCount": "{{count}} na fila · envio automático após tarefa atual",
-    "taskInProgress": "Tarefa em andamento · Enter para enfileirar",
+    "missionInProgress": "Tarefa em andamento · Enter para enfileirar",
     "agentSwitchTitle": "{{name}} · {{shortcut}} para trocar",
     "local": "Local",
     "queueTooltip": "Adicionar à fila (envio automático após tarefa atual)",
@@ -225,7 +225,7 @@
   "completion": {
     "title": "Tarefa concluída",
     "toolCalls": "chamadas",
-    "taskDone": "Tarefa concluída",
+    "missionDone": "Tarefa concluída",
     "toolCallsDone": "{{count}} chamadas de ferramentas concluídas",
     "reviewOk": "Revisão concluída, tudo OK",
     "done": "Concluído",

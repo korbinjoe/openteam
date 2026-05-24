@@ -55,7 +55,7 @@ const ChatBody = ({
     return (
       <div>
         {group.userMessage ? <UserMessage message={group.userMessage} /> : (
-          <div style={{ padding: '8px 16px 2px', fontSize: 11, color: 'rgb(var(--text-muted))' }}>Agent Task Progress</div>
+          <div style={{ padding: '8px 16px 2px', fontSize: 11, color: 'rgb(var(--text-muted))' }}>Agent Mission Progress</div>
         )}
         <AgentTurnCard
           group={group}

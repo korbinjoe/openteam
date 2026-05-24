@@ -72,8 +72,8 @@ const WarRoomContent = () => {
     return (
       <div className="flex items-center justify-center h-full px-4 py-6 text-center">
         <div>
-          <div className="text-[11px] font-medium text-text-secondary mb-1">No active task</div>
-          <div className="text-[10px] text-text-muted leading-relaxed">War-room appears once a task is selected.</div>
+          <div className="text-[11px] font-medium text-text-secondary mb-1">No active mission</div>
+          <div className="text-[10px] text-text-muted leading-relaxed">War-room appears once a mission is selected.</div>
         </div>
       </div>
     )

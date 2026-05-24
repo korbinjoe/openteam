@@ -4,7 +4,7 @@ import ChatInstance from '../chat/ChatInstance'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { useAgents } from '../../hooks/useAgents'
 import { cn } from '../../lib/utils'
-import { buildTaskUrl } from './urls'
+import { buildMissionUrl } from './urls'
 import { Maximize } from './icons'
 import type { Chat, ChatMember } from './types'
 
@@ -31,7 +31,7 @@ interface Props {
   shortcutKey?: string
 }
 
-/** Quad cell: a real ChatInstance scoped to one agent of the active task.
+/** Quad cell: a real ChatInstance scoped to one agent of the active mission.
  *  Uses ChatInstance.agentScopeOverride to lock the conversation to this member,
  *  independent of the workspace-level selectedAgentId. */
 const QuadAgentTile = ({ member, parentChat, shortcutKey }: Props) => {
@@ -46,12 +46,12 @@ const QuadAgentTile = ({ member, parentChat, shortcutKey }: Props) => {
 
   const handleFocus = useCallback(() => {
     if (!workspaceId) return
-    navigate(buildTaskUrl(workspaceId, parentChat.id, member.agentId))
+    navigate(buildMissionUrl(workspaceId, parentChat.id, member.agentId))
   }, [workspaceId, parentChat.id, member.agentId, navigate])
 
   const handleZoom = useCallback(() => {
     if (!workspaceId) return
-    navigate(buildTaskUrl(workspaceId, parentChat.id, member.agentId))
+    navigate(buildMissionUrl(workspaceId, parentChat.id, member.agentId))
     setLayoutMode('single')
   }, [workspaceId, parentChat.id, member.agentId, navigate, setLayoutMode])
 

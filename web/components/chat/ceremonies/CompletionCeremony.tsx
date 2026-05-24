@@ -29,7 +29,7 @@ const buildContributionSummary = (
   const isDetailed = personality?.verbosity === 'detailed'
 
   if (!personality) {
-    if (tools === 0) return t('completion.taskDone')
+    if (tools === 0) return t('completion.missionDone')
     return t('completion.toolCallsDone', { count: tools })
   }
 

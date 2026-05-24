@@ -32,8 +32,8 @@ interface AgentSession {
   currentTask?: string
   lastHeartbeatAt?: string
   history: {
-    tasksCompleted: number
-    tasksFailed: number
+    missionsCompleted: number
+    missionsFailed: number
     lastActiveAt?: string
   }
 }
@@ -312,7 +312,7 @@ const MultiAgentPanel = () => {
                       </StatusTag>
                     </td>
                     <td className="py-1.5 pr-3 text-text-secondary">{session.currentTask || '-'}</td>
-                    <td className="py-1.5 text-text-secondary">{session.history.tasksCompleted}/{session.history.tasksFailed}</td>
+                    <td className="py-1.5 text-text-secondary">{session.history.missionsCompleted}/{session.history.missionsFailed}</td>
                   </tr>
                 ))}
               </tbody>

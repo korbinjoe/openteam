@@ -1,17 +1,24 @@
 # OpenTeam
 
-**Run a full AI engineering team from your laptop.**
+**Build your AI agent team in minutes — powered by Claude Code, Codex, and any CLI you plug in.**
 
-One person dispatches tasks to multiple AI coding agents running in parallel — then walks away. Come back to review diffs, approve commits, ship.
+Declare roles, models, and skills in a single `openteam.json` and you've got a working team. Each agent runs on the AI CLI of your choice — **Claude Code**, **Codex**, or any backend you plug in — so you keep your existing tools, prompts, and credits.
+
+Dispatch tasks in parallel, walk away, come back to batch-review. One human, the output of a small company.
 
 ![Demo GIF](./docs/assets/demo.gif)
 <!-- TODO: Replace with actual demo GIF once recorded -->
 
 ## Why OpenTeam?
 
-You already use Claude Code or Codex. But you're stuck running one agent at a time — context-switching, waiting, babysitting.
+You already use Claude Code or Codex. But you're stuck running one agent at a time — context-switching, waiting, babysitting. And every "AI team" product locks you into their backend.
 
-OpenTeam gives you a **Web IDE that orchestrates multiple agents simultaneously**:
+OpenTeam flips both:
+
+- 🚀 **Stand up a team in minutes** — one config file, ready-to-run roles (Lead, Fullstack, Reviewer, …), or roll your own
+- 🔌 **Bring your own AI CLI** — first-class **Claude Code** & **Codex** support; add a new backend by implementing two interfaces (`SessionDiscovery` + `OutputParser`)
+
+A **Web IDE that orchestrates multiple agents simultaneously**:
 
 ```
 You:   "Build the auth module, add tests, and update the docs"
@@ -71,6 +78,23 @@ npm run dev
 npx openteam serve    # Start as web service
 npx openteam          # Interactive mode
 ```
+
+## Status Indicators
+
+Every chat and agent row carries a colored dot encoding live execution state.
+The mapping is consistent across the sidebar, task list, and command palette:
+
+| Dot | State | Meaning |
+|-----|-------|---------|
+| 🔵 (pulsing) | `running` | Agent is actively executing |
+| 🟡 | `waiting` | Agent paused — waiting for your input or confirmation (e.g. tool-use approval) |
+| 🔴 | `error` | Last run failed |
+| 🟢 | `done` | Completed successfully |
+| ⚪ | `idle` / `stopped` | No active work |
+
+A task header rolls up the worst status of its members
+(`error` > `waiting` > `running` > `idle`), so a yellow task header means at
+least one agent inside is blocked on you.
 
 ## Architecture
 

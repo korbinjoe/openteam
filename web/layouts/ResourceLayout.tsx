@@ -1,26 +1,24 @@
 import { Outlet, useParams } from 'react-router-dom'
 import { WorkspaceProvider, useWorkspace } from '../contexts/WorkspaceContext'
-import TaskSidebar from '../components/workspace/TaskSidebar'
+import MissionSidebar from '../components/workspace/MissionSidebar'
 import NewChatFullDialog from '../components/chat/modals/NewChatFullDialog'
 
-/** Resource shell — same TaskSidebar chrome as the workspace view, but with
+/** Resource shell — same MissionSidebar chrome as the workspace view, but with
  *  the right pane delegated to a nested page via <Outlet />. Used for routes
- *  that show settings/agents/skills/etc. without an active task. */
+ *  that show settings/agents/skills/etc. without an active mission. */
 const ResourceLayoutInner = () => {
-  const { panelCollapsed, workspaceId, newTaskOpen, newTaskWorkspaceId, openNewTask, closeNewTask } = useWorkspace()
+  const { panelCollapsed, workspaceId, newMissionOpen, newMissionWorkspaceId, openNewMission, closeNewMission } = useWorkspace()
 
   return (
     <div className="flex h-screen bg-bg-primary overflow-hidden">
-      <TaskSidebar collapsed={panelCollapsed} />
+      <MissionSidebar collapsed={panelCollapsed} />
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <Outlet />
       </div>
       <NewChatFullDialog
-        open={newTaskOpen}
-        onOpenChange={(open) => (open ? openNewTask() : closeNewTask())}
-        currentWorkspaceId={newTaskWorkspaceId ?? workspaceId ?? undefined}
-        routePrefix="/workspace"
-        chatSegment="task"
+        open={newMissionOpen}
+        onOpenChange={(open) => (open ? openNewMission() : closeNewMission())}
+        currentWorkspaceId={newMissionWorkspaceId ?? workspaceId ?? undefined}
       />
     </div>
   )

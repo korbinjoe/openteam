@@ -7,7 +7,7 @@
   "inputPlaceholder": "Ask Claude...",
   "inputDisabled": "Connecting...",
   "history": {
-    "title": "Chat History",
+    "title": "Missions",
     "searchPlaceholder": "Search chats...",
     "filterAll": "All",
     "filterRunning": "Running",
@@ -28,9 +28,9 @@
     "WebSearch": "Web Search",
     "Grep": "Search Content",
     "Agent": "Dispatch Subtask",
-    "TaskCreate": "Create Task",
-    "TaskUpdate": "Update Task",
-    "TaskList": "Task List",
+    "TaskCreate": "Create To-do",
+    "TaskUpdate": "Update To-do",
+    "TaskList": "To-do List",
     "NotebookEdit": "Edit Notebook",
     "wait_for_expert": "Wait for expert",
     "start_expert": "Start expert",
@@ -71,9 +71,9 @@
       "WebSearch": "Searching",
       "Grep": "Searching",
       "Agent": "Dispatching",
-      "TaskCreate": "Planning",
-      "TaskUpdate": "Updating",
-      "TaskList": "Reviewing"
+      "TaskCreate": "Planning to-dos",
+      "TaskUpdate": "Updating to-do",
+      "TaskList": "Reviewing to-dos"
     },
     "showMore": "{{count}} more",
     "fileOp": {
@@ -154,8 +154,8 @@
   "expertResumeExpired": "Expert {{name}} session has expired and cannot be restored",
   "expertResumeCwdNotFound": "Expert {{name}} working directory no longer exists, cannot restore session ({{message}})",
   "input": {
-    "queuedCount": "{{count}} queued · auto-sends after current task",
-    "taskInProgress": "Task in progress · Enter to queue",
+    "queuedCount": "{{count}} queued · auto-sends after current mission",
+    "missionInProgress": "Mission in progress · Enter to queue",
     "agentSwitchTitle": "{{name}} · {{shortcut}} to switch",
     "local": "Local",
     "queueTooltip": "Add to queue (auto-sends after current task)",
@@ -224,9 +224,9 @@
     "feedbackSubmitted": "Revision feedback submitted"
   },
   "completion": {
-    "title": "Task Complete",
+    "title": "Mission Complete",
     "toolCalls": "calls",
-    "taskDone": "Task completed",
+    "missionDone": "Mission completed",
     "toolCallsDone": "Completed {{count}} tool calls",
     "reviewOk": "Review complete, all OK",
     "done": "Done",

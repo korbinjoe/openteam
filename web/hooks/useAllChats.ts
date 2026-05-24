@@ -1,8 +1,8 @@
 /**
- * useAllChats — Cross-workspace task list for the V2 sidebar.
+ * useAllChats — Cross-workspace mission list for the V2 sidebar.
  *
  * Aggregates chats from every workspace and tags each with its workspace meta
- * (id + name) so the sidebar can group tasks by workspace. Stays live via the
+ * (id + name) so the sidebar can group missions by workspace. Stays live via the
  * same chat:status-changed / chat:activity WS events used by the per-workspace
  * hook, so a status change in any workspace updates the sidebar without polling.
  */
@@ -60,9 +60,9 @@ export const useAllChats = (): V2AllChatsResult => {
     const wsClient = getWebSocketClient()
     wsClient.connect().catch(() => {})
 
-    const handleStatusChanged = ({ chatId, status, taskStatus }: { chatId: string; status: string; taskStatus?: string }) => {
+    const handleStatusChanged = ({ chatId, status, missionStatus }: { chatId: string; status: string; missionStatus?: string }) => {
       setChats((prev) => prev.map((c) => c.id === chatId
-        ? { ...c, status: status as Chat['status'], ...(taskStatus ? { taskStatus } : {}) } as Chat
+        ? { ...c, status: status as Chat['status'], ...(missionStatus ? { missionStatus } : {}) } as Chat
         : c))
     }
 
@@ -70,12 +70,12 @@ export const useAllChats = (): V2AllChatsResult => {
       const { chatId, phase } = payload
       setChats((prev) => prev.map((c) => {
         if (c.id !== chatId) return c
-        const next = { ...c } as Chat & { taskStatus?: string }
-        if (phase === 'completed') { next.status = 'stopped'; next.taskStatus = 'success' }
-        else if (phase === 'error') { next.status = 'stopped'; next.taskStatus = 'error' }
-        else if (phase === 'waiting_input') { next.status = 'idle'; next.taskStatus = 'waiting_input' }
-        else if (phase === 'waiting_confirmation') { next.status = 'idle'; next.taskStatus = 'waiting_confirm' }
-        else if (ACTIVE_PHASES.has(phase)) { next.status = 'running'; next.taskStatus = 'running' }
+        const next = { ...c } as Chat & { missionStatus?: string }
+        if (phase === 'completed') { next.status = 'stopped'; next.missionStatus = 'success' }
+        else if (phase === 'error') { next.status = 'stopped'; next.missionStatus = 'error' }
+        else if (phase === 'waiting_input') { next.status = 'idle'; next.missionStatus = 'waiting_input' }
+        else if (phase === 'waiting_confirmation') { next.status = 'idle'; next.missionStatus = 'waiting_confirm' }
+        else if (ACTIVE_PHASES.has(phase)) { next.status = 'running'; next.missionStatus = 'running' }
         return next
       }))
     }

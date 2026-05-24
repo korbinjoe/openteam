@@ -13,10 +13,10 @@ const ChatPane = () => {
   if (!activeChatId) {
     return (
       <EmptyState
-        title="No task selected"
+        title="No mission selected"
         hint={chats.length > 0
-          ? 'Pick a task from the sidebar — or press ⌘N to dispatch a new one.'
-          : 'Press ⌘N to dispatch your first task.'}
+          ? 'Pick a mission from the sidebar — or press ⌘N to dispatch a new one.'
+          : 'Press ⌘N to dispatch your first mission.'}
       />
     )
   }

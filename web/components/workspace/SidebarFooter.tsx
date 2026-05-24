@@ -1,25 +1,19 @@
 import { useNavigate } from 'react-router-dom'
-import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { useTheme } from '../../contexts/ThemeContext'
 import { History, Handshake, Zap, Repeat, FolderGit, Moon, Sun, Bell, Settings } from './icons'
 
-/** Build a URL that stays inside the workspace context when available,
- *  falling back to the top-level resource routes when no workspace is
- *  loaded (e.g. on the empty-workspace landing page). */
-const useResourcePrefix = (): string => {
-  const { workspaceId } = useWorkspace()
-  return workspaceId ? `/workspace/${workspaceId}` : ''
-}
+/** All resource pages live at single canonical top-level URLs. The sidebar
+ *  navigates with absolute paths; the active workspace context is preserved
+ *  by the shared sidebar shell rather than by URL prefix. */
 
 export const ResourcesSection = () => {
   const navigate = useNavigate()
-  const prefix = useResourcePrefix()
   return (
     <div className="px-1.5 py-1.5 border-t border-border-subtle">
-      <ResourceItem icon={<Handshake size={14} />} label="Team"       onClick={() => navigate(`${prefix}/agents`)} />
-      <ResourceItem icon={<Zap size={14} />}       label="Skills"     onClick={() => navigate(`${prefix}/skills`)} />
-      <ResourceItem icon={<Repeat size={14} />}    label="Schedules"  onClick={() => navigate(`${prefix}/cron-jobs`)} />
-      <ResourceItem icon={<FolderGit size={14} />} label="Workspaces" onClick={() => navigate(`${prefix}/workspaces`)} />
+      <ResourceItem icon={<Handshake size={14} />} label="Team"       onClick={() => navigate('/agents')} />
+      <ResourceItem icon={<Zap size={14} />}       label="Skills"     onClick={() => navigate('/skills')} />
+      <ResourceItem icon={<Repeat size={14} />}    label="Schedules"  onClick={() => navigate('/cron-jobs')} />
+      <ResourceItem icon={<FolderGit size={14} />} label="Workspaces" onClick={() => navigate('/workspaces')} />
     </div>
   )
 }
@@ -40,11 +34,10 @@ const ResourceItem = ({ icon, label, onClick }: {
 
 const SidebarFooter = () => {
   const navigate = useNavigate()
-  const prefix = useResourcePrefix()
   const { theme, toggleTheme } = useTheme()
   return (
     <div className="px-2 py-1.5 border-t border-border-subtle flex items-center gap-1">
-      <IconBtn title="History" onClick={() => navigate(`${prefix}/chats`)}><History size={14} /></IconBtn>
+      <IconBtn title="Mission History" onClick={() => navigate('/missions')}><History size={14} /></IconBtn>
       <span className="flex-1" />
       <IconBtn
         title={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
@@ -55,7 +48,7 @@ const SidebarFooter = () => {
       <IconBtn title="Notifications">
         <Bell size={14} />
       </IconBtn>
-      <IconBtn title="Settings" onClick={() => navigate(`${prefix}/settings`)}><Settings size={14} /></IconBtn>
+      <IconBtn title="Settings" onClick={() => navigate('/settings')}><Settings size={14} /></IconBtn>
     </div>
   )
 }

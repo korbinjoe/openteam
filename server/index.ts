@@ -12,6 +12,7 @@ import { writePortFile, writePidFile, removePorts } from './lib/portFile'
 
 const IS_DAEMON_FILE_OWNER = process.env.OPENTEAM_NO_PORTFILE !== '1'
 
+import './config/loadServerEnv'
 import { warmupShellPath } from './lib/resolveCliCommand'
 
 import { AgentRegistry } from './config/AgentRegistry'

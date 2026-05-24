@@ -33,7 +33,8 @@
           "architect",
           "sensei",
           "image-creator",
-          "product-strategist"
+          "product-strategist",
+          "growth-marketer"
         ]
       },
       {
@@ -118,6 +119,15 @@
         "workspace": "./ai-assets/agents/product-strategist",
         "role": "expert",
         "skills": ["playwright-cli", "whiteboard"],
+        "allowedTools": ["Read", "Write", "Edit", "Glob", "Grep", "Bash", "WebFetch", "WebSearch", "AskUserQuestion"]
+      },
+      {
+        "id": "growth-marketer",
+        "name": "Growth Marketer",
+        "description": "Promotes a given GitHub project on X. Summarises the repo, drafts an engaging tweet (or short thread), and posts it via a persistent browser session. Defaults to draft-then-approve; one post per invocation.",
+        "workspace": "./ai-assets/agents/growth-marketer",
+        "role": "expert",
+        "skills": ["x-promoter", "playwright-cli", "whiteboard"],
         "allowedTools": ["Read", "Write", "Edit", "Glob", "Grep", "Bash", "WebFetch", "WebSearch", "AskUserQuestion"]
       }
     ]

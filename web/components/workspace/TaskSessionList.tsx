@@ -13,19 +13,17 @@ import { useTaskPinArchive } from '../../hooks/useTaskPinArchive'
 import { useExternalCwds, type UnmatchedExternalDir } from '../../hooks/useExternalCwds'
 import { useWorkspaceExternalSessions } from '../../hooks/useWorkspaceExternalSessions'
 import { useExternalCwdSessions, type ExternalSession } from '../../hooks/useExternalCwdSessions'
-import { ChevronDown, ChevronRight, FolderGit, Folder } from './icons'
+import { ChevronDown, ChevronRight, FolderGit, Folder, Plus } from './icons'
 import type { Chat } from './types'
-import { loadMap, saveMap, TaskRow, CompletedRow } from './TaskSessionRows'
+import { TaskRow, CompletedRow } from './TaskSessionRows'
 import { ExternalSessionRow } from './ExternalSessionRow'
-
-const WORKSPACE_EXPANDED_KEY = 'openteam:v2-workspace-expanded'
 
 interface TaskSessionListProps {
   query?: string
 }
 
 const TaskSessionList = ({ query = '' }: TaskSessionListProps) => {
-  const { workspaceId, activeChatId, openAddAgent } = useWorkspace()
+  const { workspaceId, activeChatId, openAddAgent, openNewTask } = useWorkspace()
   const { chats, workspaces, loading } = useAllChats()
   const { unmatchedDirs } = useExternalCwds()
   const { agentNames } = useAgents()
@@ -34,18 +32,25 @@ const TaskSessionList = ({ query = '' }: TaskSessionListProps) => {
   const isSearching = q.length > 0
 
   const { pinnedIds, pinnedAt, archivedIds, togglePin, toggleArchive } = useTaskPinArchive(workspaceId ?? '__all__', chats)
-  const [wsExpanded, setWsExpanded] = useState<Record<string, boolean>>(
-    () => loadMap(WORKSPACE_EXPANDED_KEY),
-  )
+  // Session-local expansion only. Default-collapsed so the sidebar opens as a
+  // scannable index rather than a wall of nested rows; the active workspace
+  // (the one holding the current chat) auto-opens to preserve context.
+  const [wsExpanded, setWsExpanded] = useState<Record<string, boolean>>({})
   const [extDirExpanded, setExtDirExpanded] = useState<Record<string, boolean>>({})
 
+  const activeWorkspaceId = useMemo(() => {
+    if (!activeChatId) return null
+    return chats.find((c) => c.id === activeChatId)?.workspaceId ?? null
+  }, [activeChatId, chats])
+
+  const defaultExpanded = useCallback(
+    (wsId: string) => wsId === activeWorkspaceId,
+    [activeWorkspaceId],
+  )
+
   const toggleWorkspace = useCallback((wsId: string) => {
-    setWsExpanded((prev) => {
-      const next = { ...prev, [wsId]: !(prev[wsId] ?? true) }
-      saveMap(WORKSPACE_EXPANDED_KEY, next)
-      return next
-    })
-  }, [])
+    setWsExpanded((prev) => ({ ...prev, [wsId]: !(prev[wsId] ?? defaultExpanded(wsId)) }))
+  }, [defaultExpanded])
 
   const toggleExtDir = useCallback((cwd: string) => {
     setExtDirExpanded((prev) => ({ ...prev, [cwd]: !prev[cwd] }))
@@ -91,7 +96,7 @@ const TaskSessionList = ({ query = '' }: TaskSessionListProps) => {
   return (
     <div className="flex flex-col gap-1 pb-2">
       {renderedWorkspaces.map(({ ws, wsChats, wsNameMatches }) => {
-        const expanded = isSearching ? true : (wsExpanded[ws.id] ?? true)
+        const expanded = isSearching ? true : (wsExpanded[ws.id] ?? defaultExpanded(ws.id))
         return (
           <WorkspaceGroup
             key={ws.id}
@@ -111,6 +116,7 @@ const TaskSessionList = ({ query = '' }: TaskSessionListProps) => {
             onPin={togglePin}
             onArchive={toggleArchive}
             onAddAgent={openAddAgent}
+            onNewTask={openNewTask}
           />
         )
       })}
@@ -145,7 +151,7 @@ const WorkspaceGroup = ({
   wsId, name, chats, pinnedIds, pinnedAt, archivedIds,
   expanded, isCurrent, activeChatId, agentNames,
   query, wsNameMatches,
-  onToggle, onPin, onArchive, onAddAgent,
+  onToggle, onPin, onArchive, onAddAgent, onNewTask,
 }: {
   wsId: string
   name: string
@@ -163,6 +169,7 @@ const WorkspaceGroup = ({
   onPin: (chatId: string) => void
   onArchive: (chatId: string) => void
   onAddAgent: (chatId: string) => void
+  onNewTask: (workspaceId: string) => void
 }) => {
   const { sessions, hasMore, loading, loadMore, hide } = useWorkspaceExternalSessions(wsId, expanded)
   const isSearching = query.length > 0
@@ -230,21 +237,31 @@ const WorkspaceGroup = ({
 
   return (
     <div>
-      <button
-        onClick={onToggle}
-        className="w-full flex items-center gap-1.5 px-2 py-1 hover:bg-bg-hover/50 rounded-sm transition-colors"
-        aria-expanded={expanded}
-      >
-        <span className="text-text-muted -ml-px">
-          {expanded ? <ChevronDown size={9} /> : <ChevronRight size={9} />}
-        </span>
-        <FolderGit size={11} className={isCurrent ? 'text-text-primary' : 'text-text-muted'} />
-        <span className={`text-[11px] font-semibold truncate ${isCurrent ? 'text-text-primary' : 'text-text-secondary'}`}>{name}</span>
-        {runningCount > 0 && (
-          <span className="w-[6px] h-[6px] rounded-full bg-accent-brand animate-pulse flex-shrink-0" />
-        )}
-        <span className="ml-auto font-mono text-[10px] text-text-muted tabular-nums">{totalCount}</span>
-      </button>
+      <div className="group flex items-center gap-1 pr-1 hover:bg-bg-hover/50 rounded-sm transition-colors">
+        <button
+          onClick={onToggle}
+          className="flex-1 min-w-0 flex items-center gap-1.5 px-2 py-1"
+          aria-expanded={expanded}
+        >
+          <span className="text-text-muted -ml-px">
+            {expanded ? <ChevronDown size={9} /> : <ChevronRight size={9} />}
+          </span>
+          <FolderGit size={11} className={isCurrent ? 'text-text-primary' : 'text-text-muted'} />
+          <span className={`text-[12px] font-semibold truncate ${isCurrent ? 'text-text-primary' : 'text-text-secondary'}`}>{name}</span>
+          {runningCount > 0 && (
+            <span className="w-[6px] h-[6px] rounded-full bg-accent-brand animate-pulse flex-shrink-0" />
+          )}
+          <span className="ml-auto font-mono text-[10px] text-text-muted tabular-nums">{totalCount}</span>
+        </button>
+        <button
+          onClick={(e) => { e.stopPropagation(); onNewTask(wsId) }}
+          title={`New task in ${name} (⌘N)`}
+          aria-label={`New task in ${name}`}
+          className="w-[18px] h-[18px] rounded flex items-center justify-center text-text-muted opacity-0 group-hover:opacity-100 hover:bg-bg-hover hover:text-text-primary transition-opacity flex-shrink-0"
+        >
+          <Plus size={11} />
+        </button>
+      </div>
       {expanded && (
         <div className="flex flex-col gap-0.5">
           {pinnedChats.length > 0 && (
@@ -434,7 +451,7 @@ const ExternalCwdGroup = ({ cwd, count, expanded, onToggle, onPin, onArchive, on
           {expanded ? <ChevronDown size={9} /> : <ChevronRight size={9} />}
         </span>
         <Folder size={11} className="text-text-muted" />
-        <span className="text-[11px] font-semibold text-text-secondary truncate">{basename(cwd)}</span>
+        <span className="text-[12px] font-semibold text-text-secondary truncate">{basename(cwd)}</span>
         <span className="ml-auto font-mono text-[10px] text-text-muted tabular-nums">{count}</span>
       </button>
       {expanded && (

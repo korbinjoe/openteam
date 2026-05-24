@@ -36,6 +36,7 @@ interface WorkspaceState {
   expandedTasks: Record<string, boolean>
   commandPaletteOpen: boolean
   newTaskOpen: boolean
+  newTaskWorkspaceId: string | null
   addAgentOpen: boolean
   addAgentTaskId: string | null
   ideCollapsed: boolean
@@ -77,7 +78,7 @@ interface WorkspaceContextValue extends WorkspaceState {
   toggleTask: (taskId: string) => void
   openCommandPalette: () => void
   closeCommandPalette: () => void
-  openNewTask: () => void
+  openNewTask: (workspaceId?: string) => void
   closeNewTask: () => void
   openAddAgent: (taskId: string) => void
   closeAddAgent: () => void
@@ -105,7 +106,7 @@ type Action =
   | { type: 'TOGGLE_TASK'; taskId: string }
   | { type: 'OPEN_COMMAND_PALETTE' }
   | { type: 'CLOSE_COMMAND_PALETTE' }
-  | { type: 'OPEN_NEW_TASK' }
+  | { type: 'OPEN_NEW_TASK'; workspaceId?: string | null }
   | { type: 'CLOSE_NEW_TASK' }
   | { type: 'OPEN_ADD_AGENT'; taskId: string }
   | { type: 'CLOSE_ADD_AGENT' }
@@ -151,10 +152,15 @@ const reducer = (state: WorkspaceState, action: Action): WorkspaceState => {
       return { ...state, commandPaletteOpen: false }
 
     case 'OPEN_NEW_TASK':
-      return { ...state, newTaskOpen: true, commandPaletteOpen: false }
+      return {
+        ...state,
+        newTaskOpen: true,
+        newTaskWorkspaceId: action.workspaceId ?? null,
+        commandPaletteOpen: false,
+      }
 
     case 'CLOSE_NEW_TASK':
-      return { ...state, newTaskOpen: false }
+      return { ...state, newTaskOpen: false, newTaskWorkspaceId: null }
 
     case 'OPEN_ADD_AGENT':
       return { ...state, addAgentOpen: true, addAgentTaskId: action.taskId }
@@ -203,6 +209,7 @@ const defaultState: WorkspaceState = {
   expandedTasks: {},
   commandPaletteOpen: false,
   newTaskOpen: false,
+  newTaskWorkspaceId: null,
   addAgentOpen: false,
   addAgentTaskId: null,
   ideCollapsed: false,
@@ -311,7 +318,7 @@ export const WorkspaceProvider = ({
   const toggleTask = useCallback((taskId: string) => dispatch({ type: 'TOGGLE_TASK', taskId }), [])
   const openCommandPalette = useCallback(() => dispatch({ type: 'OPEN_COMMAND_PALETTE' }), [])
   const closeCommandPalette = useCallback(() => dispatch({ type: 'CLOSE_COMMAND_PALETTE' }), [])
-  const openNewTask = useCallback(() => dispatch({ type: 'OPEN_NEW_TASK' }), [])
+  const openNewTask = useCallback((wsId?: string) => dispatch({ type: 'OPEN_NEW_TASK', workspaceId: wsId ?? null }), [])
   const closeNewTask = useCallback(() => dispatch({ type: 'CLOSE_NEW_TASK' }), [])
   const openAddAgent = useCallback((taskId: string) => dispatch({ type: 'OPEN_ADD_AGENT', taskId }), [])
   const closeAddAgent = useCallback(() => dispatch({ type: 'CLOSE_ADD_AGENT' }), [])

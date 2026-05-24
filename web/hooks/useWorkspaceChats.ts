@@ -74,8 +74,13 @@ export const useWorkspaceChats = (workspaceId: string | null | undefined): Works
       }))
     }
 
+    const handleTitleUpdated = ({ chatId, title }: { chatId: string; title: string }) => {
+      setChats((prev) => prev.map((c) => c.id === chatId ? { ...c, title } as Chat : c))
+    }
+
     wsClient.on('chat:status-changed', handleStatusChanged)
     wsClient.on('chat:activity', handleActivity)
+    wsClient.on('chat:title-updated', handleTitleUpdated)
 
     // Poll on visibility change to catch new/deleted chats (no dedicated WS event)
     const handleVisibility = () => { if (!document.hidden) void refresh() }
@@ -96,6 +101,7 @@ export const useWorkspaceChats = (workspaceId: string | null | undefined): Works
     return () => {
       wsClient.off('chat:status-changed', handleStatusChanged)
       wsClient.off('chat:activity', handleActivity)
+      wsClient.off('chat:title-updated', handleTitleUpdated)
       document.removeEventListener('visibilitychange', handleVisibility)
       window.removeEventListener('openteam:chat-created', handleChatMutated)
       window.removeEventListener('openteam:chat-updated', handleChatMutated)

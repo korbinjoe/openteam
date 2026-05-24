@@ -7,7 +7,7 @@ import NewChatFullDialog from '../components/chat/modals/NewChatFullDialog'
  *  the right pane delegated to a nested page via <Outlet />. Used for routes
  *  that show settings/agents/skills/etc. without an active task. */
 const ResourceLayoutInner = () => {
-  const { panelCollapsed, workspaceId, newTaskOpen, openNewTask, closeNewTask } = useWorkspace()
+  const { panelCollapsed, workspaceId, newTaskOpen, newTaskWorkspaceId, openNewTask, closeNewTask } = useWorkspace()
 
   return (
     <div className="flex h-screen bg-bg-primary overflow-hidden">
@@ -18,7 +18,7 @@ const ResourceLayoutInner = () => {
       <NewChatFullDialog
         open={newTaskOpen}
         onOpenChange={(open) => (open ? openNewTask() : closeNewTask())}
-        currentWorkspaceId={workspaceId ?? undefined}
+        currentWorkspaceId={newTaskWorkspaceId ?? workspaceId ?? undefined}
         routePrefix="/workspace"
         chatSegment="task"
       />

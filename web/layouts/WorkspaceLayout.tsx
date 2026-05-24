@@ -23,6 +23,7 @@ const WorkspaceLayoutInner = () => {
     commandPaletteOpen,
     addAgentOpen,
     newTaskOpen,
+    newTaskWorkspaceId,
     openCommandPalette,
     closeCommandPalette,
     closeAddAgent,
@@ -146,7 +147,7 @@ const WorkspaceLayoutInner = () => {
       <NewChatFullDialog
         open={newTaskOpen}
         onOpenChange={(open) => (open ? openNewTask() : closeNewTask())}
-        currentWorkspaceId={workspaceId ?? undefined}
+        currentWorkspaceId={newTaskWorkspaceId ?? workspaceId ?? undefined}
         routePrefix="/workspace"
         chatSegment="task"
       />

@@ -74,7 +74,7 @@ const TaskSidebar = ({ collapsed }: TaskSidebarProps) => {
         {/* New Task — icon-only */}
         <div className="py-2 flex flex-col items-center">
           <button
-            onClick={openNewTask}
+            onClick={() => openNewTask()}
             className="w-8 h-8 rounded-md flex items-center justify-center text-text-primary hover:bg-bg-hover transition-colors"
             title="New Task (⌘N)"
             aria-label="New Task"
@@ -142,7 +142,7 @@ const TaskSidebar = ({ collapsed }: TaskSidebarProps) => {
           </button>
         </div>
         <button
-          onClick={openNewTask}
+          onClick={() => openNewTask()}
           className="w-full flex items-center gap-2 px-2.5 py-[7px] rounded-md hover:bg-bg-hover transition-colors group"
         >
           <Plus size={14} className="text-text-primary" />

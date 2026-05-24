@@ -11,11 +11,14 @@ import { silentlyIgnore } from '../lib/silentlyIgnore'
 import { createLogger } from '../lib/logger'
 import { trackEvent } from '../lib/eventTracker'
 import { cwdToClaudeProjectKey } from '../../shared/projectKey'
+import { isPlaceholderTitle } from '../../shared/placeholderTitles'
 
 const log = createLogger('Expert')
 
 type StartPayload = {
-  agentId: string; task?: string; cwd?: string
+  agentId: string; task?: string
+  images?: Array<{ data: string; mediaType: string }>
+  cwd?: string
   repositories?: Array<{ path: string }>; resumeSessionId?: string
   chatId?: string; cols?: number; rows?: number
   previousContext?: { agentName: string; lastMessage?: string; jsonlPath?: string }
@@ -59,7 +62,7 @@ export const createExpertDirectInput = (deps: ExpertDirectInputDeps) => {
 
     if (cleanMessage && chatId && !titleInProgress.has(chatId)) {
       const chat = chatStore.get(chatId)
-      if (chat && (chat.title === 'New Chat' || chat.title === 'New Session')) {
+      if (chat && isPlaceholderTitle(chat.title)) {
         titleInProgress.add(chatId)
         const truncated = cleanMessage.length > 50 ? cleanMessage.slice(0, 50) + '…' : cleanMessage
         silentlyIgnore(() => chatStore.update(chatId, { title: truncated }), 'auto-title truncated update')
@@ -154,6 +157,7 @@ export const createExpertDirectInput = (deps: ExpertDirectInputDeps) => {
     await handleStart(ws, {
       agentId,
       task: cleanMessage,
+      images,
       cwd: effectiveCwd,
       repositories: payload.repositories,
       resumeSessionId,

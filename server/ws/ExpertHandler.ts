@@ -176,7 +176,7 @@ export class ExpertHandler {
 
   async handleStart(
     ws: WebSocket,
-    payload: { agentId: string; task?: string; cwd?: string; repositories?: Array<{ path: string }>; resumeSessionId?: string; chatId?: string; cols?: number; rows?: number },
+    payload: { agentId: string; task?: string; images?: Array<{ data: string; mediaType: string }>; cwd?: string; repositories?: Array<{ path: string }>; resumeSessionId?: string; chatId?: string; cols?: number; rows?: number },
     connectionId: string,
   ): Promise<void> {
     return this.lifecycle.handleStart(ws, payload, connectionId)

@@ -79,7 +79,7 @@ export const createExpertLifecycle = (deps: ExpertLifecycleDeps) => {
 
   const handleStart = async (
     ws: WebSocket,
-    payload: { agentId: string; task?: string; cwd?: string; repositories?: Array<{ path: string }>; resumeSessionId?: string; chatId?: string; cols?: number; rows?: number; previousContext?: { agentName: string; lastMessage?: string; jsonlPath?: string } },
+    payload: { agentId: string; task?: string; images?: Array<{ data: string; mediaType: string }>; cwd?: string; repositories?: Array<{ path: string }>; resumeSessionId?: string; chatId?: string; cols?: number; rows?: number; previousContext?: { agentName: string; lastMessage?: string; jsonlPath?: string } },
     connectionId: string,
   ): Promise<void> => {
     try {
@@ -163,7 +163,7 @@ export const createExpertLifecycle = (deps: ExpertLifecycleDeps) => {
           if (!attached.cliSessionId && attached.provider !== 'codex') {
             store.setPendingTask(key, task.trim())
           } else {
-            attached.acpClient.write(task.trim())
+            attached.acpClient.write(task.trim(), payload.images)
           }
         }
         return
@@ -345,11 +345,15 @@ export const createExpertLifecycle = (deps: ExpertLifecycleDeps) => {
 
       if (task && wrappedTask) {
         const briefingInjected = wrappedTask !== task
+        const initialImages = payload.images?.map(i => ({ data: i.data, mimeType: i.mediaType }))
         if (provider === 'codex') {
+          if (initialImages?.length) {
+            log.warn('Codex provider does not support image attachments on initial task; dropping images', { agentId, imageCount: initialImages.length })
+          }
           log.debug('Codex task passed as CLI arg', { task: wrappedTask.substring(0, 50), briefingInjected })
         } else {
-          log.info('Sending task via ACP prompt', { agentId, task: task.substring(0, 50), briefingInjected })
-          acpClient.prompt(sessionId, wrappedTask).catch(err => {
+          log.info('Sending task via ACP prompt', { agentId, task: task.substring(0, 50), briefingInjected, imageCount: initialImages?.length ?? 0 })
+          acpClient.prompt(sessionId, wrappedTask, initialImages).catch(err => {
             const errorMsg = err instanceof Error ? err.message : String(err)
             log.warn('ACP initial prompt failed', { agentId, error: errorMsg })
             sendTo(connectionId, {

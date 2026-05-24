@@ -6,6 +6,7 @@ import type { AgentSummary } from '../types/agentConfig'
 import type { WebSocketClient } from '../services/WebSocketClient'
 import { sendAESEvent } from '@/lib/aes'
 import { API_BASE, authFetch } from '@/config/api'
+import { isPlaceholderTitle } from '../../shared/placeholderTitles'
 
 interface UseChatActionsParams {
   chatId: string
@@ -175,7 +176,7 @@ export const useChatActions = ({
       return
     }
 
-    if (!messages.some(m => m.role === 'user') && chatId && text && (chatTitle === 'New Chat' || chatTitle === 'New Session')) {
+    if (!messages.some(m => m.role === 'user') && chatId && text && isPlaceholderTitle(chatTitle)) {
       const autoTitle = text.length > 50 ? text.slice(0, 50) + '…' : text
       setChatTitle(autoTitle)
     }

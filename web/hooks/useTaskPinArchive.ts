@@ -94,6 +94,7 @@ export interface TaskPinArchiveApi {
   isArchived: (chatId: string) => boolean
   togglePin: (chatId: string) => void
   toggleArchive: (chatId: string) => void
+  archiveAll: (chatIds: string[]) => void
 }
 
 export const useTaskPinArchive = (
@@ -188,6 +189,27 @@ export const useTaskPinArchive = (
     [persist, archivedIds, autoArchived],
   )
 
+  const archiveAll = useCallback(
+    (chatIds: string[]) => {
+      if (chatIds.length === 0) return
+      persist((prev) => {
+        const alreadyArchived = new Set(prev.archived)
+        const toArchive = chatIds.filter((id) => !alreadyArchived.has(id))
+        if (toArchive.length === 0) return prev
+        const newPinned = prev.pinned.filter((id) => !toArchive.includes(id))
+        const newPinnedAt = { ...prev.pinnedAt }
+        for (const id of toArchive) delete newPinnedAt[id]
+        return {
+          pinned: newPinned,
+          archived: [...toArchive, ...prev.archived],
+          pinnedAt: newPinnedAt,
+          unarchivedManually: prev.unarchivedManually.filter((id) => !toArchive.includes(id)),
+        }
+      })
+    },
+    [persist],
+  )
+
   return {
     pinnedIds: new Set(state.pinned),
     archivedIds,
@@ -196,5 +218,6 @@ export const useTaskPinArchive = (
     isArchived: (chatId) => archivedIds.has(chatId),
     togglePin,
     toggleArchive,
+    archiveAll,
   }
 }

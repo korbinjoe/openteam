@@ -13,7 +13,7 @@ import { useTaskPinArchive } from '../../hooks/useTaskPinArchive'
 import { useExternalCwds, type UnmatchedExternalDir } from '../../hooks/useExternalCwds'
 import { useWorkspaceExternalSessions } from '../../hooks/useWorkspaceExternalSessions'
 import { useExternalCwdSessions, type ExternalSession } from '../../hooks/useExternalCwdSessions'
-import { ChevronDown, ChevronRight, FolderGit, Folder, Plus } from './icons'
+import { ChevronDown, ChevronRight, FolderGit, Folder, Plus, Archive } from './icons'
 import type { Chat } from './types'
 import { TaskRow, CompletedRow } from './TaskSessionRows'
 import { ExternalSessionRow } from './ExternalSessionRow'
@@ -31,7 +31,7 @@ const TaskSessionList = ({ query = '' }: TaskSessionListProps) => {
   const q = query.trim().toLowerCase()
   const isSearching = q.length > 0
 
-  const { pinnedIds, pinnedAt, archivedIds, togglePin, toggleArchive } = useTaskPinArchive(workspaceId ?? '__all__', chats)
+  const { pinnedIds, pinnedAt, archivedIds, togglePin, toggleArchive, archiveAll } = useTaskPinArchive(workspaceId ?? '__all__', chats)
   // Session-local expansion only. Default-collapsed so the sidebar opens as a
   // scannable index rather than a wall of nested rows; the active workspace
   // (the one holding the current chat) auto-opens to preserve context.
@@ -115,6 +115,7 @@ const TaskSessionList = ({ query = '' }: TaskSessionListProps) => {
             onToggle={() => toggleWorkspace(ws.id)}
             onPin={togglePin}
             onArchive={toggleArchive}
+            onArchiveAll={archiveAll}
             onAddAgent={openAddAgent}
             onNewTask={openNewTask}
           />
@@ -151,7 +152,7 @@ const WorkspaceGroup = ({
   wsId, name, chats, pinnedIds, pinnedAt, archivedIds,
   expanded, isCurrent, activeChatId, agentNames,
   query, wsNameMatches,
-  onToggle, onPin, onArchive, onAddAgent, onNewTask,
+  onToggle, onPin, onArchive, onArchiveAll, onAddAgent, onNewTask,
 }: {
   wsId: string
   name: string
@@ -168,6 +169,7 @@ const WorkspaceGroup = ({
   onToggle: () => void
   onPin: (chatId: string) => void
   onArchive: (chatId: string) => void
+  onArchiveAll: (chatIds: string[]) => void
   onAddAgent: (chatId: string) => void
   onNewTask: (workspaceId: string) => void
 }) => {
@@ -261,6 +263,20 @@ const WorkspaceGroup = ({
         >
           <Plus size={11} />
         </button>
+        {activeChats.length + pinnedChats.length > 0 && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              const ids = [...activeChats, ...pinnedChats].map((c) => c.id)
+              onArchiveAll(ids)
+            }}
+            title={`Archive all tasks in ${name}`}
+            aria-label={`Archive all tasks in ${name}`}
+            className="w-[18px] h-[18px] rounded flex items-center justify-center text-text-muted opacity-0 group-hover:opacity-100 hover:bg-bg-hover hover:text-text-primary transition-opacity flex-shrink-0"
+          >
+            <Archive size={11} />
+          </button>
+        )}
       </div>
       {expanded && (
         <div className="flex flex-col gap-0.5">

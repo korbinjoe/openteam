@@ -36,7 +36,7 @@ You:   "Build the auth module, add tests, and update the docs"
 
 ```bash
 # Install
-git clone https://github.com/anthropics/openteam.git
+git clone https://github.com/korbinjoe/openteam.git
 cd openteam && npm install
 
 # Run (frontend + backend)

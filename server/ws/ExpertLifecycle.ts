@@ -25,6 +25,7 @@ import { createExpertAttacher, type ExpertAttacherDeps } from './ExpertAttacher'
 import { createExpertExitHandler, type ExitHandlerDeps } from './ExpertExitHandler'
 import { createExpertDirectInput } from './ExpertDirectInput'
 import { wireExpertStreamHandlers } from './ExpertEventWiring'
+import { flushPendingTasks } from './ExpertPendingTaskFlush'
 import type { MailboxManager } from '../mailbox/MailboxManager'
 import type { WhiteboardManager } from '../whiteboard/WhiteboardManager'
 import { ContextBriefing } from '../whiteboard/ContextBriefing'
@@ -130,8 +131,11 @@ export const createExpertLifecycle = (deps: ExpertLifecycleDeps) => {
       }
 
       if (store.isStarting(key)) {
+        // Duplicate expert:start during the starting window — the original
+        // handleStart's initial-task dispatch already covers this task,
+        // so do not enqueue it again. Direct user input arriving during
+        // starting goes through ExpertDirectInput, which does enqueue.
         log.info('Agent already starting, skipping duplicate', { agentId })
-        if (task) store.setPendingTask(key, task)
         return
       }
 
@@ -161,7 +165,12 @@ export const createExpertLifecycle = (deps: ExpertLifecycleDeps) => {
       if (attached) {
         if (task?.trim()) {
           if (!attached.cliSessionId && attached.provider !== 'codex') {
-            store.setPendingTask(key, task.trim())
+            store.enqueuePendingTask(key, {
+              task: task.trim(),
+              images: payload.images,
+              enqueuedAt: Date.now(),
+              connectionId,
+            })
           } else {
             attached.acpClient.write(task.trim(), payload.images)
           }
@@ -362,6 +371,14 @@ export const createExpertLifecycle = (deps: ExpertLifecycleDeps) => {
             })
           })
         }
+      }
+
+      // Codex readiness boundary: drain any messages enqueued during the
+      // starting window. Claude flushes from ExpertEventWiring's
+      // `cli-session-id` handler instead, since Claude prompts must wait
+      // until the CLI session ID is known.
+      if (provider === 'codex') {
+        flushPendingTasks({ store, acpClient, sessionRegistry, sessionId, key, agentId, chatId })
       }
 
       log.info('Expert started', { agentName: agent.name, agentId, sessionId, connectionId })

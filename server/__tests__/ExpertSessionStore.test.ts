@@ -1,11 +1,12 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import {
   ExpertSessionStore,
   compositeKey,
   parseAgentId,
   parseChatId,
+  PENDING_TASK_TTL_MS,
 } from '../ws/ExpertSessionStore'
-import type { ExpertEntry } from '../ws/ExpertSessionStore'
+import type { ExpertEntry, PendingTaskEntry, PendingTaskLossReason } from '../ws/ExpertSessionStore'
 import type { ActivityState } from '../terminal/ActivityDeriver'
 
 function makeEntry(overrides: Partial<ExpertEntry> = {}): ExpertEntry {
@@ -118,41 +119,148 @@ describe('Completed Map', () => {
   })
 })
 
-// ── Pending Task ──
+// ── Pending Task Queue ──
 
-describe('Pending Task', () => {
-  it('setPendingTask / getPendingTask / hasPendingTask', () => {
+function makePending(task: string, overrides: Partial<PendingTaskEntry> = {}): PendingTaskEntry {
+  return {
+    task,
+    enqueuedAt: Date.now(),
+    connectionId: 'conn-1',
+    ...overrides,
+  }
+}
+
+describe('Pending Task Queue', () => {
+  it('enqueuePendingTask / hasPendingTask reflects queue state', () => {
     const store = new ExpertSessionStore()
     const key = 'k'
     expect(store.hasPendingTask(key)).toBe(false)
-    store.setPendingTask(key, 'run tests')
+    store.enqueuePendingTask(key, makePending('run tests'))
     expect(store.hasPendingTask(key)).toBe(true)
-    expect(store.getPendingTask(key)).toBe('run tests')
   })
 
-  it('consumePendingTask fetches and deletes', () => {
+  it('drainPendingTasks returns entries in FIFO order and clears the queue', () => {
     const store = new ExpertSessionStore()
     const key = 'k'
-    store.setPendingTask(key, 'task')
-    const task = store.consumePendingTask(key)
-    expect(task).toBe('task')
+    store.enqueuePendingTask(key, makePending('first'))
+    store.enqueuePendingTask(key, makePending('second'))
+    store.enqueuePendingTask(key, makePending('third'))
+
+    const drained = store.drainPendingTasks(key)
+    expect(drained.map(e => e.task)).toEqual(['first', 'second', 'third'])
     expect(store.hasPendingTask(key)).toBe(false)
   })
 
-  it('consumePendingTask returns undefined when not exists', () => {
+  it('drainPendingTasks returns empty array when no entries', () => {
     const store = new ExpertSessionStore()
-    expect(store.consumePendingTask('no-key')).toBeUndefined()
+    expect(store.drainPendingTasks('no-key')).toEqual([])
   })
 
-  it('consumePendingTaskWithTimer also cleans up timer', () => {
+  it('drain does not fire loss listener', () => {
     const store = new ExpertSessionStore()
     const key = 'k'
-    store.setPendingTask(key, 'task')
-    const timer = setTimeout(() => {}, 10000)
-    store.setPendingTaskTimer(key, timer)
-    const task = store.consumePendingTaskWithTimer(key)
-    expect(task).toBe('task')
+    const losses: Array<{ reason: PendingTaskLossReason; task: string }> = []
+    store.onPendingTaskLoss((entry, _key, reason) => losses.push({ reason, task: entry.task }))
+
+    store.enqueuePendingTask(key, makePending('a'))
+    store.drainPendingTasks(key)
+    expect(losses).toEqual([])
+  })
+
+  it('forgetPendingTasks drops queue silently (no loss listener fire)', () => {
+    const store = new ExpertSessionStore()
+    const key = 'k'
+    const losses: PendingTaskEntry[] = []
+    store.onPendingTaskLoss((entry) => losses.push(entry))
+
+    store.enqueuePendingTask(key, makePending('a'))
+    store.forgetPendingTasks(key)
     expect(store.hasPendingTask(key)).toBe(false)
+    expect(losses).toEqual([])
+  })
+
+  it('TTL expiry fires loss listener with reason="ttl"', () => {
+    vi.useFakeTimers()
+    try {
+      const store = new ExpertSessionStore()
+      const key = 'k'
+      const losses: Array<{ reason: PendingTaskLossReason; task: string }> = []
+      store.onPendingTaskLoss((entry, _key, reason) => losses.push({ reason, task: entry.task }))
+
+      store.enqueuePendingTask(key, makePending('a'))
+      store.enqueuePendingTask(key, makePending('b'))
+
+      vi.advanceTimersByTime(PENDING_TASK_TTL_MS - 1)
+      expect(losses).toEqual([])
+      vi.advanceTimersByTime(1)
+
+      expect(losses).toEqual([
+        { reason: 'ttl', task: 'a' },
+        { reason: 'ttl', task: 'b' },
+      ])
+      expect(store.hasPendingTask(key)).toBe(false)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('TTL timer is not refreshed by subsequent enqueues', () => {
+    vi.useFakeTimers()
+    try {
+      const store = new ExpertSessionStore()
+      const key = 'k'
+      const losses: PendingTaskEntry[] = []
+      store.onPendingTaskLoss((entry) => losses.push(entry))
+
+      store.enqueuePendingTask(key, makePending('first'))
+      vi.advanceTimersByTime(PENDING_TASK_TTL_MS - 1000)
+      store.enqueuePendingTask(key, makePending('second'))
+      vi.advanceTimersByTime(1000)
+
+      expect(losses.map(e => e.task)).toEqual(['first', 'second'])
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('cleanup fires loss listener with reason="cleanup"', () => {
+    const store = new ExpertSessionStore()
+    const key = compositeKey('c', 'chat-1', 'a')
+    const losses: Array<{ reason: PendingTaskLossReason; task: string }> = []
+    store.onPendingTaskLoss((entry, _key, reason) => losses.push({ reason, task: entry.task }))
+
+    store.set(key, makeEntry())
+    store.enqueuePendingTask(key, makePending('todo'))
+
+    store.cleanup(key)
+    expect(losses).toEqual([{ reason: 'cleanup', task: 'todo' }])
+  })
+
+  it('cleanupWithStop fires loss listener with reason="stop"', () => {
+    const store = new ExpertSessionStore()
+    const key = compositeKey('conn-1', 'chat-1', 'agent-1')
+    const losses: Array<{ reason: PendingTaskLossReason; task: string }> = []
+    store.onPendingTaskLoss((entry, _key, reason) => losses.push({ reason, task: entry.task }))
+
+    store.set(key, makeEntry({ connectionId: 'conn-1', chatId: 'chat-1' }))
+    store.enqueuePendingTask(key, makePending('queued'))
+
+    store.cleanupWithStop(key, 'conn-1')
+    expect(losses).toEqual([{ reason: 'stop', task: 'queued' }])
+  })
+
+  it('onPendingTaskLoss returns unsubscribe function', () => {
+    const store = new ExpertSessionStore()
+    const key = 'k'
+    const losses: PendingTaskEntry[] = []
+    const unsubscribe = store.onPendingTaskLoss((entry) => losses.push(entry))
+
+    unsubscribe()
+
+    store.enqueuePendingTask(key, makePending('a'))
+    store.set(key, makeEntry())
+    store.cleanup(key)
+    expect(losses).toEqual([])
   })
 })
 
@@ -177,7 +285,11 @@ describe('cleanup', () => {
     store.set(key, entry)
     store.setActivity(key, activity)
     store.markStarting(key)
-    store.setPendingTask(key, 'todo')
+    store.enqueuePendingTask(key, {
+      task: 'todo',
+      enqueuedAt: Date.now(),
+      connectionId: 'c',
+    })
 
     const result = store.cleanup(key)
     expect(result.entry).toBe(entry)

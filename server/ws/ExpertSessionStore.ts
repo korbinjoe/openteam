@@ -1,16 +1,25 @@
 /**
- * ExpertSessionStore - Expert Agent
+ * ExpertSessionStore — Expert Agent runtime state
  *
- *  ExpertHandler  compositeKey  Map
- *  Map
+ * Holds the in-memory per-key state for spawned/attached experts (running entries,
+ * starting locks, completed entries, pending-task queue, activity, meta).
+ * Every entry is keyed by the composite `connectionId::chatId::agentId` so that
+ * one Tab cannot leak state into another even when both target the same agent.
  *
- * compositeKey connectionId::chatId::agentId Tab  agentId
- *
- *  connectionWsMap  connectionActiveChatId agent
+ * The pending-task queue exists for messages that arrive while an expert is
+ * still in its `starting` window. Entries are queued via `enqueuePendingTask`
+ * and drained via `drainPendingTasks` at the provider-specific readiness
+ * boundary. A bounded TTL guarantees queued entries never sit in memory
+ * indefinitely; TTL expiry, `cleanup`, and `cleanupWithStop` all fire any
+ * registered loss listeners so the surrounding handler can surface a
+ * `pending_task_dropped` error to the originating connection.
  */
 
 import type { ACPClient } from '../acp/ACPClient'
 import type { ActivityState } from '../terminal/ActivityDeriver'
+
+/** Hard ceiling on how long a pending task may sit in-memory before it is surfaced as dropped. */
+export const PENDING_TASK_TTL_MS = 30_000
 
 /** connectionId::chatId::agentId */
 export function compositeKey(connectionId: string, chatId: string, agentId: string): string {
@@ -64,21 +73,38 @@ export interface ExpertListItem {
 
 export type ActivityChangeListener = (key: string, chatId: string, agentId: string, activity: ActivityState) => void
 
+export interface PendingTaskEntry {
+  task: string
+  images?: Array<{ data: string; mediaType: string }>
+  enqueuedAt: number
+  /** Connection that originally produced this entry — used for routing the loss error. */
+  connectionId: string
+}
+
+export type PendingTaskLossReason = 'ttl' | 'stop' | 'cleanup'
+export type PendingTaskLossListener = (entry: PendingTaskEntry, key: string, reason: PendingTaskLossReason) => void
+
 export class ExpertSessionStore {
   private running = new Map<string, ExpertEntry>()
   private completed = new Map<string, CompletedEntry>()
   private starting = new Set<string>()
-  private pendingTask = new Map<string, string>()
+  private pendingTask = new Map<string, PendingTaskEntry[]>()
   private pendingTaskTimers = new Map<string, ReturnType<typeof setTimeout>>()
   private lastActivity = new Map<string, ActivityState>()
-  /**  executionLogId key::metaKey  */
+  /** executionLogId etc, keyed by `${key}::${metaKey}` */
   private meta = new Map<string, unknown>()
 
   private activityListeners = new Set<ActivityChangeListener>()
+  private lossListeners = new Set<PendingTaskLossListener>()
 
   onActivityChange(listener: ActivityChangeListener): () => void {
     this.activityListeners.add(listener)
     return () => { this.activityListeners.delete(listener) }
+  }
+
+  onPendingTaskLoss(listener: PendingTaskLossListener): () => void {
+    this.lossListeners.add(listener)
+    return () => { this.lossListeners.delete(listener) }
   }
 
   // ── Meta ──
@@ -155,32 +181,57 @@ export class ExpertSessionStore {
     return this.completed.get(key)
   }
 
-  // ── Pending Task ──
+  // ── Pending Task Queue ──
 
-  setPendingTask(key: string, task: string): void {
-    this.pendingTask.set(key, task)
-  }
+  /**
+   * Queue a pending-task entry for the key. First enqueue per key arms a
+   * single TTL timer (PENDING_TASK_TTL_MS). The timer is not refreshed by
+   * subsequent enqueues — the oldest entry's deadline governs the queue.
+   */
+  enqueuePendingTask(key: string, entry: PendingTaskEntry): void {
+    let queue = this.pendingTask.get(key)
+    if (!queue) {
+      queue = []
+      this.pendingTask.set(key, queue)
+    }
+    queue.push(entry)
 
-  getPendingTask(key: string): string | undefined {
-    return this.pendingTask.get(key)
+    if (!this.pendingTaskTimers.has(key)) {
+      const timer = setTimeout(() => {
+        this.pendingTaskTimers.delete(key)
+        const drained = this.pendingTask.get(key)
+        if (!drained || drained.length === 0) return
+        this.pendingTask.delete(key)
+        this.fireLoss(drained, key, 'ttl')
+      }, PENDING_TASK_TTL_MS)
+      // Don't keep the event loop alive for a stray timer.
+      if (typeof (timer as { unref?: () => void }).unref === 'function') {
+        (timer as { unref: () => void }).unref()
+      }
+      this.pendingTaskTimers.set(key, timer)
+    }
   }
 
   hasPendingTask(key: string): boolean {
-    return this.pendingTask.has(key)
+    const queue = this.pendingTask.get(key)
+    return !!queue && queue.length > 0
   }
 
-  consumePendingTask(key: string): string | undefined {
-    const task = this.pendingTask.get(key)
-    if (task !== undefined) {
-      this.pendingTask.delete(key)
-    }
-    return task
+  /**
+   * Drain and return all queued entries for the key, clearing queue + TTL timer.
+   * Caller is responsible for delivering the entries (e.g. flushing them to ACP).
+   * Does NOT fire the loss listener — callers that need to surface losses go
+   * through `cleanup` / `cleanupWithStop` (which emit reason='stop'|'cleanup'),
+   * or rely on TTL expiry (reason='ttl').
+   */
+  drainPendingTasks(key: string): PendingTaskEntry[] {
+    const queue = this.pendingTask.get(key)
+    this.pendingTask.delete(key)
+    this.clearPendingTaskTimer(key)
+    return queue ?? []
   }
 
-  setPendingTaskTimer(key: string, timer: ReturnType<typeof setTimeout>): void {
-    this.pendingTaskTimers.set(key, timer)
-  }
-
+  /** Cancel and drop the TTL timer for the key without touching the queue. */
   clearPendingTaskTimer(key: string): void {
     const timer = this.pendingTaskTimers.get(key)
     if (timer) {
@@ -189,32 +240,53 @@ export class ExpertSessionStore {
     }
   }
 
-  consumePendingTaskWithTimer(key: string): string | undefined {
+  /**
+   * Drop the queue for a key without firing loss listeners. Used by detach
+   * paths where the originating connection is gone and surfacing an error
+   * has nowhere to land.
+   */
+  forgetPendingTasks(key: string): void {
+    this.pendingTask.delete(key)
     this.clearPendingTaskTimer(key)
-    return this.consumePendingTask(key)
+  }
+
+  private fireLoss(entries: PendingTaskEntry[], key: string, reason: PendingTaskLossReason): void {
+    for (const entry of entries) {
+      for (const listener of this.lossListeners) {
+        try { listener(entry, key, reason) } catch {}
+      }
+    }
   }
 
   /**
-   *  key  completed
-   *  entry  activity
+   * Remove all per-key state. Any queued pending tasks are surfaced via the
+   * loss listener with reason='cleanup' before being deleted. Returns the
+   * removed running entry and last activity (if any) for caller bookkeeping.
    */
   cleanup(key: string): { entry?: ExpertEntry; activity?: ActivityState } {
     const entry = this.running.get(key)
     const activity = this.lastActivity.get(key)
 
+    const drainedTasks = this.pendingTask.get(key)
+    this.pendingTask.delete(key)
+    this.clearPendingTaskTimer(key)
+
     this.running.delete(key)
     this.starting.delete(key)
-    this.pendingTask.delete(key)
     this.lastActivity.delete(key)
-    this.clearPendingTaskTimer(key)
     this.clearMeta(key)
+
+    if (drainedTasks && drainedTasks.length > 0) {
+      this.fireLoss(drainedTasks, key, 'cleanup')
+    }
 
     return { entry, activity }
   }
 
   /**
-   * cleanup +  completed
-   *  handleStop / handleStopAll
+   * cleanup + record a `completed` entry with exitCode -1. Used by
+   * handleStop / handleStopAll. Drained pending tasks are surfaced via
+   * the loss listener with reason='stop'.
    */
   cleanupWithStop(key: string, connectionId: string): ExpertEntry | undefined {
     const expert = this.running.get(key)
@@ -230,18 +302,23 @@ export class ExpertSessionStore {
       chatId: expert.chatId,
     })
 
+    const drainedTasks = this.pendingTask.get(key)
+    this.pendingTask.delete(key)
     this.clearPendingTaskTimer(key)
 
     this.running.delete(key)
     this.starting.delete(key)
-    this.pendingTask.delete(key)
     this.lastActivity.delete(key)
     this.clearMeta(key)
+
+    if (drainedTasks && drainedTasks.length > 0) {
+      this.fireLoss(drainedTasks, key, 'stop')
+    }
 
     return expert
   }
 
-  /**  chatId  running entriesteam-status API  */
+  /** Collect running entries by chatId — used by team-status API. */
   collectByChatId(chatId: string): Array<{ key: string; expert: ExpertEntry }> {
     const result: Array<{ key: string; expert: ExpertEntry }> = []
     for (const [key, expert] of this.running) {
@@ -252,7 +329,7 @@ export class ExpertSessionStore {
     return result
   }
 
-  /**  connectionId  running entries */
+  /** Collect running entries for a connectionId. */
   collectByConnection(connectionId: string): Array<{ key: string; expert: ExpertEntry }> {
     const result: Array<{ key: string; expert: ExpertEntry }> = []
     for (const [key, expert] of this.running) {
@@ -263,7 +340,7 @@ export class ExpertSessionStore {
     return result
   }
 
-  /**  connectionId  completed */
+  /** cleanup + remove completed records for a connectionId. */
   cleanupConnection(connectionId: string): void {
     const items = this.collectByConnection(connectionId)
     for (const { key } of items) {
@@ -279,7 +356,7 @@ export class ExpertSessionStore {
     return undefined
   }
 
-  /**  keyoldKey → newKeyresumeFromChat  */
+  /** Migrate an entry from oldKey → newKey (used by resumeFromChat). */
   migrateKey(oldKey: string, newKey: string, connectionId: string): void {
     const entry = this.running.get(oldKey)
     if (!entry) return
@@ -307,7 +384,7 @@ export class ExpertSessionStore {
     }
   }
 
-  /**  agentId  keyrunning fallback completed */
+  /** Locate a key by agentId — running first, completed fallback. */
   findKeyByAgentId(agentId: string): string | undefined {
     for (const key of this.running.keys()) {
       if (parseAgentId(key) === agentId) return key
@@ -318,7 +395,7 @@ export class ExpertSessionStore {
     return undefined
   }
 
-  /**  agentId +  connectionId/chatId  running entry */
+  /** Find a running entry by agentId, optionally constrained by connectionId/chatId. */
   findRunning(agentId: string, connectionId?: string, chatId?: string): ExpertEntry | undefined {
     if (connectionId && chatId) {
       return this.running.get(compositeKey(connectionId, chatId, agentId))
@@ -394,7 +471,7 @@ export class ExpertSessionStore {
     return toDelete.length
   }
 
-  /**  connectionId  completed  */
+  /** Drop completed entries for a connectionId. */
   clearCompletedByConnection(connectionId: string): void {
     const toDelete = [...this.completed.entries()]
       .filter(([, entry]) => entry.connectionId === connectionId)

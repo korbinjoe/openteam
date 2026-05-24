@@ -23,7 +23,7 @@ import type { ExecutionLogStore } from '../stores/ExecutionLogStore'
 import type { VersionGate } from '../services/update/VersionGate'
 import type { SessionRegistry } from '../terminal/SessionRegistry'
 import type { ActivityState } from '../terminal/ActivityDeriver'
-import { ExpertSessionStore, compositeKey, parseAgentId, type ExpertEntry, type ExpertListItem } from './ExpertSessionStore'
+import { ExpertSessionStore, compositeKey, parseAgentId, parseChatId, type ExpertEntry, type ExpertListItem } from './ExpertSessionStore'
 import { createExpertLifecycle } from './ExpertLifecycle'
 import { createExpertResumeHandler } from './ExpertResumeHandler'
 import type { MailboxManager } from '../mailbox/MailboxManager'
@@ -78,6 +78,30 @@ export class ExpertHandler {
         this.store.cleanup(found.key)
         log.info('Cleaned up zombie entry', { key: found.key, sessionId: session.sessionId })
       }
+    })
+
+    // Surface pending-task losses (TTL expiry, cleanup, stop) as a typed
+    // expert:error so the originating connection can offer the user a
+    // retry affordance instead of silently swallowing their input.
+    this.store.onPendingTaskLoss((entry, key, reason) => {
+      const agentId = parseAgentId(key)
+      const chatId = parseChatId(key)
+      const message = reason === 'ttl'
+        ? 'Agent did not become ready in time; queued message was not delivered.'
+        : reason === 'stop'
+          ? 'Agent was stopped before queued message could be delivered.'
+          : 'Agent state was cleared before queued message could be delivered.'
+      this.sendTo(entry.connectionId, {
+        type: 'expert:error',
+        payload: {
+          agentId,
+          chatId,
+          error: 'pending_task_dropped',
+          reason,
+          task: entry.task,
+          message,
+        },
+      })
     })
 
     const sendTo = this.sendTo.bind(this)
@@ -448,7 +472,11 @@ export class ExpertHandler {
     log.info('detachConnection', { connectionId, count: collected.length })
     for (const { key, expert } of collected) {
       this.sessionRegistry.detach(expert.sessionId)
-      this.store.clearPendingTaskTimer(key)
+      // Connection is gone — drop the queue silently. The originating
+      // client cannot receive a pending_task_dropped error anyway, and
+      // the queue is keyed by this connectionId so it is unreachable
+      // from any future reconnect.
+      this.store.forgetPendingTasks(key)
       log.debug('Detached agent on disconnect', { agentId: parseAgentId(key), connectionId })
     }
   }

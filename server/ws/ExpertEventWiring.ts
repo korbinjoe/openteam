@@ -19,6 +19,7 @@ import type { ACPSessionUpdateParams } from '../../shared/acp-types'
 import type { ExpertSessionStore } from './ExpertSessionStore'
 import { ExpertTokenTracker } from './ExpertTokenTracker'
 import { createActivityHandler } from './ExpertActivityHandler'
+import { flushPendingTasks } from './ExpertPendingTaskFlush'
 import { createLogger } from '../lib/logger'
 
 const log = createLogger('ExpertEventWiring')
@@ -67,6 +68,13 @@ export const wireExpertStreamHandlers = (deps: ExpertEventWiringDeps): WiredExpe
     sessionRegistry.updateCliSessionId(sessionId, csid)
     log.info('Captured CLI session ID', { agentId, cliSessionId: csid, provider })
     persistExpertSession(agentId, csid, cwd, connectionId, provider, chatId)
+
+    // Claude readiness boundary: queue entries from `expert:input` during
+    // the starting window or `expert:start` on an attached-no-cliSessionId
+    // expert are flushed here. Codex flushes from ExpertLifecycle instead.
+    if (provider === 'claude') {
+      flushPendingTasks({ store, acpClient, sessionRegistry, sessionId, key: currentKey, agentId, chatId })
+    }
   })
 
   const fileCollector = new FileOperationCollector(agentId)

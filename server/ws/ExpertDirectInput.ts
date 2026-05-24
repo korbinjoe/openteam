@@ -118,7 +118,14 @@ export const createExpertDirectInput = (deps: ExpertDirectInputDeps) => {
     }
 
     if (!existing && store.isStarting(key)) {
-      if (cleanMessage) store.setPendingTask(key, cleanMessage)
+      if (cleanMessage) {
+        store.enqueuePendingTask(key, {
+          task: cleanMessage,
+          images,
+          enqueuedAt: Date.now(),
+          connectionId,
+        })
+      }
       log.info('Agent is starting, queuing message', { agentId })
       trackParticipant(agentId, connectionId, chatId)
       return

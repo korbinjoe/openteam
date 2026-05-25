@@ -190,7 +190,13 @@ const ChatInstance = ({ chatId, workspaceId, isActive, isNewChat = false, initAg
 
   const currentSlashCommands = useMemo(() => {
     if (!targetAgentId) return DEFAULT_SLASH_COMMANDS
-    return agentAvailableCommands[targetAgentId] ?? agentSlashCommands[targetAgentId] ?? DEFAULT_SLASH_COMMANDS
+    // Both sources contribute: `available_commands_update` (ACP, CLI built-ins)
+    // and `slash-commands` (stream-json init + OpenTeam-scanned plugin commands).
+    // Take the union so plugin commands aren't masked by either feed.
+    const available = agentAvailableCommands[targetAgentId]
+    const slash = agentSlashCommands[targetAgentId]
+    if (!available && !slash) return DEFAULT_SLASH_COMMANDS
+    return Array.from(new Set([...(available ?? []), ...(slash ?? [])])).sort()
   }, [targetAgentId, agentSlashCommands, agentAvailableCommands])
 
   const currentMode = targetAgentId ? agentModes[targetAgentId] : undefined

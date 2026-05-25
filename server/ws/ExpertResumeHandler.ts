@@ -23,6 +23,7 @@ import type { CliProvider, ExpertSessionInfo } from '../config/types'
 import { createLogger } from '../lib/logger'
 import { trackEvent } from '../lib/eventTracker'
 import { cwdToClaudeProjectKey } from '../../shared/projectKey'
+import { scanPluginSlashCommands } from '../runtime/PluginCommandsScanner'
 
 const log = createLogger('ExpertResume')
 
@@ -282,6 +283,27 @@ export const createExpertResumeHandler = (deps: ExpertResumeDeps) => {
       return
     }
 
+    // Resume paths (re-attach / scrollback / dead-replay) never spawn the CLI,
+    // so the `cli-init` event in ExpertEventWiring doesn't fire — meaning our
+    // plugin-command merge there is bypassed. Scan once here and push to every
+    // agent we resume, so the dialog box gets `<plugin>:<skill>` commands.
+    const pluginCommandsPromise = scanPluginSlashCommands().catch((err) => {
+      log.warn('Plugin commands scan failed during resume', {
+        chatId,
+        error: err instanceof Error ? err.message : String(err),
+      })
+      return [] as string[]
+    })
+    const pushPluginCommands = (agentId: string) => {
+      pluginCommandsPromise.then((commands) => {
+        if (commands.length === 0) return
+        sendTo(connectionId, {
+          type: 'expert:slash-commands',
+          payload: { agentId, chatId, commands },
+        })
+      })
+    }
+
     const toResume: typeof sessions = []
     const toResendScrollback: string[] = []
     for (const [agentId, sessionInfo] of sessions) {
@@ -308,6 +330,8 @@ export const createExpertResumeHandler = (deps: ExpertResumeDeps) => {
           cwd: existingSession.cwd,
         },
       })
+
+      pushPluginCommands(agentId)
 
       existingSession.streamManager.forceRedraw()
 
@@ -397,6 +421,8 @@ export const createExpertResumeHandler = (deps: ExpertResumeDeps) => {
           },
         })
 
+        pushPluginCommands(agentId)
+
         const lastActivity = store.getActivity(compositeKey(connectionId, chatId, agentId))
         sendTo(connectionId, {
           type: 'expert:activity',
@@ -458,6 +484,7 @@ export const createExpertResumeHandler = (deps: ExpertResumeDeps) => {
 
       if (replayHistoryForDeadSession(connectionId, agentId, chatId, cliSessionId, cwd, provider, storedExitCode)) {
         log.info('Replayed from JSONL, skipping --resume spawn', { agentId, chatId, provider })
+        pushPluginCommands(agentId)
         continue
       }
 

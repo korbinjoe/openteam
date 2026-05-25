@@ -293,14 +293,15 @@ export class StreamJsonManager extends EventEmitter {
           log.info('CLI session ID extracted', { sid: this.sessionId, cliSessionId: this.cliSessionId })
           this.emit('cli-session-id', this.cliSessionId)
         }
-        const slashCommands = result.systemEvent.slashCommands as string[] | undefined
-        if (slashCommands?.length) {
-          this.emit('cli-init', {
-            sessionId: sessionId as string,
-            slashCommands,
-            model: result.systemEvent.model as string | undefined,
-          })
-        }
+        // Always emit cli-init on system init so downstream can merge plugin
+        // commands even when the CLI itself reports no built-in slash commands
+        // (stream-json mode returns an empty slash_commands list).
+        const slashCommands = (result.systemEvent.slashCommands as string[] | undefined) ?? []
+        this.emit('cli-init', {
+          sessionId: sessionId as string,
+          slashCommands,
+          model: result.systemEvent.model as string | undefined,
+        })
       }
     }
 

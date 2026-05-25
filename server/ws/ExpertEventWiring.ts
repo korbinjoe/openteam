@@ -21,6 +21,7 @@ import { ExpertTokenTracker } from './ExpertTokenTracker'
 import { createActivityHandler } from './ExpertActivityHandler'
 import { flushPendingTasks } from './ExpertPendingTaskFlush'
 import { createLogger } from '../lib/logger'
+import { scanPluginSlashCommands } from '../runtime/PluginCommandsScanner'
 
 const log = createLogger('ExpertEventWiring')
 
@@ -148,10 +149,32 @@ export const wireExpertStreamHandlers = (deps: ExpertEventWiringDeps): WiredExpe
   })
 
   streamManager.on('cli-init', (initData: { slashCommands: string[]; model?: string }) => {
-    sessionRegistry.sendToSession(sessionId, {
-      type: 'expert:slash-commands',
-      payload: { agentId, chatId, commands: initData.slashCommands },
-    })
+    const sendCommands = (commands: string[]) => {
+      sessionRegistry.sendToSession(sessionId, {
+        type: 'expert:slash-commands',
+        payload: { agentId, chatId, commands },
+      })
+    }
+
+    // Send CLI-reported commands immediately so the menu is responsive even
+    // if the plugin scan is slow or fails.
+    sendCommands(initData.slashCommands)
+
+    // Then merge in plugin-provided commands (`<plugin>:<skill>`) which Claude
+    // Code's stream-json mode does not enumerate.
+    scanPluginSlashCommands()
+      .then((pluginCommands) => {
+        if (pluginCommands.length === 0) return
+        const merged = Array.from(new Set([...initData.slashCommands, ...pluginCommands])).sort()
+        sendCommands(merged)
+      })
+      .catch((err) => {
+        log.warn('Plugin commands scan failed', {
+          agentId,
+          sessionId,
+          error: err instanceof Error ? err.message : String(err),
+        })
+      })
   })
 
   streamManager.on('activity', handleActivity)

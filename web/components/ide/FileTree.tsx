@@ -652,9 +652,34 @@ const FileTree = ({ roots, onFileSelect, selectedFile, changeMap, dirAggregate, 
   }, [rootsState, loadRoot])
 
   const handleRefresh = useCallback(() => {
+    const collectExpanded = (nodes: TreeNode[]): string[] => {
+      const paths: string[] = []
+      for (const n of nodes) {
+        if (n.type === 'directory' && n.isExpanded && n.children) {
+          paths.push(n.path)
+          paths.push(...collectExpanded(n.children))
+        }
+      }
+      return paths
+    }
+
     rootsRef.current.forEach(root => {
       const state = rootsState[root.path]
-      if (state?.expanded) loadRoot(root.path)
+      if (!state?.expanded || !state.loaded) return
+      loadRoot(root.path)
+      const expandedDirs = collectExpanded(state.nodes)
+      for (const dirPath of expandedDirs) {
+        fetchEntries(dirPath, showIgnoredRef.current).then(children => {
+          setRootsState(prev => {
+            const rs = prev[root.path]
+            if (!rs) return prev
+            return { ...prev, [root.path]: { ...rs, nodes: updateNodeChildren(rs.nodes, dirPath, n => {
+              const merged = n.children ? mergeExpandedState(children, n.children) : children
+              return { ...n, children: merged }
+            }) } }
+          })
+        }).catch(() => { /* ignore */ })
+      }
     })
   }, [rootsState, loadRoot])
 

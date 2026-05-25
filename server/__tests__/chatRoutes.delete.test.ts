@@ -57,12 +57,23 @@ afterAll(async () => {
   await fs.rm(TMP_HOME, { recursive: true, force: true })
 })
 
-const startServer = (chats: Chat[]) => {
+// Minimal SessionRegistry stub. MemberAggregator only reaches into
+// findAllByChat() and getActiveActivities(); other methods are unused at
+// runtime for these tests so we can leave them as no-ops.
+const makeSessionRegistry = (runningChatIds: string[] = []) => ({
+  findAllByChat: (chatId: string) => runningChatIds.includes(chatId)
+    ? [{ chatId, agentId: 'lead', cliSessionId: 'live-sess' }]
+    : [],
+  getActiveActivities: () => ({}),
+}) as any
+
+const startServer = (chats: Chat[], opts: { runningChatIds?: string[] } = {}) => {
   const chatStore = makeChatStore(chats)
   const chatService = {} as any
+  const sessionRegistry = makeSessionRegistry(opts.runningChatIds)
   const app = express()
   app.use(express.json())
-  app.use(createChatRoutes({ chatStore, chatService }))
+  app.use(createChatRoutes({ chatStore, chatService, sessionRegistry }))
   return new Promise<{ server: Server; baseUrl: string; chatStore: typeof chatStore }>((resolveServer) => {
     const server = createServer(app)
     server.listen(0, '127.0.0.1', () => {
@@ -171,7 +182,7 @@ describe('DELETE /api/chats/:id with purgeJsonl', () => {
     expect(body.purged[0].error).toBeUndefined()
   })
 
-  it('purgeJsonl=1 on a running chat → 409', async () => {
+  it('purgeJsonl=1 on a live-running chat → 409', async () => {
     const cwd = '/Users/test/repo-d'
     const file = writeClaudeJsonl(cwd, 'sess-d')
 
@@ -185,13 +196,37 @@ describe('DELETE /api/chats/:id with purgeJsonl', () => {
       status: 'running',
       createdAt: '2026-05-24T00:00:00Z',
       lastMessageAt: '2026-05-24T00:00:00Z',
-    }])
+    }], { runningChatIds: ['chat-4'] })
     server = ctx.server
     baseUrl = ctx.baseUrl
 
     const r = await fetch(`${baseUrl}/api/chats/chat-4?purgeJsonl=1`, { method: 'DELETE' })
     expect(r.status).toBe(409)
     expect(existsSync(file)).toBe(true)
+  })
+
+  // Regression: ChatStore.create seeds new chats with status='running' even
+  // when no session has actually started. The delete guard must look at the
+  // live member rollup (SessionRegistry), not the stale persisted status,
+  // otherwise brand-new Missions with no conversation can never be deleted.
+  it('purgeJsonl=1 on a freshly-created chat (status=running but no live session) → 200', async () => {
+    const ctx = await startServer([{
+      id: 'chat-fresh',
+      workspaceId: 'ws',
+      title: 'New Mission',
+      primaryAgentId: 'lead',
+      teamAgentIds: [],
+      status: 'running',
+      createdAt: '2026-05-25T00:00:00Z',
+      lastMessageAt: '2026-05-25T00:00:00Z',
+    }])
+    server = ctx.server
+    baseUrl = ctx.baseUrl
+
+    const r = await fetch(`${baseUrl}/api/chats/chat-fresh?purgeJsonl=1`, { method: 'DELETE' })
+    expect(r.status).toBe(200)
+    const body = await r.json() as { success: boolean }
+    expect(body.success).toBe(true)
   })
 })
 

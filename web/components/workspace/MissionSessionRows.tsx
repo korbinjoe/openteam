@@ -1,11 +1,25 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { toast } from 'sonner'
 import { ChevronRight, Pin, PinOff, Archive, Plus, Trash } from './icons'
 import { cn } from '../../lib/utils'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { buildMissionUrl } from './urls'
 import { removeAgentFromChat, deleteChatWithJsonl, formatPurgeFailures } from '../../services/chatService'
+import { ApiError } from '../../services/api'
 import type { Chat, ChatMember, ChatMemberStatus } from '../workspace/types'
+
+// Server returns 409 with a JSON body { error: "Cannot purge a running chat..." }
+// when the chat or agent is still running. Surface that text to the user so they
+// know to stop the session first; otherwise the click looks like a silent no-op.
+const extractServerError = (err: unknown): string | null => {
+  if (!(err instanceof ApiError)) return null
+  try {
+    const parsed = JSON.parse(err.body ?? '') as { error?: string }
+    if (parsed?.error) return parsed.error
+  } catch { /* body wasn't JSON */ }
+  return err.body || err.message
+}
 
 // Sidebar expansion is intentionally session-local and not persisted: the
 // sidebar is a cross-workspace overview, and remembering "everything expanded"
@@ -20,12 +34,16 @@ import type { Chat, ChatMember, ChatMemberStatus } from '../workspace/types'
 const INDENT_AGENT = 'pl-9'      // 36px — every agent row, peer of "Add Agent"
 const INDENT_ADD_AGENT = 'pl-9'  // 36px — peer of agent rows
 
+// running: solid brand dot + outward water-ripple ring (before:) so the motion
+// is visible at 6-7px sizes — opacity-only pulse was nearly invisible.
+// done: green at 40% so completed work recedes; the eye should be drawn to
+// running/waiting/error rows that still want attention.
 export const memberStatusDot = (status: ChatMemberStatus | undefined): string => {
   switch (status) {
-    case 'running': return 'bg-accent-brand animate-pulse'
+    case 'running': return 'bg-accent-brand relative before:absolute before:inset-0 before:rounded-full before:bg-accent-brand before:animate-ping-soft'
     case 'waiting': return 'bg-accent-yellow'
     case 'error': return 'bg-accent-red'
-    case 'done': return 'bg-accent-green'
+    case 'done': return 'bg-accent-green/40'
     default: return 'bg-text-muted'
   }
 }
@@ -42,7 +60,7 @@ export const chatStatusDot = (chat: Chat): string => {
   if (members.length === 0) {
     // Legacy payload without enriched members[]: fall back to the chat-level
     // running flag. Anything else stays neutral.
-    return chat.status === 'running' ? 'bg-accent-brand animate-pulse' : 'bg-text-muted'
+    return chat.status === 'running' ? memberStatusDot('running') : 'bg-text-muted'
   }
   for (const status of ROLLUP_PRIORITY) {
     if (members.some((m) => m.status === status)) return memberStatusDot(status)
@@ -131,11 +149,12 @@ export const MissionRow = ({ chat, isSelected, agentNames, onPin, onArchive, onA
       const result = await deleteChatWithJsonl(chat.id)
       const failures = formatPurgeFailures(result.purged)
       if (failures.length > 0) {
-        // eslint-disable-next-line no-console
-        console.warn('Some JSONL files could not be deleted:\n' + failures.join('\n'))
+        toast.warning(`Mission deleted, but some session files could not be removed:\n${failures.join('\n')}`)
       }
       window.dispatchEvent(new CustomEvent('openteam:chat-updated', { detail: { chatId: chat.id } }))
     } catch (err) {
+      const msg = extractServerError(err) ?? (err instanceof Error ? err.message : 'Unknown error')
+      toast.error(`Failed to delete mission: ${msg}`)
       // eslint-disable-next-line no-console
       console.error('deleteChatWithJsonl failed', err)
     }
@@ -271,11 +290,12 @@ export const AgentRow = ({ agentId, agentName, isLead, chat, member, isSelected 
         const result = await deleteChatWithJsonl(chat.id)
         const failures = formatPurgeFailures(result.purged)
         if (failures.length > 0) {
-          // eslint-disable-next-line no-console
-          console.warn('Some JSONL files could not be deleted:\n' + failures.join('\n'))
+          toast.warning(`Mission deleted, but some session files could not be removed:\n${failures.join('\n')}`)
         }
         window.dispatchEvent(new CustomEvent('openteam:chat-updated', { detail: { chatId: chat.id } }))
       } catch (err) {
+        const msg = extractServerError(err) ?? (err instanceof Error ? err.message : 'Unknown error')
+        toast.error(`Failed to delete mission: ${msg}`)
         // eslint-disable-next-line no-console
         console.error('deleteChatWithJsonl failed', err)
       }
@@ -286,11 +306,12 @@ export const AgentRow = ({ agentId, agentName, isLead, chat, member, isSelected 
       const result = await removeAgentFromChat(chat.id, agentId)
       const failures = formatPurgeFailures([result.purged])
       if (failures.length > 0) {
-        // eslint-disable-next-line no-console
-        console.warn('Failed to purge JSONL:\n' + failures.join('\n'))
+        toast.warning(`Agent removed, but session file could not be deleted:\n${failures.join('\n')}`)
       }
       window.dispatchEvent(new CustomEvent('openteam:chat-updated', { detail: { chatId: chat.id } }))
     } catch (err) {
+      const msg = extractServerError(err) ?? (err instanceof Error ? err.message : 'Unknown error')
+      toast.error(`Failed to remove ${agentName}: ${msg}`)
       // eslint-disable-next-line no-console
       console.error('removeAgentFromChat failed', err)
     }
@@ -356,11 +377,12 @@ export const CompletedRow = ({ chat, isSelected, archived, agentNames, onPin, on
       const result = await deleteChatWithJsonl(chat.id)
       const failures = formatPurgeFailures(result.purged)
       if (failures.length > 0) {
-        // eslint-disable-next-line no-console
-        console.warn('Some JSONL files could not be deleted:\n' + failures.join('\n'))
+        toast.warning(`Mission deleted, but some session files could not be removed:\n${failures.join('\n')}`)
       }
       window.dispatchEvent(new CustomEvent('openteam:chat-updated', { detail: { chatId: chat.id } }))
     } catch (err) {
+      const msg = extractServerError(err) ?? (err instanceof Error ? err.message : 'Unknown error')
+      toast.error(`Failed to delete mission: ${msg}`)
       // eslint-disable-next-line no-console
       console.error('deleteChatWithJsonl failed', err)
     }

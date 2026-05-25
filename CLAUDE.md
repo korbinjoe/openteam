@@ -71,17 +71,16 @@ across the app. Reuse these tokens — do not invent new mappings.
 
 | Color | Token | Meaning |
 |-------|-------|---------|
-| Blue (pulsing) | `bg-accent-brand` + `animate-pulse` | `running` — agent actively executing |
+| Blue (rippling) | `bg-accent-brand` + `before:animate-ping-soft` water-ripple | `running` — agent actively executing |
 | Yellow | `bg-accent-yellow` | `waiting` — waiting for user input/confirm (`waiting_input` / `waiting_confirm`) |
 | Red | `bg-accent-red` | `error` — execution failed |
-| Green | `bg-accent-green` | `done` — completed successfully |
+| Green (muted) | `bg-accent-green/40` | `done` — completed successfully (deliberately recessive — done state should not compete for attention) |
 | Gray | `bg-text-muted` | `idle` / `stopped` — no active work |
 
 Source of truth:
-- Chat-level: `chatStatusDot()` in `web/components/workspace/TaskSessionRows.tsx`
+- Chat-level: `chatStatusDot()` in `web/components/workspace/MissionSessionRows.tsx`
 - Member-level: `memberStatusDot()` in same file
-- Aggregated task status: `taskStatusColor()` in `web/components/workspace/TaskGroupItem.tsx`
-  (worst-status-wins: error > waiting > running > idle)
+- The `ping-soft` keyframe lives in `tailwind.config.js`
 
 When adding a new surface that shows agent/chat status, import these helpers
 instead of duplicating the color logic.

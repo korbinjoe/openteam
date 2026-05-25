@@ -56,6 +56,16 @@ export default {
         md: 'var(--radius-md)',
         lg: 'var(--radius-lg)',
       },
+      keyframes: {
+        'ping-soft': {
+          '0%':   { transform: 'scale(1)',   opacity: '0.55' },
+          '70%':  { transform: 'scale(2.2)', opacity: '0' },
+          '100%': { transform: 'scale(2.2)', opacity: '0' },
+        },
+      },
+      animation: {
+        'ping-soft': 'ping-soft 1.6s cubic-bezier(0, 0, 0.2, 1) infinite',
+      },
     },
   },
   plugins: [],

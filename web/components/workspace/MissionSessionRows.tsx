@@ -117,9 +117,10 @@ interface MissionRowProps {
   onArchive: () => void
   onAddAgent: () => void
   isPinned?: boolean
+  badge?: string
 }
 
-export const MissionRow = ({ chat, isSelected, agentNames, onPin, onArchive, onAddAgent, isPinned = false }: MissionRowProps) => {
+export const MissionRow = ({ chat, isSelected, agentNames, onPin, onArchive, onAddAgent, isPinned = false, badge }: MissionRowProps) => {
   const navigate = useNavigate()
   const { selectedAgentId } = useWorkspace()
   // Default collapsed; the selected mission auto-opens to surface its agents.
@@ -205,6 +206,11 @@ export const MissionRow = ({ chat, isSelected, agentNames, onPin, onArchive, onA
           <Pin size={9} className="text-accent-brand flex-shrink-0 -ml-0.5" />
         )}
         <span className="text-[12px] font-medium text-text-primary flex-1 truncate">{chat.title}</span>
+        {badge && (
+          <span className="text-[10px] px-1.5 py-px rounded bg-bg-tertiary text-text-muted truncate max-w-[72px] flex-shrink-0">
+            {badge}
+          </span>
+        )}
         {agentCount > 1 && (
           <span className="font-mono text-[10px] px-1.5 rounded bg-bg-tertiary text-text-secondary tabular-nums flex-shrink-0">
             {agentCount}

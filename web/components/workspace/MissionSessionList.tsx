@@ -14,7 +14,7 @@ import { useMissionPinArchive } from '../../hooks/useMissionPinArchive'
 import { useExternalCwds, type UnmatchedExternalDir } from '../../hooks/useExternalCwds'
 import { useWorkspaceExternalSessions } from '../../hooks/useWorkspaceExternalSessions'
 import { useExternalCwdSessions, type ExternalSession } from '../../hooks/useExternalCwdSessions'
-import { ChevronDown, ChevronRight, FolderGit, Folder, Plus, Archive } from './icons'
+import { ChevronDown, ChevronRight, FolderGit, Folder, Plus, Archive, Pin } from './icons'
 import type { Chat } from './types'
 import { MissionRow, CompletedRow } from './MissionSessionRows'
 import { ExternalSessionRow } from './ExternalSessionRow'
@@ -33,6 +33,21 @@ const MissionSessionList = ({ query = '' }: MissionSessionListProps) => {
   const isSearching = q.length > 0
 
   const { pinnedIds, pinnedAt, archivedIds, togglePin, toggleArchive, archiveAll } = useMissionPinArchive(chats)
+
+  // Global pinned chats — extracted from all workspaces, rendered at the top.
+  const wsNameById = useMemo(() => {
+    const m: Record<string, string> = {}
+    for (const ws of workspaces) m[ws.id] = ws.name
+    return m
+  }, [workspaces])
+
+  const globalPinnedChats = useMemo(
+    () => chats
+      .filter((c) => pinnedIds.has(c.id))
+      .sort((a, b) => (pinnedAt[b.id] ?? 0) - (pinnedAt[a.id] ?? 0)),
+    [chats, pinnedIds, pinnedAt],
+  )
+
   // Session-local expansion only. Default-collapsed so the sidebar opens as a
   // scannable index rather than a wall of nested rows; the active workspace
   // (the one holding the current chat) auto-opens to preserve context.
@@ -92,10 +107,26 @@ const MissionSessionList = ({ query = '' }: MissionSessionListProps) => {
     })
     .filter((x): x is { ws: typeof workspaces[number]; wsChats: Chat[]; wsNameMatches: boolean } => x !== null)
 
-  const hasMatches = !isSearching || renderedWorkspaces.length > 0
+  // Pinned chats filtered by search query
+  const visiblePinned = isSearching
+    ? globalPinnedChats.filter((c) => c.title.toLowerCase().includes(q))
+    : globalPinnedChats
+
+  const hasMatches = !isSearching || renderedWorkspaces.length > 0 || visiblePinned.length > 0
 
   return (
     <div className="flex flex-col gap-1 pb-2">
+      {visiblePinned.length > 0 && (
+        <PinnedSection
+          chats={visiblePinned}
+          activeChatId={activeChatId}
+          agentNames={agentNames}
+          wsNameById={wsNameById}
+          onPin={togglePin}
+          onArchive={toggleArchive}
+          onAddAgent={openAddAgent}
+        />
+      )}
       {renderedWorkspaces.map(({ ws, wsChats, wsNameMatches }) => {
         const expanded = isSearching ? true : (wsExpanded[ws.id] ?? defaultExpanded(ws.id))
         return (
@@ -107,6 +138,7 @@ const MissionSessionList = ({ query = '' }: MissionSessionListProps) => {
             pinnedIds={pinnedIds}
             pinnedAt={pinnedAt}
             archivedIds={archivedIds}
+            hidePinnedSection
             expanded={expanded}
             isCurrent={ws.id === workspaceId}
             activeChatId={activeChatId}
@@ -144,6 +176,39 @@ const MissionSessionList = ({ query = '' }: MissionSessionListProps) => {
   )
 }
 
+// ── Global pinned section ──────────────────────────────────────────────────
+const PinnedSection = ({ chats, activeChatId, agentNames, wsNameById, onPin, onArchive, onAddAgent }: {
+  chats: Chat[]
+  activeChatId: string | null
+  agentNames: Record<string, string>
+  wsNameById: Record<string, string>
+  onPin: (chatId: string) => void
+  onArchive: (chatId: string) => void
+  onAddAgent: (chatId: string) => void
+}) => (
+  <div className="pb-1 mb-1 border-b border-border/40">
+    <div className="flex items-center gap-1.5 px-2 py-1">
+      <Pin size={10} className="text-text-muted" />
+      <span className="text-[11px] font-semibold text-text-muted uppercase tracking-wide">Pinned</span>
+    </div>
+    <div className="flex flex-col gap-0.5">
+      {chats.map((c) => (
+        <MissionRow
+          key={`pin:${c.id}`}
+          chat={c}
+          isSelected={activeChatId === c.id}
+          agentNames={agentNames}
+          onPin={() => onPin(c.id)}
+          onArchive={() => onArchive(c.id)}
+          onAddAgent={() => onAddAgent(c.id)}
+          isPinned
+          badge={wsNameById[c.workspaceId]}
+        />
+      ))}
+    </div>
+  </div>
+)
+
 // ── Workspace group ────────────────────────────────────────────────────────
 // Unifies native chats + external sessions for ONE workspace into a single
 // time-ordered list, with "Load more" pulling the next page of external rows.
@@ -152,7 +217,7 @@ const MissionSessionList = ({ query = '' }: MissionSessionListProps) => {
 const WorkspaceGroup = ({
   wsId, name, chats, pinnedIds, pinnedAt, archivedIds,
   expanded, isCurrent, activeChatId, agentNames,
-  query, wsNameMatches,
+  query, wsNameMatches, hidePinnedSection = false,
   onToggle, onPin, onArchive, onArchiveAll, onAddAgent, onNewTask,
 }: {
   wsId: string
@@ -167,6 +232,7 @@ const WorkspaceGroup = ({
   agentNames: Record<string, string>
   query: string
   wsNameMatches: boolean
+  hidePinnedSection?: boolean
   onToggle: () => void
   onPin: (chatId: string) => void
   onArchive: (chatId: string) => void
@@ -339,7 +405,7 @@ const WorkspaceGroup = ({
       </div>
       {expanded && (
         <div className="flex flex-col gap-0.5">
-          {pinnedChats.length > 0 && (
+          {!hidePinnedSection && pinnedChats.length > 0 && (
             <div className="flex flex-col gap-0.5 pb-1 mb-0.5 border-b border-border/30">
               {pinnedChats.map((c) => (
                 <MissionRow

@@ -127,11 +127,12 @@ export const MissionRow = ({ chat, isSelected, agentNames, onPin, onArchive, onA
   // No persistence — each session starts clean.
   const [expanded, setExpanded] = useState<boolean>(isSelected)
 
-  // Navigating to a mission should reveal its agents even if the row was mounted
-  // collapsed. We only auto-open (never auto-close) so a user who manually
-  // collapses the active mission keeps it collapsed.
+  // Selection drives expansion: only the focused mission shows its agents. When
+  // selection moves to another mission, the previous one auto-collapses so the
+  // sidebar stays a single-mission deep-dive instead of accumulating open rows.
+  // Manual toggle still works on the selected row (until selection changes).
   useEffect(() => {
-    if (isSelected) setExpanded(true)
+    setExpanded(isSelected)
   }, [isSelected])
 
   const toggle = useCallback((e: React.MouseEvent) => {
@@ -190,7 +191,9 @@ export const MissionRow = ({ chat, isSelected, agentNames, onPin, onArchive, onA
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleOpen() } }}
         className={cn(
           'group relative flex items-center gap-[7px] pl-1.5 pr-2 py-1.5 rounded-md cursor-pointer transition-colors',
-          isSelected && !selectedAgentId ? 'bg-accent-brand/[0.08]' : 'hover:bg-bg-hover',
+          isSelected && !selectedAgentId
+            ? 'bg-accent-brand/[0.14] before:absolute before:left-0 before:top-1.5 before:bottom-1.5 before:w-[2px] before:rounded-r before:bg-accent-brand'
+            : 'hover:bg-bg-hover',
         )}
       >
         <button
@@ -333,7 +336,9 @@ export const AgentRow = ({ agentId, agentName, isLead, chat, member, isSelected 
       className={cn(
         'group relative flex items-center gap-1.5 py-[5px] pr-2 rounded-md transition-colors text-left cursor-pointer',
         INDENT_AGENT,
-        isSelected ? 'bg-accent-brand/[0.08]' : 'hover:bg-bg-hover',
+        isSelected
+          ? 'bg-accent-brand/[0.14] before:absolute before:left-0 before:top-1 before:bottom-1 before:w-[2px] before:rounded-r before:bg-accent-brand'
+          : 'hover:bg-bg-hover',
       )}
     >
       <span className={cn('w-[6px] h-[6px] rounded-full flex-shrink-0', dotClass)} />
@@ -399,7 +404,7 @@ export const CompletedRow = ({ chat, isSelected, archived, agentNames, onPin, on
       title={`${chat.title} · ${agentNames[chat.primaryAgentId] ?? chat.primaryAgentId}${archived ? ' · archived' : ''}`}
       className={cn(
         'group relative flex items-center gap-2 px-2.5 py-[5px] rounded-md cursor-pointer opacity-60 hover:bg-bg-hover hover:opacity-100 transition-all w-full text-left',
-        isSelected && 'bg-accent-brand/[0.08] opacity-100',
+        isSelected && 'bg-accent-brand/[0.14] opacity-100 before:absolute before:left-0 before:top-1 before:bottom-1 before:w-[2px] before:rounded-r before:bg-accent-brand',
       )}
     >
       <span className="w-1.5 h-1.5 rounded-full bg-text-muted flex-shrink-0" />

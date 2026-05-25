@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 
 // Sidebar pagination: every group shows this many items first; "Load more"
 // grows the visible slice in the same step. When the slice catches up to the
@@ -14,7 +14,7 @@ import { useMissionPinArchive } from '../../hooks/useMissionPinArchive'
 import { useExternalCwds, type UnmatchedExternalDir } from '../../hooks/useExternalCwds'
 import { useWorkspaceExternalSessions } from '../../hooks/useWorkspaceExternalSessions'
 import { useExternalCwdSessions, type ExternalSession } from '../../hooks/useExternalCwdSessions'
-import { ChevronDown, ChevronRight, FolderGit, Folder, Plus, Archive, Pin } from './icons'
+import { ChevronDown, ChevronRight, Plus, Archive, Pin } from './icons'
 import type { Chat } from './types'
 import { MissionRow, CompletedRow } from './MissionSessionRows'
 import { ExternalSessionRow } from './ExternalSessionRow'
@@ -67,6 +67,14 @@ const MissionSessionList = ({ query = '' }: MissionSessionListProps) => {
   const toggleWorkspace = useCallback((wsId: string) => {
     setWsExpanded((prev) => ({ ...prev, [wsId]: !(prev[wsId] ?? defaultExpanded(wsId)) }))
   }, [defaultExpanded])
+
+  // Selecting a mission collapses every other workspace: drop manual overrides
+  // so only the active workspace stays open via defaultExpanded. Users can
+  // still re-expand others to browse — the reset only fires when the selection
+  // changes, not on every render.
+  useEffect(() => {
+    setWsExpanded({})
+  }, [activeChatId])
 
   const toggleExtDir = useCallback((cwd: string) => {
     setExtDirExpanded((prev) => ({ ...prev, [cwd]: !prev[cwd] }))
@@ -189,9 +197,9 @@ const PinnedSection = ({ chats, activeChatId, agentNames, wsNameById, onPin, onA
   <div className="pb-1 mb-1 border-b border-border/40">
     <div className="flex items-center gap-1.5 px-2 py-1">
       <Pin size={10} className="text-text-muted" />
-      <span className="text-[11px] font-semibold text-text-muted uppercase tracking-wide">Pinned</span>
+      <span className="text-[11px] font-medium text-text-secondary uppercase tracking-wide">Pinned</span>
     </div>
-    <div className="flex flex-col gap-0.5">
+    <div className="flex flex-col gap-0.5 ml-2">
       {chats.map((c) => (
         <MissionRow
           key={`pin:${c.id}`}
@@ -367,7 +375,7 @@ const WorkspaceGroup = ({
 
   return (
     <div>
-      <div className="group flex items-center gap-1 pr-1 hover:bg-bg-hover/50 rounded-sm transition-colors">
+      <div className={`group flex items-center gap-1 pr-1 rounded-sm transition-colors ${isCurrent ? 'bg-bg-hover/40' : 'hover:bg-bg-hover/50'}`}>
         <button
           onClick={onToggle}
           className="flex-1 min-w-0 flex items-center gap-1.5 px-2 py-1"
@@ -376,8 +384,7 @@ const WorkspaceGroup = ({
           <span className="text-text-muted -ml-px">
             {expanded ? <ChevronDown size={9} /> : <ChevronRight size={9} />}
           </span>
-          <FolderGit size={11} className={isCurrent ? 'text-text-primary' : 'text-text-muted'} />
-          <span className={`text-[12px] font-semibold truncate ${isCurrent ? 'text-text-primary' : 'text-text-secondary'}`}>{name}</span>
+          <span className="text-[11px] font-medium truncate text-text-secondary">{name}</span>
           {runningCount > 0 && (
             <span className="w-[6px] h-[6px] rounded-full bg-accent-brand animate-pulse flex-shrink-0" />
           )}
@@ -404,7 +411,7 @@ const WorkspaceGroup = ({
         )}
       </div>
       {expanded && (
-        <div className="flex flex-col gap-0.5">
+        <div className="flex flex-col gap-0.5 ml-2">
           {!hidePinnedSection && pinnedChats.length > 0 && (
             <div className="flex flex-col gap-0.5 pb-1 mb-0.5 border-b border-border/30">
               {pinnedChats.map((c) => (
@@ -591,8 +598,7 @@ const ExternalCwdGroup = ({ cwd, count, expanded, onToggle, onPin, onArchive, on
         <span className="text-text-muted -ml-px">
           {expanded ? <ChevronDown size={9} /> : <ChevronRight size={9} />}
         </span>
-        <Folder size={11} className="text-text-muted" />
-        <span className="text-[12px] font-semibold text-text-secondary truncate">{basename(cwd)}</span>
+        <span className="text-[11px] font-medium text-text-secondary truncate">{basename(cwd)}</span>
         <span className="ml-auto font-mono text-[10px] text-text-muted tabular-nums">{count}</span>
       </button>
       {expanded && (

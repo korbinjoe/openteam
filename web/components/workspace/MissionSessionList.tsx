@@ -398,7 +398,11 @@ const WorkspaceGroup = ({
         >
           <Plus size={11} />
         </button>
-        {activeChats.length + pinnedChats.length + sessions.length > 0 && (
+        {/* Reserve the Archive button slot even when there's nothing to archive
+            so the count column has a stable right edge across all workspaces.
+            Without this, "0" rows lose the 18px Archive slot and the digits
+            visibly shift right relative to rows that have it. */}
+        {activeChats.length + pinnedChats.length + sessions.length > 0 ? (
           <button
             onClick={(e) => { void handleArchiveAllClick(e) }}
             disabled={archivingAll}
@@ -408,6 +412,8 @@ const WorkspaceGroup = ({
           >
             <Archive size={11} />
           </button>
+        ) : (
+          <span className="w-[18px] h-[18px] flex-shrink-0" aria-hidden />
         )}
       </div>
       {expanded && (

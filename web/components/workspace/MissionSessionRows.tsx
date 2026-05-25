@@ -204,10 +204,31 @@ export const MissionRow = ({ chat, isSelected, agentNames, onPin, onArchive, onA
         >
           <ChevronRight size={9} className={cn('transition-transform', expanded && 'rotate-90')} />
         </button>
-        <span className={cn('w-[7px] h-[7px] rounded-full flex-shrink-0', chatStatusDot(chat))} />
-        {isPinned && (
-          <Pin size={9} className="text-accent-brand flex-shrink-0 -ml-0.5" />
-        )}
+        {/* Status dot ↔ pin toggle share one slot: dot fades out on hover, pin
+            button fades in. Frees the right-hover-action group from carrying
+            Pin/Unpin and gives the pin action a stable, discoverable target. */}
+        <span className="relative w-[11px] h-[11px] flex items-center justify-center flex-shrink-0">
+          <span className={cn(
+            'w-[7px] h-[7px] rounded-full transition-opacity duration-100 group-hover:opacity-0',
+            chatStatusDot(chat),
+          )} />
+          <span
+            role="button"
+            tabIndex={-1}
+            onClick={(e) => { e.stopPropagation(); onPin() }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); e.preventDefault(); onPin() }
+            }}
+            title={isPinned ? 'Unpin mission' : 'Pin mission'}
+            aria-label={isPinned ? 'Unpin mission' : 'Pin mission'}
+            className={cn(
+              'absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-100 cursor-pointer',
+              isPinned ? 'text-accent-brand hover:text-accent-brand-light' : 'text-text-muted hover:text-accent-brand',
+            )}
+          >
+            {isPinned ? <PinOff size={10} /> : <Pin size={10} />}
+          </span>
+        </span>
         <span className="text-[12px] font-medium text-text-primary flex-1 truncate">{chat.title}</span>
         {badge && (
           <span className="text-[10px] px-1.5 py-px rounded bg-bg-tertiary text-text-muted truncate max-w-[72px] flex-shrink-0">
@@ -228,9 +249,6 @@ export const MissionRow = ({ chat, isSelected, agentNames, onPin, onArchive, onA
         <RowHoverActions
           actions={[
             { title: 'Add agent', onClick: onAddAgent, children: <Plus size={11} /> },
-            isPinned
-              ? { title: 'Unpin mission', onClick: onPin, children: <PinOff size={11} /> }
-              : { title: 'Pin mission', onClick: onPin, children: <Pin size={11} /> },
             { title: 'Archive mission', onClick: onArchive, children: <Archive size={11} /> },
             { title: 'Delete mission (purges local CLI session files)', onClick: handleDeleteTask, children: <Trash size={11} /> },
           ]}

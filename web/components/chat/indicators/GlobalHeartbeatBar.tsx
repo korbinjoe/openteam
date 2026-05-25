@@ -8,7 +8,7 @@
  * OpenTeam  Agent  Agent  +
  */
 
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ChevronDown, ChevronRight, Square } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -60,6 +60,22 @@ const useActivityDesc = (activity: AgentActivity): string => {
   }
   return verb
 }
+
+/**
+ * Stale threshold: if an agent's activity hasn't ticked for this long while
+ * still showing an active phase, treat it as dead (CLI likely crashed without
+ * emitting a terminal phase). 60s comfortably covers Claude's longest thinking
+ * pauses.
+ */
+const STALE_MS = 60_000
+
+/**
+ * Module-level start-time map. Survives component remount (e.g. switching
+ * away from a chat and back), so the timer keeps counting from when the
+ * agent actually started this run, not from when the bar was last mounted.
+ * Cleared when the agent transitions out of active phase.
+ */
+const agentStartTimes = new Map<string, number>()
 
 const AgentDetailRow = ({ agentId, displayName, activity, elapsed, onClick }: {
   agentId: string
@@ -170,15 +186,25 @@ const GlobalHeartbeatBar = ({
 }: GlobalHeartbeatBarProps) => {
   const { t } = useTranslation('chat')
 
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(id)
+  }, [])
+
   const activeEntries = useMemo(() => {
-    const entries = Object.entries(expertActivities).filter(([, a]) => isActivePhase(a.phase))
+    const entries = Object.entries(expertActivities).filter(([, a]) => {
+      if (!isActivePhase(a.phase)) return false
+      if (now - a.updatedAt > STALE_MS) return false
+      return true
+    })
     const priority = (phase: string) => {
       if (phase === 'error') return 0
       if (phase === 'waiting_input' || phase === 'waiting_confirmation') return 1
       return 2
     }
     return entries.sort(([, a], [, b]) => priority(a.phase) - priority(b.phase))
-  }, [expertActivities])
+  }, [expertActivities, now])
   const hasActiveWork = activeEntries.length > 0
   const activeCount = activeEntries.length
 
@@ -192,20 +218,31 @@ const GlobalHeartbeatBar = ({
     return { errors, waiting }
   }, [activeEntries])
 
-  const startTsRef = useRef<number>(0)
-  const [elapsed, setElapsed] = useState(0)
+  const activeIds = useMemo(() => new Set(activeEntries.map(([id]) => id)), [activeEntries])
+  for (const [id] of activeEntries) {
+    if (!agentStartTimes.has(id)) agentStartTimes.set(id, Date.now())
+  }
+  for (const id of Array.from(agentStartTimes.keys())) {
+    if (!activeIds.has(id)) agentStartTimes.delete(id)
+  }
 
-  useEffect(() => {
-    if (hasActiveWork) {
-      if (startTsRef.current === 0) startTsRef.current = Date.now()
-      const tick = () => setElapsed(Date.now() - startTsRef.current)
-      tick()
-      const id = setInterval(tick, 1000)
-      return () => clearInterval(id)
+  const perAgentElapsed = useMemo(() => {
+    const m = new Map<string, number>()
+    for (const [id] of activeEntries) {
+      const start = agentStartTimes.get(id) ?? now
+      m.set(id, Math.max(0, now - start))
     }
-    startTsRef.current = 0
-    setElapsed(0)
-  }, [hasActiveWork])
+    return m
+  }, [activeEntries, now])
+
+  const overallElapsed = useMemo(() => {
+    let earliest = now
+    for (const [id] of activeEntries) {
+      const start = agentStartTimes.get(id) ?? now
+      if (start < earliest) earliest = start
+    }
+    return Math.max(0, now - earliest)
+  }, [activeEntries, now])
 
   const totalTokens = useMemo(() => {
     let input = 0
@@ -253,7 +290,7 @@ const GlobalHeartbeatBar = ({
           agentId={agentId}
           displayName={displayName}
           activity={activity}
-          elapsed={elapsed}
+          elapsed={perAgentElapsed.get(agentId) ?? 0}
           onClick={onAgentClick}
         />
         {onInterrupt && (
@@ -305,7 +342,7 @@ const GlobalHeartbeatBar = ({
             </span>
           )}
           <span className="text-xs text-accent-purple shrink-0 font-mono font-semibold">
-            {formatElapsed(elapsed)}
+            {formatElapsed(overallElapsed)}
           </span>
         </button>
         {onInterrupt && (
@@ -333,7 +370,7 @@ const GlobalHeartbeatBar = ({
                 agentId={agentId}
                 displayName={displayName}
                 activity={activity}
-                elapsed={elapsed}
+                elapsed={perAgentElapsed.get(agentId) ?? 0}
                 onClick={onAgentClick}
               />
             )

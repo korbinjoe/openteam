@@ -362,7 +362,7 @@ const ChatInstance = ({ chatId, workspaceId, isActive, isNewChat = false, initAg
   const {
     queuedMessages,
     handleSend, handleAnswerQuestion, handleInterrupt,
-    removeQueuedMessage, clearQueue,
+    removeQueuedMessage, clearQueue, popLastQueued,
   } = useChatActions({
     chatId, wsClient, currentSessionId, currentWorkingDirectory, wsRepositories,
     availableAgents, targetAgentId, expertActivities,
@@ -478,6 +478,7 @@ const ChatInstance = ({ chatId, workspaceId, isActive, isNewChat = false, initAg
             onTargetChange={(agent) => setTargetAgentId(agent.id ?? agent.name)}
             cwd={currentWorkingDirectory}
             queueSize={queuedMessages.length}
+            onRecallLastQueued={popLastQueued}
             onOpenAgentSwitcher={singleAgentMode ? undefined : () => setAgentSwitcherOpen(true)}
             singleAgentMode={singleAgentMode}
             lockedAgentName={lockedAgent?.name}

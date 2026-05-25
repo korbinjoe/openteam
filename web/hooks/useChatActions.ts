@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
-import type { Message, AgentActivity, AgentPhase, QueuedMessage } from '../types/chat'
+import type { Message, AgentActivity, QueuedMessage } from '../types/chat'
 import { WORKING_PHASES } from '../types/chat'
 import type { MentionInfo, PendingImage } from '../components/chat/input/InputArea'
 import type { AgentSummary } from '../types/agentConfig'
@@ -152,6 +152,16 @@ export const useChatActions = ({
     })
   }, [])
 
+  // Pop the most recently enqueued message so it can be recalled into the
+  // input for editing. Returns the popped item or null when the queue is empty.
+  const popLastQueued = useCallback((): QueuedMessage | null => {
+    const current = queuedMessagesRef.current
+    if (current.length === 0) return null
+    const popped = current[current.length - 1]
+    setQueuedMessages((prev) => prev.slice(0, -1))
+    return popped
+  }, [])
+
   const isWorkingNow = !!currentMergedActivity && WORKING_PHASES.has(currentMergedActivity.phase)
 
   const handleSend = (mentions: MentionInfo[] = [], images: PendingImage[] = []) => {
@@ -219,21 +229,22 @@ export const useChatActions = ({
     clearQueue()
   }, [stopAllExperts, setLoading, setExpertActivities, clearQueue, lockedAgentId])
 
-  const prevPhaseRef = useRef<string | undefined>(undefined)
+  // Flush the queue head whenever the agent is not actively working. Queue
+  // items can only be added while a working phase is active (handleSend gates
+  // on isWorkingNow), so this stays idempotent: dispatchMessage immediately
+  // sets the next phase back to `initializing` (a working phase), guarding
+  // against double-flushing within the same idle window.
   useEffect(() => {
+    if (queuedMessages.length === 0) return
     const phase = currentMergedActivity?.phase
-    const prev = prevPhaseRef.current
-    prevPhaseRef.current = phase
-    const wasWorking = !!prev && WORKING_PHASES.has(prev as AgentPhase)
-    const nowIdle = phase === 'waiting_input' || phase === 'completed'
-    if (wasWorking && nowIdle && queuedMessages.length > 0) {
-      flushNext()
-    }
+    const isWorking = !!phase && WORKING_PHASES.has(phase)
+    if (isWorking) return
+    flushNext()
   }, [currentMergedActivity?.phase, queuedMessages.length, flushNext])
 
   return {
     queuedMessages, isWorkingNow,
     handleSend, handleAnswerQuestion, handleInterrupt,
-    removeQueuedMessage, clearQueue, dispatchMessage,
+    removeQueuedMessage, clearQueue, popLastQueued, dispatchMessage,
   }
 }

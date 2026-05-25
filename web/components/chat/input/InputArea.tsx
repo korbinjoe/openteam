@@ -7,7 +7,7 @@ import SlashCommandMenu from './SlashCommandMenu'
 import { type CommandDef, COMMAND_REGISTRY, filterCommands, mergeWithDynamicCommands } from '@/lib/commandRegistry'
 import MentionMenu, { type MentionItem } from './MentionMenu'
 import type { AgentSummary } from '@/types/agentConfig'
-import type { AgentActivity } from '@/types/chat'
+import type { AgentActivity, QueuedMessage } from '@/types/chat'
 import { WORKING_PHASES } from '@/types/chat'
 import type { ModelOption } from '@/lib/models'
 import { sendAESEvent } from '@/lib/aes'
@@ -60,6 +60,9 @@ interface Props {
   onTargetChange?: (agent: AgentSummary) => void
   cwd?: string | null
   queueSize?: number
+  /** Pop the most recently queued message back into the input. Triggered by
+   *  ArrowUp on an empty editor when the queue is non-empty. */
+  onRecallLastQueued?: () => QueuedMessage | null
   onOpenAgentSwitcher?: () => void
   /** True when the workspace URL pins this view to one agent. Disables the
    *  agent-switch chip and rewrites the placeholder to make the lock visible. */
@@ -95,6 +98,7 @@ const InputArea = forwardRef<InputAreaHandle, Props>(({
   agents = [], expertActivities = {},
   targetAgentId, onTargetChange, cwd,
   queueSize = 0,
+  onRecallLastQueued,
   onOpenAgentSwitcher,
   singleAgentMode = false,
   lockedAgentName,
@@ -437,6 +441,33 @@ const InputArea = forwardRef<InputAreaHandle, Props>(({
     sendAESEvent('chat', 'message_sent', { messageLength: value.trim().length, mentionCount: mentions.length, imageCount: pendingImages.length })
   }, [value, agents, onSend, pendingImages])
 
+  const handleRecallLastQueued = useCallback(() => {
+    if (!onRecallLastQueued) return false
+    const popped = onRecallLastQueued()
+    if (!popped) return false
+    onChange(popped.text)
+    const el = editorRef.current
+    if (el) {
+      resetEditor(el, popped.text)
+      el.focus()
+      const sel = window.getSelection()
+      if (sel) {
+        const range = document.createRange()
+        range.selectNodeContents(el)
+        range.collapse(false)
+        sel.removeAllRanges()
+        sel.addRange(range)
+      }
+    }
+    if (popped.images.length > 0) setPendingImages(popped.images)
+    if (popped.targetAgentId && onTargetChange) {
+      const agent = agents.find((a) => (a.id ?? a.name) === popped.targetAgentId)
+      if (agent) onTargetChange(agent)
+    }
+    sendAESEvent('chat', 'queue_recalled', { textLength: popped.text.length, imageCount: popped.images.length })
+    return true
+  }, [onRecallLastQueued, onChange, agents, onTargetChange])
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if (activeMenu === 'slash') {
       if (e.key === 'ArrowUp') { e.preventDefault(); setSlashMenuIndex((i) => (i <= 0 ? filteredCmds.length - 1 : i - 1)); return }
@@ -468,6 +499,20 @@ const InputArea = forwardRef<InputAreaHandle, Props>(({
         clearAtToken()
         setMentionQuery(null)
         syncValue()
+        return
+      }
+    }
+
+    if (
+      e.key === 'ArrowUp' &&
+      !e.shiftKey && !e.metaKey && !e.ctrlKey && !e.altKey &&
+      !e.nativeEvent.isComposing &&
+      queueSize > 0 &&
+      value.trim().length === 0 &&
+      pendingImages.length === 0
+    ) {
+      if (handleRecallLastQueued()) {
+        e.preventDefault()
         return
       }
     }

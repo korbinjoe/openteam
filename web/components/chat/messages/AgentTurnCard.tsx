@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import {
   Loader2,
   Wrench, CheckCircle2, ChevronDown, ChevronRight,
-  AlertCircle, Clock,
+  AlertCircle, Clock, FileText, RotateCcw,
 } from 'lucide-react'
 import type { Message, AgentActivity } from '../../../types/chat'
 import type { AgentPersonality } from '../../../types/agentConfig'
@@ -191,6 +191,10 @@ const AgentTurnCard = ({ group, activity, agentName, agentNames, agentPersonalit
     return { finalText, fileChanges, hasError, errorCount, firstErrorLine }
   }, [group.agentMessages])
 
+  // Tool errors during a successful turn are recovered retries (e.g. file-not-found → retry with correct path).
+  // Render as success with an amber retry chip — only `phase === 'error'` is a real task failure.
+  const hasRecoveredErrors = isCompleted && !isError && summaryData.hasError
+
   if (phase === 'initializing' && group.agentMessages.length === 0) return null
 
   const statusText = (() => {
@@ -225,7 +229,7 @@ const AgentTurnCard = ({ group, activity, agentName, agentNames, agentPersonalit
   }
 
   return (
-    <div style={{ animation: 'fadeIn 0.2s ease', marginTop: 2 }}>
+    <div className="group" style={{ animation: 'fadeIn 0.2s ease', marginTop: 2 }}>
       <div
         role={hasDetails ? 'button' : undefined}
         tabIndex={hasDetails ? 0 : undefined}
@@ -251,10 +255,10 @@ const AgentTurnCard = ({ group, activity, agentName, agentNames, agentPersonalit
           <Chevron size={12} style={{ color: 'rgb(var(--text-muted))', flexShrink: 0, opacity: 0.6 }} />
         )}
 
-        {isCompleted ? (
-          <CheckCircle2 size={13} style={{ color: 'rgb(var(--accent-green))', flexShrink: 0 }} />
-        ) : isError ? (
+        {isError ? (
           <AlertCircle size={13} style={{ color: 'rgb(var(--accent-red))', flexShrink: 0 }} />
+        ) : isCompleted ? (
+          <CheckCircle2 size={13} style={{ color: 'rgb(var(--accent-green))', flexShrink: 0 }} />
         ) : (
           <Loader2 size={13} style={{ color: 'rgb(var(--accent-purple))', animation: 'spin 1s linear infinite', flexShrink: 0 }} />
         )}
@@ -282,13 +286,41 @@ const AgentTurnCard = ({ group, activity, agentName, agentNames, agentPersonalit
           </span>
         )}
 
-        <span style={{
-          fontSize: 11,
-          color: isError ? 'rgb(var(--accent-red))' : 'rgb(var(--text-secondary))',
-          flexShrink: 0,
-        }}>
-          {statusText}
-        </span>
+        {(!isCompleted || isError) && (
+          <span style={{
+            fontSize: 11,
+            color: isError ? 'rgb(var(--accent-red))' : 'rgb(var(--text-secondary))',
+            fontWeight: isError ? 500 : 400,
+            flexShrink: 0,
+          }}>
+            {isError
+              ? (summaryData.errorCount > 1 ? `${summaryData.errorCount} errors` : t('message.executionError'))
+              : statusText}
+          </span>
+        )}
+
+        {hasRecoveredErrors && (
+          <span
+            title={summaryData.firstErrorLine
+              ? `Tool errors recovered during this turn:\n${summaryData.firstErrorLine}`
+              : 'Tool errors recovered during this turn'}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 3,
+              fontSize: 10,
+              padding: '0 5px',
+              borderRadius: 3,
+              background: 'rgb(var(--accent-orange) / 0.12)',
+              color: 'rgb(var(--accent-orange))',
+              fontFamily: 'monospace',
+              flexShrink: 0,
+            }}
+          >
+            <RotateCcw size={9} style={{ opacity: 0.85 }} />
+            {summaryData.errorCount} {summaryData.errorCount > 1 ? 'retries' : 'retry'}
+          </span>
+        )}
 
         {toolCount > 0 && (
           <span style={{
@@ -306,30 +338,21 @@ const AgentTurnCard = ({ group, activity, agentName, agentNames, agentPersonalit
           </span>
         )}
 
-        {isCompleted && tokens && tokens.output > 0 && (
-          <span
-            style={{ fontSize: 10, color: 'rgb(var(--text-muted))', fontFamily: 'monospace', opacity: 0.6, flexShrink: 1, overflow: 'hidden', whiteSpace: 'nowrap' }}
-            title={`input: ${tokens.input.toLocaleString()} / output: ${tokens.output.toLocaleString()}${tokens.cacheRead ? ` / cache read: ${tokens.cacheRead.toLocaleString()}` : ''}${tokens.cacheCreation ? ` / cache creation: ${tokens.cacheCreation.toLocaleString()}` : ''}`}
-          >
-            {formatTokens(tokens.output)} out
-          </span>
-        )}
-
-        {elapsed > 0 && (
+        {/* tokens + elapsed in header only while running — completed-state moves to hover footer */}
+        {elapsed > 0 && !isCompleted && (
           <span style={{
             display: 'inline-flex',
             alignItems: 'center',
             gap: 3,
-            fontSize: !isCompleted && !isError ? 11 : 10,
-            color: !isCompleted && !isError ? 'rgb(var(--accent-purple))' : 'rgb(var(--text-muted))',
+            fontSize: 11,
+            color: 'rgb(var(--accent-purple))',
             fontFamily: 'monospace',
-            fontWeight: !isCompleted && !isError ? 600 : 400,
-            opacity: !isCompleted && !isError ? 1 : 0.6,
+            fontWeight: 600,
             flexShrink: 1,
             overflow: 'hidden',
             whiteSpace: 'nowrap',
           }}>
-            <Clock size={!isCompleted && !isError ? 10 : 9} style={{ opacity: !isCompleted && !isError ? 0.8 : 0.5, flexShrink: 0 }} />
+            <Clock size={10} style={{ opacity: 0.8, flexShrink: 0 }} />
             {formatElapsed(elapsed)}
           </span>
         )}
@@ -346,63 +369,72 @@ const AgentTurnCard = ({ group, activity, agentName, agentNames, agentPersonalit
         </div>
       )}
 
-      {!expanded && isCompleted && !hasPendingQuestion && (summaryData.finalText || summaryData.fileChanges.length > 0 || summaryData.hasError) && (
+      {!expanded && isCompleted && !hasPendingQuestion && (summaryData.finalText || summaryData.fileChanges.length > 0 || (isError && summaryData.firstErrorLine)) && (
         <div
           style={{ padding: '2px 16px 6px 36px', cursor: 'pointer' }}
           onClick={handleToggle}
         >
-          {summaryData.hasError && (
+          {isError && summaryData.firstErrorLine && (
             <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 4,
+              fontSize: 11,
+              color: 'rgb(var(--accent-red))',
+              opacity: 0.75,
+              fontFamily: "'SF Mono', 'Fira Code', monospace",
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
               marginBottom: 3,
             }}>
-              <AlertCircle size={11} style={{ color: 'rgb(var(--accent-red))', flexShrink: 0 }} />
-              <span style={{ fontSize: 11, color: 'rgb(var(--accent-red))', fontWeight: 500 }}>
-                {summaryData.errorCount > 1 ? `${summaryData.errorCount} errors` : t('message.executionError')}
-              </span>
-              {summaryData.firstErrorLine && (
-                <span style={{ fontSize: 10, color: 'rgb(var(--accent-red))', opacity: 0.7, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, minWidth: 0 }}>
-                  {summaryData.firstErrorLine}
-                </span>
-              )}
+              {summaryData.firstErrorLine}
             </div>
           )}
           {summaryData.fileChanges.length > 0 && (
             <div style={{
               display: 'flex',
               flexWrap: 'wrap',
-              gap: '2px 8px',
-              marginBottom: summaryData.finalText ? 3 : 0,
+              gap: 6,
+              marginBottom: summaryData.finalText ? 6 : 0,
             }}>
-              {summaryData.fileChanges.slice(0, 6).map((change) => (
-                <span
-                  key={change.path}
-                  title={change.path}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 3,
-                    fontSize: 11,
-                    color: 'rgb(var(--text-muted))',
-                    fontFamily: "'SF Mono', 'Fira Code', monospace",
-                  }}
-                >
-                  <span style={{
-                    color: change.operation === 'created'
-                      ? 'rgb(var(--accent-green))'
-                      : 'rgb(var(--accent-brand))',
-                    fontSize: 10,
-                  }}>
-                    {change.operation === 'created' ? '+' : '~'}
+              {summaryData.fileChanges.slice(0, 6).map((change) => {
+                const isCreated = change.operation === 'created'
+                return (
+                  <span
+                    key={change.path}
+                    title={change.path}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      fontSize: 11,
+                      color: 'rgb(var(--text-secondary))',
+                      fontFamily: "'SF Mono', 'Fira Code', monospace",
+                      padding: '1px 6px 1px 5px',
+                      borderRadius: 4,
+                      background: 'rgb(var(--bg-hover-subtle) / var(--bg-hover-subtle-alpha))',
+                      border: '1px solid rgb(var(--border-subtle))',
+                    }}
+                  >
+                    <FileText size={10} style={{ opacity: 0.55, flexShrink: 0 }} />
+                    {change.fileName}
+                    <span style={{
+                      fontSize: 9,
+                      fontWeight: 600,
+                      letterSpacing: 0.3,
+                      color: isCreated ? 'rgb(var(--accent-green))' : 'rgb(var(--accent-brand-light))',
+                      opacity: 0.8,
+                    }}>
+                      {isCreated ? 'A' : 'M'}
+                    </span>
                   </span>
-                  {change.fileName}
-                </span>
-              ))}
+                )
+              })}
               {summaryData.fileChanges.length > 6 && (
-                <span style={{ fontSize: 10, color: 'rgb(var(--text-muted))' }}>
-                  +{summaryData.fileChanges.length - 6} files
+                <span style={{
+                  fontSize: 10,
+                  color: 'rgb(var(--text-muted))',
+                  alignSelf: 'center',
+                }}>
+                  +{summaryData.fileChanges.length - 6} more
                 </span>
               )}
             </div>
@@ -422,14 +454,23 @@ const AgentTurnCard = ({ group, activity, agentName, agentNames, agentPersonalit
             </div>
           )}
           {(elapsed > 0 || toolCount > 0 || (tokens && tokens.output > 0) || turnModel) && (
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: 8, marginTop: 4,
-              fontSize: 10, color: 'rgb(var(--text-muted))', fontFamily: 'monospace',
-            }}>
+            <div
+              className="opacity-0 group-hover:opacity-50 transition-opacity duration-150"
+              style={{
+                display: 'flex', alignItems: 'center', gap: 10, marginTop: 6,
+                fontSize: 10, color: 'rgb(var(--text-muted))', fontFamily: "'SF Mono', 'Fira Code', monospace",
+              }}
+            >
               {turnModel && <span>{turnModel}</span>}
               {elapsed > 0 && <span>{formatElapsed(elapsed)}</span>}
               {toolCount > 0 && <span>{toolCount} tools</span>}
-              {tokens && tokens.output > 0 && <span>{formatTokens(tokens.output)} out</span>}
+              {tokens && tokens.output > 0 && (
+                <span
+                  title={`input: ${tokens.input.toLocaleString()} / output: ${tokens.output.toLocaleString()}${tokens.cacheRead ? ` / cache read: ${tokens.cacheRead.toLocaleString()}` : ''}${tokens.cacheCreation ? ` / cache creation: ${tokens.cacheCreation.toLocaleString()}` : ''}`}
+                >
+                  {formatTokens(tokens.output)} out
+                </span>
+              )}
               {activity?.cost != null && activity.cost > 0 && <span>${activity.cost.toFixed(4)}</span>}
             </div>
           )}

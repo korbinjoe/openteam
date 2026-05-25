@@ -1,0 +1,579 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=1280" />
+<title>Message Area · Before & After</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  /* ── 1:1 复制 web/index.css 的真实 token ──────────────────── */
+  :root {
+    --bg-primary:       10 10 16;
+    --bg-secondary:     16 16 24;
+    --bg-tertiary:      22 22 32;
+    --bg-hover:         30 30 42;
+    --bg-selected:      36 36 50;
+    --bg-input:         18 18 28;
+    --bg-elevated:      24 24 36;
+
+    --text-primary:     226 228 240;
+    --text-secondary:   148 156 172;
+    --text-emphasis:    248 250 252;
+    --text-muted:       90 100 120;
+
+    --accent-green:     52 211 153;
+    --accent-yellow:    251 191 36;
+    --accent-red:       239 68 68;
+    --accent-orange:    245 158 11;
+    --accent-purple:    167 139 250;
+    --accent-brand:       90 143 202;
+    --accent-brand-light: 130 176 222;
+    --accent-brand-deep:  62 114 172;
+
+    --border-color:     38 38 54;
+    --border-subtle:    28 28 42;
+
+    --code-bg:          rgba(99,102,241,0.08);
+    --radius-sm:        6px;
+    --radius-md:        10px;
+    --radius-lg:        14px;
+  }
+  html, body {
+    background: rgb(var(--bg-primary));
+    color: rgb(var(--text-primary));
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 16px;
+    letter-spacing: -0.01em;
+    -webkit-font-smoothing: antialiased;
+  }
+  .mono { font-family: 'SF Mono', 'JetBrains Mono', 'Fira Code', Consolas, monospace; }
+
+  @keyframes ping-soft {
+    0% { transform: scale(1); opacity: .55; }
+    70% { transform: scale(2.2); opacity: 0; }
+    100% { transform: scale(2.2); opacity: 0; }
+  }
+  .animate-ping-soft { animation: ping-soft 1.6s cubic-bezier(0,0,0.2,1) infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .animate-spin { animation: spin 1s linear infinite; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+  .fade-in { animation: fadeIn 0.2s ease; }
+
+  /* 复刻 chat-markdown 样式 */
+  .md  { font-size: 12.5px; line-height: 1.65; color: rgb(var(--text-primary)); }
+  .md p { margin: 0 0 6px; }
+  .md p:last-child { margin-bottom: 0; }
+  .md strong { color: rgb(var(--text-emphasis)); font-weight: 600; }
+  .md code {
+    background: var(--code-bg); border-radius: 4px; padding: 1px 5px;
+    font-family: 'SF Mono', monospace; font-size: 11.5px;
+    color: rgb(var(--accent-brand-light));
+  }
+
+  /* Avatar styles (复现真实) */
+  .av-user { width: 28px; height: 28px; border-radius: 9999px; background: rgb(var(--accent-brand)); display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .av-agent { width: 28px; height: 28px; border-radius: 9999px; background: linear-gradient(135deg, rgb(var(--accent-brand-light)), rgb(var(--accent-brand-deep))); display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 11px; font-weight: 700; color: white; letter-spacing: -0.03em; }
+</style>
+</head>
+<body class="overflow-x-auto">
+
+<header class="px-8 pt-8 pb-4">
+  <div class="text-[11px] mono uppercase tracking-wider" style="color: rgb(var(--text-muted))">
+    OpenTeam · Chat Message Area Redesign · 基于 AgentTurnCard.tsx 真实实现
+  </div>
+  <h1 class="mt-2 text-2xl font-semibold" style="color: rgb(var(--text-emphasis))">
+    消息区视觉重构 <span class="text-base font-normal" style="color: rgb(var(--text-secondary))">— 元数据降噪 · 状态克制 · 节奏统一</span>
+  </h1>
+</header>
+
+<div class="grid grid-cols-2 gap-6 px-8 pb-16" style="min-width: 1280px;">
+
+  <!-- ─────────────────────── BEFORE ─────────────────────── -->
+  <section>
+    <div class="flex items-center gap-2 mb-3">
+      <div class="w-1.5 h-1.5 rounded-full" style="background: rgb(var(--accent-red))"></div>
+      <div class="text-xs font-semibold uppercase tracking-wider" style="color: rgb(var(--text-secondary))">Before — 当前实现</div>
+      <div class="text-[10px] mono" style="color: rgb(var(--text-muted))">/ AgentTurnCard.tsx</div>
+    </div>
+
+    <div class="rounded-xl border" style="background: rgb(var(--bg-primary)); border-color: rgb(var(--border-subtle))">
+
+      <!-- USER MESSAGE -->
+      <div class="flex gap-2.5 px-4 pt-4 pb-1.5">
+        <div class="av-user">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </div>
+        <div class="flex-1 min-w-0 pt-0.5">
+          <div class="flex items-center gap-1.5 mb-1">
+            <span class="flex-1"></span>
+            <span class="text-[10px] mono opacity-50" style="color: rgb(var(--text-muted))">23:14</span>
+          </div>
+          <div class="px-3 py-2 rounded-lg text-[13px] leading-[1.7]" style="background: rgba(255,255,255,0.04); border: 1px solid rgb(var(--border-subtle))">
+            动手,另外要保证 R2C Case 只走 R2C 相关的几个 Agent,别调用到简单 Case 适配的 Agent
+          </div>
+        </div>
+      </div>
+
+      <!-- AGENT TURN — ERROR (looks completed) -->
+      <div class="fade-in" style="margin-top: 2px;">
+        <!-- Header bar -->
+        <div class="flex items-center gap-2 px-4 py-1" style="border-left: 2px solid rgb(var(--accent-green)); margin-left: 16px;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: rgb(var(--text-muted)); opacity: 0.6;"><polyline points="6 9 12 15 18 9"/></svg>
+          <!-- Green check icon -->
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgb(var(--accent-green))" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          <span class="text-[12px] font-semibold" style="color: rgb(var(--text-emphasis))">Fullstack Product Engineer</span>
+          <span class="text-[10px] px-1.5 rounded-[3px] mono" style="background: rgba(255,255,255,0.07); color: rgb(var(--text-muted))">Opus 4.7</span>
+          <span class="text-[11px]" style="color: rgb(var(--text-secondary))">Completed</span>
+          <span class="text-[10px] mono opacity-60" style="color: rgb(var(--text-muted))">47.9K out</span>
+        </div>
+        <!-- Inline summary -->
+        <div class="px-4 py-1.5" style="padding-left: 36px;">
+          <!-- Red error banner inside green-bordered card -->
+          <div class="flex items-center gap-1 mb-1">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgb(var(--accent-red))" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <span class="text-[11px] font-medium" style="color: rgb(var(--accent-red))">3 errors</span>
+            <span class="text-[10px] truncate flex-1 min-w-0" style="color: rgb(var(--accent-red)); opacity: 0.7;">Exit code 1</span>
+          </div>
+          <div class="flex flex-wrap gap-x-2 gap-y-0.5 mb-1">
+            <span class="inline-flex items-center gap-0.5 text-[11px] mono" style="color: rgb(var(--text-muted))">
+              <span style="color: rgb(var(--accent-brand)); font-size: 10px;">~</span>demo.py
+            </span>
+            <span class="inline-flex items-center gap-0.5 text-[11px] mono" style="color: rgb(var(--text-muted))">
+              <span style="color: rgb(var(--accent-brand)); font-size: 10px;">~</span>gen_report.py
+            </span>
+          </div>
+          <div class="text-[12px] leading-[1.5] line-clamp-2" style="color: rgb(var(--text-secondary))">
+            代码改动已落地,进程在后台跑。等通知。完成后 python3 gen_report.py 重新生成报告。我先把改动小结一下: demo.py 关键改动…
+          </div>
+          <!-- Bottom stats line -->
+          <div class="flex items-center gap-2 mt-1 text-[10px] mono" style="color: rgb(var(--text-muted))">
+            <span>Opus 4.7</span>
+            <span>15s</span>
+            <span>3 tools</span>
+            <span>47.9K out</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- USER MESSAGE -->
+      <div class="flex gap-2.5 px-4 pt-4 pb-1.5">
+        <div class="av-user">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </div>
+        <div class="flex-1 min-w-0 pt-0.5">
+          <div class="flex items-center gap-1.5 mb-1">
+            <span class="flex-1"></span>
+            <span class="text-[10px] mono opacity-50" style="color: rgb(var(--text-muted))">23:37</span>
+          </div>
+          <div class="px-3 py-2 rounded-lg text-[13px] leading-[1.7]" style="background: rgba(255,255,255,0.04); border: 1px solid rgb(var(--border-subtle))">
+            每5分钟汇报一下进展
+          </div>
+        </div>
+      </div>
+
+      <!-- AGENT TURN — RUNNING -->
+      <div class="fade-in" style="margin-top: 2px;">
+        <div class="flex items-center gap-2 px-4 py-1" style="border-left: 2px solid rgb(var(--accent-purple)); margin-left: 16px;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: rgb(var(--text-muted)); opacity: 0.6;"><polyline points="6 9 12 15 18 9"/></svg>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgb(var(--accent-purple))" stroke-width="2" class="animate-spin"><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"/><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/></svg>
+          <span class="text-[12px] font-semibold" style="color: rgb(var(--text-emphasis))">Fullstack Product Engineer</span>
+          <span class="text-[10px] px-1.5 rounded-[3px] mono" style="background: rgba(255,255,255,0.07); color: rgb(var(--text-muted))">Opus 4.7</span>
+          <span class="text-[11px]" style="color: rgb(var(--text-secondary))">Read…</span>
+          <span class="inline-flex items-center gap-1 text-[10px] mono" style="color: rgb(var(--text-muted))">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity: 0.6;"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+            <span>2/4</span>
+          </span>
+          <span class="inline-flex items-center gap-0.5 text-[11px] mono font-semibold" style="color: rgb(var(--accent-purple));">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            8s
+          </span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Issues list -->
+    <ul class="mt-4 space-y-1.5 text-[12.5px] leading-[1.6]" style="color: rgb(var(--text-secondary))">
+      <li class="flex gap-2"><span style="color: rgb(var(--accent-red))">●</span>状态绿条 + 内部红色错误条 = 矛盾信号</li>
+      <li class="flex gap-2"><span style="color: rgb(var(--accent-red))">●</span>顶部 <code class="mono text-[11px]" style="color: rgb(var(--accent-brand-light))">Opus 4.7 / 47.9K out</code> 与底部统计行重复</li>
+      <li class="flex gap-2"><span style="color: rgb(var(--accent-red))">●</span>"Completed" 文字 + 绿色 ✓ 图标 = 双重指示</li>
+      <li class="flex gap-2"><span style="color: rgb(var(--accent-red))">●</span><code class="mono text-[11px]" style="color: rgb(var(--accent-brand-light))">~demo.py</code> 与正文混在一起,缺乏 chip 边界</li>
+      <li class="flex gap-2"><span style="color: rgb(var(--accent-red))">●</span>底部统计行常驻,token/cache/cost 噪音陪跑</li>
+      <li class="flex gap-2"><span style="color: rgb(var(--accent-red))">●</span>Agent 消息无时间戳,用户消息有,时间锚点不对称</li>
+    </ul>
+  </section>
+
+  <!-- ─────────────────────── AFTER ─────────────────────── -->
+  <section>
+    <div class="flex items-center gap-2 mb-3">
+      <div class="w-1.5 h-1.5 rounded-full" style="background: rgb(var(--accent-green))"></div>
+      <div class="text-xs font-semibold uppercase tracking-wider" style="color: rgb(var(--text-secondary))">After — 重构提案</div>
+      <div class="text-[10px] mono" style="color: rgb(var(--text-muted))">/ same tokens, calmer layout</div>
+    </div>
+
+    <div class="rounded-xl border" style="background: rgb(var(--bg-primary)); border-color: rgb(var(--border-subtle))">
+
+      <!-- USER MESSAGE — 节制版,去掉气泡,改用左侧细线 -->
+      <div class="flex gap-2.5 px-4 pt-4 pb-1.5">
+        <div class="av-user">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </div>
+        <div class="flex-1 min-w-0 pt-0.5">
+          <div class="flex items-center gap-1.5 mb-1">
+            <span class="text-[12px] font-semibold" style="color: rgb(var(--text-emphasis))">You</span>
+            <span class="text-[10px] mono opacity-50" style="color: rgb(var(--text-muted))">23:14</span>
+          </div>
+          <div class="text-[13px] leading-[1.65]" style="color: rgb(var(--text-primary))">
+            动手,另外要保证 R2C Case 只走 R2C 相关的几个 Agent,别调用到简单 Case 适配的 Agent
+          </div>
+        </div>
+      </div>
+
+      <!-- AGENT TURN — ERROR (失败时整条改红,头部直白说"3 errors") -->
+      <div class="fade-in mt-2 group">
+        <!-- Header: left-bar 颜色 = 真实状态(红) -->
+        <div class="flex items-center gap-2 px-4 py-1 cursor-pointer hover:bg-white/[0.025]" style="border-left: 2px solid rgb(var(--accent-red)); margin-left: 16px;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: rgb(var(--text-muted)); opacity: 0.5;"><polyline points="9 18 15 12 9 6"/></svg>
+          <!-- 单一红点(替代 ✓/AlertCircle 二选一)-->
+          <div class="relative flex items-center justify-center" style="width: 8px; height: 8px;">
+            <div class="absolute inset-0 rounded-full" style="background: rgb(var(--accent-red))"></div>
+          </div>
+          <span class="text-[12px] font-semibold" style="color: rgb(var(--text-emphasis))">Fullstack Engineer</span>
+          <span class="text-[11px] font-medium" style="color: rgb(var(--accent-red))">3 errors</span>
+          <span class="text-[11px] truncate" style="color: rgb(var(--text-secondary)); opacity: 0.7;">· Exit code 1</span>
+          <span class="flex-1"></span>
+          <span class="text-[10px] mono opacity-50" style="color: rgb(var(--text-muted))">23:18 · 15s</span>
+        </div>
+
+        <!-- Body: 文件 chip 化,正文克制,无重复 -->
+        <div class="px-4 py-1.5 space-y-2" style="padding-left: 36px;">
+          <!-- File chips with subtle background -->
+          <div class="flex flex-wrap gap-1.5">
+            <span class="inline-flex items-center gap-1 text-[11px] mono px-2 py-[2px] rounded"
+                  style="background: rgba(255,255,255,0.04); border: 1px solid rgb(var(--border-subtle)); color: rgb(var(--text-secondary));">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              demo.py
+              <span class="text-[9px] opacity-60" style="color: rgb(var(--accent-brand-light))">M</span>
+            </span>
+            <span class="inline-flex items-center gap-1 text-[11px] mono px-2 py-[2px] rounded"
+                  style="background: rgba(255,255,255,0.04); border: 1px solid rgb(var(--border-subtle)); color: rgb(var(--text-secondary));">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              gen_report.py
+              <span class="text-[9px] opacity-60" style="color: rgb(var(--accent-brand-light))">M</span>
+            </span>
+          </div>
+          <div class="text-[12.5px] leading-[1.65] line-clamp-2" style="color: rgb(var(--text-secondary))">
+            代码改动已落地,进程在后台跑。等通知。完成后 <code class="mono text-[11.5px]" style="background: var(--code-bg); border-radius: 4px; padding: 1px 5px; color: rgb(var(--accent-brand-light));">python3 gen_report.py</code> 重新生成报告。
+          </div>
+          <!-- Footnote: 默认极淡,hover 才浮现 -->
+          <div class="flex items-center gap-3 text-[10px] mono opacity-0 group-hover:opacity-50 transition-opacity"
+               style="color: rgb(var(--text-muted));">
+            <span>Opus 4.7</span>
+            <span class="w-px h-2.5" style="background: rgb(var(--border-color))"></span>
+            <span>47.9K out</span>
+            <span class="w-px h-2.5" style="background: rgb(var(--border-color))"></span>
+            <span>3 tools</span>
+            <span class="w-px h-2.5" style="background: rgb(var(--border-color))"></span>
+            <span>$0.18</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- USER MESSAGE -->
+      <div class="flex gap-2.5 px-4 pt-4 pb-1.5">
+        <div class="av-user">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </div>
+        <div class="flex-1 min-w-0 pt-0.5">
+          <div class="flex items-center gap-1.5 mb-1">
+            <span class="text-[12px] font-semibold" style="color: rgb(var(--text-emphasis))">You</span>
+            <span class="text-[10px] mono opacity-50" style="color: rgb(var(--text-muted))">23:37</span>
+          </div>
+          <div class="text-[13px] leading-[1.65]" style="color: rgb(var(--text-primary))">
+            每5分钟汇报一下进展
+          </div>
+        </div>
+      </div>
+
+      <!-- AGENT TURN — RUNNING (蓝涟漪点替代 spinner,头部最少元素) -->
+      <div class="fade-in mt-2 group">
+        <div class="flex items-center gap-2 px-4 py-1 cursor-pointer hover:bg-white/[0.025]" style="border-left: 2px solid rgb(var(--accent-brand)); margin-left: 16px;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: rgb(var(--text-muted)); opacity: 0.5;"><polyline points="9 18 15 12 9 6"/></svg>
+          <!-- 蓝涟漪点 = running(对齐项目 status indicator 约定) -->
+          <div class="relative flex items-center justify-center" style="width: 8px; height: 8px;">
+            <div class="absolute inset-0 rounded-full" style="background: rgb(var(--accent-brand))"></div>
+            <div class="absolute inset-0 rounded-full animate-ping-soft" style="background: rgb(var(--accent-brand))"></div>
+          </div>
+          <span class="text-[12px] font-semibold" style="color: rgb(var(--text-emphasis))">Fullstack Engineer</span>
+          <span class="text-[11px]" style="color: rgb(var(--text-secondary))">Reading <code class="mono text-[11px]" style="background: var(--code-bg); border-radius: 4px; padding: 0px 4px; color: rgb(var(--accent-brand-light));">r2c_run.log</code></span>
+          <span class="text-[10px] mono" style="color: rgb(var(--text-muted))">2/4</span>
+          <span class="flex-1"></span>
+          <!-- 运行中:时间显著,因为是注意力锚 -->
+          <span class="text-[11px] mono font-semibold" style="color: rgb(var(--accent-brand-light))">8s</span>
+        </div>
+      </div>
+
+      <!-- AGENT TURN — DONE(成功最弱:无左条,无大图标,绿点 muted) -->
+      <div class="fade-in mt-2 group">
+        <div class="flex items-center gap-2 px-4 py-1 cursor-pointer hover:bg-white/[0.025]" style="margin-left: 18px;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: rgb(var(--text-muted)); opacity: 0.5;"><polyline points="9 18 15 12 9 6"/></svg>
+          <!-- 完成态用 muted green dot,不抢注意力 -->
+          <div class="rounded-full" style="width: 6px; height: 6px; background: rgb(var(--accent-green) / 0.4)"></div>
+          <span class="text-[12px] font-semibold" style="color: rgb(var(--text-emphasis))">Fullstack Engineer</span>
+          <span class="text-[11px]" style="color: rgb(var(--text-secondary))">router 跑通 · 9 calls / 957s</span>
+          <span class="flex-1"></span>
+          <span class="text-[10px] mono opacity-50" style="color: rgb(var(--text-muted))">23:42</span>
+        </div>
+        <div class="px-4 py-1 space-y-1.5" style="padding-left: 38px;">
+          <div class="text-[12.5px] leading-[1.65] line-clamp-2" style="color: rgb(var(--text-secondary))">
+            ✓ router 跑通: 9 calls / 9 段全过 / $6.22 / 957s(16 min)/ 输出 82.8K tokens(vs 旧版 8.9K,9× 内容量,证明 9 段链改造生效)。supervisor 开始跑。
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Wins list -->
+    <ul class="mt-4 space-y-1.5 text-[12.5px] leading-[1.6]" style="color: rgb(var(--text-secondary))">
+      <li class="flex gap-2"><span style="color: rgb(var(--accent-green))">●</span>状态色条 + 状态色点 + 状态文字 <strong style="color: rgb(var(--text-emphasis))">三处颜色统一</strong>,失败时整条变红</li>
+      <li class="flex gap-2"><span style="color: rgb(var(--accent-green))">●</span>"Completed" 文字删除,完成态降为 muted 小绿点 + 不显示左条</li>
+      <li class="flex gap-2"><span style="color: rgb(var(--accent-green))">●</span>Opus 4.7 / token / tools / cost <strong style="color: rgb(var(--text-emphasis))">默认隐藏</strong>,hover 才浮现</li>
+      <li class="flex gap-2"><span style="color: rgb(var(--accent-green))">●</span>文件改动 chip 化,有图标 + 状态标记(M/A/D)</li>
+      <li class="flex gap-2"><span style="color: rgb(var(--accent-green))">●</span>Agent 头部加时间戳,与 User 消息对称</li>
+      <li class="flex gap-2"><span style="color: rgb(var(--accent-green))">●</span>User 消息去气泡:左侧细线 + "You" + 时间,与 Agent 节奏统一</li>
+      <li class="flex gap-2"><span style="color: rgb(var(--accent-green))">●</span>Running 用 <code class="mono text-[11px]" style="color: rgb(var(--accent-brand-light))">ping-soft</code> 涟漪点(项目已有 keyframe),取代 spinner</li>
+    </ul>
+  </section>
+
+</div>
+
+<!-- ────────────────── 中间屏:三态错误对照 ────────────────── -->
+<div class="px-8 pb-16">
+  <div class="flex items-center gap-2 mb-3">
+    <div class="w-1.5 h-1.5 rounded-full" style="background: rgb(var(--accent-orange))"></div>
+    <div class="text-xs font-semibold uppercase tracking-wider" style="color: rgb(var(--text-secondary))">错误三态 — 区分"任务失败"与"过程波折"</div>
+    <div class="text-[10px] mono" style="color: rgb(var(--text-muted))">/ 不要把工具重试当任务失败</div>
+  </div>
+
+  <div class="grid grid-cols-3 gap-4">
+
+    <!-- HARD ERROR -->
+    <div class="rounded-xl border p-4" style="background: rgb(var(--bg-secondary)); border-color: rgb(var(--border-subtle))">
+      <div class="flex items-center gap-2 mb-3">
+        <div class="rounded-full" style="width: 8px; height: 8px; background: rgb(var(--accent-red))"></div>
+        <div class="text-[11px] mono uppercase tracking-wider" style="color: rgb(var(--accent-red))">Hard Error</div>
+      </div>
+      <div class="text-[12px] mb-3 leading-[1.6]" style="color: rgb(var(--text-secondary))">
+        <code class="mono text-[11px]" style="color: rgb(var(--accent-red))">phase === 'error'</code> · 任务真的失败/Agent 崩溃
+      </div>
+      <!-- Mockup -->
+      <div class="rounded p-2" style="background: rgb(var(--bg-primary))">
+        <div class="flex items-center gap-2 px-2 py-1" style="border-left: 2px solid rgb(var(--accent-red)); margin-left: 4px;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: rgb(var(--text-muted)); opacity: 0.5;"><polyline points="9 18 15 12 9 6"/></svg>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgb(var(--accent-red))" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <span class="text-[12px] font-semibold" style="color: rgb(var(--text-emphasis))">Fullstack Engineer</span>
+          <span class="text-[10px] px-1.5 rounded-[3px] mono" style="background: rgba(255,255,255,0.07); color: rgb(var(--text-muted))">Opus 4.7</span>
+          <span class="text-[11px] font-medium" style="color: rgb(var(--accent-red))">Execution Error</span>
+        </div>
+        <div class="px-2 mt-1.5 text-[11px] mono" style="color: rgb(var(--accent-red)); opacity: 0.75; padding-left: 22px;">
+          File content (61244 tokens) exceeds maximum...
+        </div>
+      </div>
+      <div class="mt-3 text-[11.5px] leading-[1.55]" style="color: rgb(var(--text-muted))">
+        ✓ 用户立刻能看到失败<br>
+        ✓ 红条 + 红图标 + 红文字三处同色<br>
+        ✓ 首条错误明确暴露
+      </div>
+    </div>
+
+    <!-- RECOVERED -->
+    <div class="rounded-xl border-2 p-4" style="background: rgb(var(--bg-secondary)); border-color: rgb(var(--accent-orange)); border-style: solid;">
+      <div class="flex items-center gap-2 mb-3">
+        <div class="rounded-full" style="width: 8px; height: 8px; background: rgb(var(--accent-orange))"></div>
+        <div class="text-[11px] mono uppercase tracking-wider" style="color: rgb(var(--accent-orange))">Recovered ★ 新增</div>
+      </div>
+      <div class="text-[12px] mb-3 leading-[1.6]" style="color: rgb(var(--text-secondary))">
+        <code class="mono text-[11px]" style="color: rgb(var(--accent-orange))">completed && hasError</code> · 任务成了,过程有重试
+      </div>
+      <!-- Mockup -->
+      <div class="rounded p-2" style="background: rgb(var(--bg-primary))">
+        <div class="flex items-center gap-2 px-2 py-1" style="border-left: 2px solid rgb(var(--accent-green)); margin-left: 4px;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: rgb(var(--text-muted)); opacity: 0.5;"><polyline points="9 18 15 12 9 6"/></svg>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgb(var(--accent-green))" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          <span class="text-[12px] font-semibold" style="color: rgb(var(--text-emphasis))">Fullstack Engineer</span>
+          <span class="text-[10px] px-1.5 rounded-[3px] mono" style="background: rgba(255,255,255,0.07); color: rgb(var(--text-muted))">Opus 4.7</span>
+          <!-- amber retries chip -->
+          <span class="inline-flex items-center gap-1 text-[10px] px-1.5 rounded-[3px] mono"
+                title="First issue: Read File results_r2c.json — not found"
+                style="background: rgba(245,158,11,0.1); color: rgb(var(--accent-orange));">
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+            2 retries
+          </span>
+        </div>
+        <div class="px-2 mt-1.5 text-[11.5px] leading-[1.55]" style="color: rgb(var(--text-secondary)); padding-left: 22px;">
+          报告已生成,所有 4 个模式跑通,详情见 report.html。
+        </div>
+      </div>
+      <div class="mt-3 text-[11.5px] leading-[1.55]" style="color: rgb(var(--text-muted))">
+        ✓ 视觉上还是"成功"(绿条 / 绿✓)<br>
+        ✓ 琥珀小 chip 透露"有过波折",不打扰<br>
+        ✓ Tooltip 可展开看首条错误<br>
+        ✗ 内联红色错误条<strong style="color:rgb(var(--accent-red))">不显示</strong>(避免误判)
+      </div>
+    </div>
+
+    <!-- CLEAN -->
+    <div class="rounded-xl border p-4" style="background: rgb(var(--bg-secondary)); border-color: rgb(var(--border-subtle))">
+      <div class="flex items-center gap-2 mb-3">
+        <div class="rounded-full" style="width: 8px; height: 8px; background: rgb(var(--accent-green))"></div>
+        <div class="text-[11px] mono uppercase tracking-wider" style="color: rgb(var(--accent-green))">Clean</div>
+      </div>
+      <div class="text-[12px] mb-3 leading-[1.6]" style="color: rgb(var(--text-secondary))">
+        <code class="mono text-[11px]" style="color: rgb(var(--accent-green))">completed && !hasError</code> · 一次成功
+      </div>
+      <!-- Mockup -->
+      <div class="rounded p-2" style="background: rgb(var(--bg-primary))">
+        <div class="flex items-center gap-2 px-2 py-1" style="border-left: 2px solid rgb(var(--accent-green)); margin-left: 4px;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: rgb(var(--text-muted)); opacity: 0.5;"><polyline points="9 18 15 12 9 6"/></svg>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgb(var(--accent-green))" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          <span class="text-[12px] font-semibold" style="color: rgb(var(--text-emphasis))">Fullstack Engineer</span>
+          <span class="text-[10px] px-1.5 rounded-[3px] mono" style="background: rgba(255,255,255,0.07); color: rgb(var(--text-muted))">Opus 4.7</span>
+        </div>
+        <div class="px-2 mt-1.5 text-[11.5px] leading-[1.55]" style="color: rgb(var(--text-secondary)); padding-left: 22px;">
+          已排好定时汇报: 每 5 分钟拉一次 r2c_run.log 和进程状态。
+        </div>
+      </div>
+      <div class="mt-3 text-[11.5px] leading-[1.55]" style="color: rgb(var(--text-muted))">
+        ✓ 极简,header 三个元素结束<br>
+        ✓ Done 状态刻意 recessive
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 设计原理 -->
+  <div class="mt-5 p-4 rounded-lg" style="background: rgba(245,158,11,0.05); border-left: 2px solid rgb(var(--accent-orange))">
+    <div class="text-[12.5px] leading-[1.7]" style="color: rgb(var(--text-secondary))">
+      <strong style="color: rgb(var(--text-emphasis))">为什么 Recovered 必须用琥珀色,而不是红/绿?</strong><br>
+      Agent 探索式工作中,工具重试是常态(找文件路径、调整参数、迭代 grep)。<br>
+      ▸ 涂<strong style="color: rgb(var(--accent-red))">红</strong> = 喊"狼来了",用户每次进来都看到一片火 → 注意力被消耗;<br>
+      ▸ 完全<strong style="color: rgb(var(--accent-green))">绿</strong> = 隐瞒过程波折,用户无法回溯"为什么这个任务跑了 5 分钟";<br>
+      ▸ <strong style="color: rgb(var(--accent-orange))">琥珀</strong> = "成功了,但不是一次过" — 信息存在但不打扰,需要时点开看。<br>
+      <span class="opacity-70 text-[11.5px]">这与 CLAUDE.md 中"done 状态应该刻意 recessive"的原则一致 — 同理,recovered 状态也不应该抢注意力。</span>
+    </div>
+  </div>
+</div>
+
+<!-- ────────────────── 第二屏:状态色彩对照表 ────────────────── -->
+<div class="px-8 pb-16">
+  <div class="flex items-center gap-2 mb-3">
+    <div class="w-1.5 h-1.5 rounded-full" style="background: rgb(var(--accent-brand))"></div>
+    <div class="text-xs font-semibold uppercase tracking-wider" style="color: rgb(var(--text-secondary))">状态色彩矩阵 — 对齐 CLAUDE.md 中的 status indicator 约定</div>
+  </div>
+
+  <div class="rounded-xl border p-4" style="background: rgb(var(--bg-secondary)); border-color: rgb(var(--border-subtle))">
+    <table class="w-full text-[12.5px]">
+      <thead>
+        <tr class="text-left" style="color: rgb(var(--text-muted))">
+          <th class="pb-3 font-medium text-[11px] uppercase tracking-wider">状态</th>
+          <th class="pb-3 font-medium text-[11px] uppercase tracking-wider">色点</th>
+          <th class="pb-3 font-medium text-[11px] uppercase tracking-wider">左侧色条</th>
+          <th class="pb-3 font-medium text-[11px] uppercase tracking-wider">状态文字</th>
+          <th class="pb-3 font-medium text-[11px] uppercase tracking-wider">右侧右锚</th>
+        </tr>
+      </thead>
+      <tbody style="color: rgb(var(--text-secondary))">
+        <tr class="border-t" style="border-color: rgb(var(--border-subtle))">
+          <td class="py-3"><code class="mono" style="color: rgb(var(--text-primary))">running</code></td>
+          <td>
+            <div class="relative flex items-center justify-center" style="width: 8px; height: 8px;">
+              <div class="absolute inset-0 rounded-full" style="background: rgb(var(--accent-brand))"></div>
+              <div class="absolute inset-0 rounded-full animate-ping-soft" style="background: rgb(var(--accent-brand))"></div>
+            </div>
+          </td>
+          <td><div class="w-1 h-5" style="background: rgb(var(--accent-brand))"></div></td>
+          <td>"Reading <span class="mono text-[11px]">file.ts</span>"(具体动作)</td>
+          <td><span class="mono font-semibold" style="color: rgb(var(--accent-brand-light))">8s</span>(显著)</td>
+        </tr>
+        <tr class="border-t" style="border-color: rgb(var(--border-subtle))">
+          <td class="py-3"><code class="mono" style="color: rgb(var(--text-primary))">waiting</code></td>
+          <td><div class="rounded-full" style="width: 8px; height: 8px; background: rgb(var(--accent-yellow))"></div></td>
+          <td><div class="w-1 h-5" style="background: rgb(var(--accent-yellow))"></div></td>
+          <td style="color: rgb(var(--accent-yellow))">需要你确认</td>
+          <td><span class="mono opacity-50">23:42</span></td>
+        </tr>
+        <tr class="border-t" style="border-color: rgb(var(--border-subtle))">
+          <td class="py-3"><code class="mono" style="color: rgb(var(--text-primary))">error</code></td>
+          <td><div class="rounded-full" style="width: 8px; height: 8px; background: rgb(var(--accent-red))"></div></td>
+          <td><div class="w-1 h-5" style="background: rgb(var(--accent-red))"></div></td>
+          <td style="color: rgb(var(--accent-red))">3 errors · Exit code 1</td>
+          <td><span class="mono opacity-50">23:18 · 15s</span></td>
+        </tr>
+        <tr class="border-t" style="border-color: rgb(var(--border-subtle))">
+          <td class="py-3"><code class="mono" style="color: rgb(var(--text-primary))">done</code></td>
+          <td><div class="rounded-full" style="width: 6px; height: 6px; background: rgb(var(--accent-green) / 0.4)"></div></td>
+          <td><span class="text-[11px] opacity-40">(无)</span></td>
+          <td>正文一句话总结</td>
+          <td><span class="mono opacity-50">23:42</span></td>
+        </tr>
+        <tr class="border-t" style="border-color: rgb(var(--border-subtle))">
+          <td class="py-3"><code class="mono" style="color: rgb(var(--text-primary))">idle</code></td>
+          <td><div class="rounded-full" style="width: 6px; height: 6px; background: rgb(var(--text-muted))"></div></td>
+          <td><span class="text-[11px] opacity-40">(无)</span></td>
+          <td><span class="opacity-60">--</span></td>
+          <td><span class="mono opacity-50">--</span></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="mt-4 text-[11.5px] leading-[1.65] p-3 rounded" style="background: rgba(99,102,241,0.04); color: rgb(var(--text-secondary)); border-left: 2px solid rgb(var(--accent-brand))">
+      <strong style="color: rgb(var(--text-emphasis))">核心原则</strong> · 借鉴 CLAUDE.md 里 "done 状态应该刻意 recessive,不该和 running 抢注意力" 的设计哲学:<br>
+      ① 注意力梯度 <strong>error &gt; running &gt; waiting &gt; done &gt; idle</strong>;<br>
+      ② 同一状态在<strong>色点 / 色条 / 文字色</strong>三处用同一颜色,绝不让用户因为"绿条配红字"困惑;<br>
+      ③ Done 状态删除一切重型视觉(色条/spinner/banner),只保留 muted 绿点。
+    </div>
+  </div>
+</div>
+
+<!-- ────────────────── 第三屏:实施清单 ────────────────── -->
+<div class="px-8 pb-20">
+  <div class="flex items-center gap-2 mb-3">
+    <div class="w-1.5 h-1.5 rounded-full" style="background: rgb(var(--accent-purple))"></div>
+    <div class="text-xs font-semibold uppercase tracking-wider" style="color: rgb(var(--text-secondary))">实施清单 — 落到 AgentTurnCard.tsx</div>
+  </div>
+
+  <div class="grid grid-cols-3 gap-4">
+    <div class="rounded-xl border p-4" style="background: rgb(var(--bg-secondary)); border-color: rgb(var(--border-subtle))">
+      <div class="text-[11px] mono mb-2 uppercase tracking-wider" style="color: rgb(var(--text-muted))">P0 · 必改</div>
+      <ul class="space-y-2 text-[12.5px] leading-[1.6]" style="color: rgb(var(--text-secondary))">
+        <li>删除 header 行的 <code class="mono text-[11px]">statusText</code>(L196~208 那段 switch)</li>
+        <li>删除 summary 区底部的 stats 行(L424~435),改为 hover 浮现</li>
+        <li><code class="mono text-[11px]">isError &amp;&amp; isCompleted</code> 双重命中时,左条颜色取 error(红优先于绿)</li>
+        <li>summary 区的 file chips 改为带边框 chip 样式,加文件图标 + M/A/D 标记</li>
+      </ul>
+    </div>
+
+    <div class="rounded-xl border p-4" style="background: rgb(var(--bg-secondary)); border-color: rgb(var(--border-subtle))">
+      <div class="text-[11px] mono mb-2 uppercase tracking-wider" style="color: rgb(var(--text-muted))">P1 · 建议改</div>
+      <ul class="space-y-2 text-[12.5px] leading-[1.6]" style="color: rgb(var(--text-secondary))">
+        <li>Header 加入时间戳(右锚),与 UserMessage 时间戳对称</li>
+        <li><code class="mono text-[11px]">phase === 'running'</code> 时图标改为 <code class="mono text-[11px]">animate-ping-soft</code> 涟漪点(替代 Loader2 spinner)</li>
+        <li>Done 态去掉左条(或降为 1px subtle),色点改用 <code class="mono text-[11px]">bg-accent-green/40</code></li>
+        <li>UserMessage 去气泡,改为左侧细线 + "You" 标识(可选)</li>
+      </ul>
+    </div>
+
+    <div class="rounded-xl border p-4" style="background: rgb(var(--bg-secondary)); border-color: rgb(var(--border-subtle))">
+      <div class="text-[11px] mono mb-2 uppercase tracking-wider" style="color: rgb(var(--text-muted))">P2 · 可选</div>
+      <ul class="space-y-2 text-[12.5px] leading-[1.6]" style="color: rgb(var(--text-secondary))">
+        <li>model 名称 (<code class="mono text-[11px]">Opus 4.7</code>) 移到 hover footnote</li>
+        <li>支持长按 / 右键展开"开发者视图",显示完整 token/cache/cost 明细</li>
+        <li>多 agent 嵌套段落改用更细的左条(1px)区分层级</li>
+        <li>错误信息可点击展开错误堆栈(当前直接截断 80 字符)</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

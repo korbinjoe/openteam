@@ -99,6 +99,8 @@ export class ChatStore extends SqliteBaseStore<Chat> {
       lastAgentId: row.last_agent_id as string | undefined,
       source: (row.source as Chat['source']) ?? 'native',
       externalCwd: (row.external_cwd as string | null) ?? undefined,
+      archivedAt: (row.archived_at as number | null) ?? null,
+      pinnedAt: (row.pinned_at as number | null) ?? null,
       createdAt: row.created_at as string,
       lastMessageAt: row.last_message_at as string,
     }
@@ -127,6 +129,8 @@ export class ChatStore extends SqliteBaseStore<Chat> {
       last_agent_id: entity.lastAgentId ?? null,
       source: entity.source ?? 'native',
       external_cwd: entity.externalCwd ?? null,
+      archived_at: entity.archivedAt ?? null,
+      pinned_at: entity.pinnedAt ?? null,
       created_at: entity.createdAt,
       last_message_at: entity.lastMessageAt,
     }

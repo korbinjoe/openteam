@@ -51,6 +51,11 @@ export interface Chat {
   source?: 'native' | 'external'
   /** Original cwd for adopted external chats. Always set when source='external'. */
   externalCwd?: string
+  /** User explicitly archived (ms since epoch). Null/undefined means not
+   *  manually archived; auto-archive may still hide the chat client-side. */
+  archivedAt?: number | null
+  /** User pinned to top of sidebar (ms since epoch). */
+  pinnedAt?: number | null
   createdAt: string
   lastMessageAt: string
 }

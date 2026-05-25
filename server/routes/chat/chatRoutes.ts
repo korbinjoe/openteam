@@ -35,6 +35,8 @@ const CHAT_UPDATABLE_FIELDS: Array<keyof Chat> = [
   'taskStatus',
   'lastAgentId',
   'teamAgentIds',
+  'archivedAt',
+  'pinnedAt',
 ]
 
 const pickUpdatableFields = (body: Record<string, unknown>): Partial<Chat> => {
@@ -140,6 +142,16 @@ export const createChatRoutes = ({ chatStore, chatService, tokenUsageStore, sess
       if (broadcast && typeof updates.title === 'string') {
         broadcast({ type: 'chat:title-updated', payload: { chatId: chat.id, title: updates.title } })
       }
+      if (broadcast && ('archivedAt' in updates || 'pinnedAt' in updates)) {
+        broadcast({
+          type: 'chat:meta-updated',
+          payload: {
+            chatId: chat.id,
+            archivedAt: chat.archivedAt ?? null,
+            pinnedAt: chat.pinnedAt ?? null,
+          },
+        })
+      }
       res.json(chat)
     } catch (err) {
       res.status(500).json({ error: err instanceof Error ? err.message : 'Failed to update chat' })
@@ -183,8 +195,18 @@ export const createChatRoutes = ({ chatStore, chatService, tokenUsageStore, sess
 
     const purgeJsonl = req.query.purgeJsonl === '1' || req.query.purgeJsonl === 'true'
 
-    if (purgeJsonl && chat.status === 'running') {
-      return res.status(409).json({ error: 'Cannot purge a running chat. Stop it first.' })
+    // Guard against deleting JSONL files a CLI is actively writing to. The
+    // persisted `chat.status` is unreliable here — ChatStore.create seeds it as
+    // 'running' on creation regardless of whether any session has actually
+    // started, so checking it alone would block delete on a brand-new mission
+    // that never had a turn. Use the live member rollup instead (same source
+    // the per-agent DELETE route already uses), which derives status from
+    // SessionRegistry activity.
+    if (purgeJsonl) {
+      const liveMembers = memberAggregator.enrich(chat)
+      if (liveMembers.some((m) => m.status === 'running')) {
+        return res.status(409).json({ error: 'Cannot purge a running chat. Stop it first.' })
+      }
     }
 
     if (chat.worktreeSessions && chat.worktreeSessions.length > 0) {

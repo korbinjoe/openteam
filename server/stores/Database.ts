@@ -80,6 +80,8 @@ CREATE TABLE IF NOT EXISTS chats (
   total_tokens       TEXT,
   total_tool_calls   INTEGER,
   participant_agents TEXT,
+  archived_at        INTEGER,
+  pinned_at          INTEGER,
   created_at         TEXT NOT NULL,
   last_message_at    TEXT NOT NULL,
   FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE

@@ -32,7 +32,7 @@ const MissionSessionList = ({ query = '' }: MissionSessionListProps) => {
   const q = query.trim().toLowerCase()
   const isSearching = q.length > 0
 
-  const { pinnedIds, pinnedAt, archivedIds, togglePin, toggleArchive, archiveAll } = useMissionPinArchive(workspaceId ?? '__all__', chats)
+  const { pinnedIds, pinnedAt, archivedIds, togglePin, toggleArchive, archiveAll } = useMissionPinArchive(chats)
   // Session-local expansion only. Default-collapsed so the sidebar opens as a
   // scannable index rather than a wall of nested rows; the active workspace
   // (the one holding the current chat) auto-opens to preserve context.

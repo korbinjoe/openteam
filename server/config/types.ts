@@ -178,6 +178,11 @@ export interface Chat {
    *  workspace, the original cwd is preserved here so the sidebar can still
    *  group it correctly. Always null for native chats. */
   externalCwd?: string
+  /** User explicitly archived the chat (ms since epoch). Null means not
+   *  manually archived; the sidebar's auto-archive rule may still hide it. */
+  archivedAt?: number | null
+  /** User pinned the chat to the top of the sidebar (ms since epoch). */
+  pinnedAt?: number | null
   createdAt: string
   lastMessageAt: string
 }

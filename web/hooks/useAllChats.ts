@@ -84,9 +84,14 @@ export const useAllChats = (): V2AllChatsResult => {
       setChats((prev) => prev.map((c) => c.id === chatId ? { ...c, title } as Chat : c))
     }
 
+    const handleMetaUpdated = ({ chatId, archivedAt, pinnedAt }: { chatId: string; archivedAt: number | null; pinnedAt: number | null }) => {
+      setChats((prev) => prev.map((c) => c.id === chatId ? { ...c, archivedAt, pinnedAt } as Chat : c))
+    }
+
     wsClient.on('chat:status-changed', handleStatusChanged)
     wsClient.on('chat:activity', handleActivity)
     wsClient.on('chat:title-updated', handleTitleUpdated)
+    wsClient.on('chat:meta-updated', handleMetaUpdated)
 
     const handleVisibility = () => { if (!document.hidden) void refresh() }
     document.addEventListener('visibilitychange', handleVisibility)
@@ -101,6 +106,7 @@ export const useAllChats = (): V2AllChatsResult => {
       wsClient.off('chat:status-changed', handleStatusChanged)
       wsClient.off('chat:activity', handleActivity)
       wsClient.off('chat:title-updated', handleTitleUpdated)
+      wsClient.off('chat:meta-updated', handleMetaUpdated)
       document.removeEventListener('visibilitychange', handleVisibility)
       window.removeEventListener('openteam:chat-created', handleChatMutated)
       window.removeEventListener('openteam:chat-updated', handleChatMutated)

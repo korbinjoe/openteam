@@ -11,6 +11,7 @@ import { API_BASE, authFetch } from '@/config/api'
 import type { ChangeStatus, DirAggregate } from '@/lib/changeTree'
 import { useFileSearch, type FileSearchResult } from '@/hooks/useFileSearch'
 import { useFileTreeActions, type InlineInputState } from '@/hooks/useFileTreeActions'
+import { FileTypeIcon } from './fileIcons'
 
 interface TreeNode {
   name: string
@@ -259,7 +260,7 @@ const TreeNodeItem = ({
             onCancel={() => onInlineCancel?.()}
             icon={isDir
               ? <Folder size={13} className="shrink-0 text-accent-brand/70" />
-              : <File size={13} className="shrink-0 text-text-muted" />
+              : <FileTypeIcon name={node.name} className="shrink-0 text-text-muted" />
             }
           />
         </div>
@@ -293,7 +294,7 @@ const TreeNodeItem = ({
           ) : (
             <>
               <span className="w-3 shrink-0" />
-              <File size={13} className="shrink-0 text-text-muted" />
+              <FileTypeIcon name={node.name} className="shrink-0 text-text-muted" />
             </>
           )}
           <span className={cn('truncate', nameColorClass, fileChange?.status === 'deleted' && 'line-through')}>{node.name}</span>
@@ -378,7 +379,7 @@ const FileSearchRepoGroup = ({
             <span className="w-3 shrink-0" />
             {isDir
               ? <Folder size={13} className="shrink-0 text-accent-brand/70" />
-              : <File size={13} className="shrink-0 text-text-muted" />}
+              : <FileTypeIcon name={r.path.split('/').pop() ?? r.path} className="shrink-0 text-text-muted" />}
             <span className="truncate text-text-primary">{r.path}</span>
           </button>
         )
@@ -423,7 +424,7 @@ const FileSearchResults = ({
         >
           {isDir
             ? <Folder size={13} className="shrink-0 text-accent-brand/70" />
-            : <File size={13} className="shrink-0 text-text-muted" />}
+            : <FileTypeIcon name={r.path.split('/').pop() ?? r.path} className="shrink-0 text-text-muted" />}
           <span className="truncate text-text-primary">{r.path}</span>
         </button>
       )

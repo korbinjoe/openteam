@@ -57,3 +57,4 @@ npm-debug.log*
 
 # Internal research notes (not for open-source distribution)
 research/
+.understand-anything/

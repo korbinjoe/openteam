@@ -23,7 +23,7 @@
   "scripts": {
     "dev": "concurrently \"npm run dev:ui\" \"npm run dev:server\"",
     "dev:ui": "vite --host 0.0.0.0",
-    "build:ui": "tsc && vite build",
+    "build:ui": "npx tsc && vite build",
     "preview": "npm run stop:daemon --silent && npm run build:ui && PORT=14000 tsx cli/bin/openteam.ts serve",
     "dev:server": "unset ELECTRON; OPENTEAM_NO_PORTFILE=1 tsx watch server/index.ts",
     "dev:cli": "npm run stop:daemon --silent; LOG_LEVEL=debug tsx cli/bin/openteam.ts",

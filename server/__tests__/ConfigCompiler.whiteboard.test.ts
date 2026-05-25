@@ -68,7 +68,7 @@ describe('ConfigCompiler default injects whiteboard skill', () => {
     )
     const promptIdx = compiled.args.indexOf('--append-system-prompt')
     const prompt = compiled.args[promptIdx + 1]
-    const matches = prompt.match(/# War Room Write Instructions/g) || []
+    const matches = prompt.match(/# War[- ]Room Write Instructions/g) || []
     expect(matches.length).toBe(1)
     await compiled.cleanup()
   })

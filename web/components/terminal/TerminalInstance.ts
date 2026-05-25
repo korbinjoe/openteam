@@ -48,6 +48,7 @@ export class TerminalInstance {
   private openPromise: Promise<{ cols: number; rows: number }> | null = null
   /** R-06: pendingData  trueopen  */
   private hadDataTruncation = false
+  private _rendererType: 'canvas' | 'webgl' = 'canvas'
 
   private currentState(): TerminalState {
     return this._state
@@ -55,6 +56,10 @@ export class TerminalInstance {
 
   get state(): TerminalState {
     return this._state
+  }
+
+  get rendererType(): 'canvas' | 'webgl' {
+    return this._rendererType
   }
 
   get isOpened(): boolean {
@@ -224,6 +229,7 @@ export class TerminalInstance {
     if (this._state !== 'opened' || !this.terminal) return
     this.safeFit()
     this.terminal.clearTextureAtlas()
+    this.terminal.refresh(0, this.terminal.rows - 1)
   }
 
   write(data: string): void {
@@ -332,9 +338,11 @@ export class TerminalInstance {
         const webgl = new WebglAddon()
         webgl.onContextLoss(() => {
           webgl.dispose()
+          this._rendererType = 'canvas'
           this.terminal?.refresh(0, (this.terminal.rows ?? 1) - 1)
         })
         terminal.loadAddon(webgl)
+        this._rendererType = 'webgl'
       } catch {
       }
     }

@@ -17,7 +17,6 @@ const webglState = vi.hoisted(() => ({
 
 // ── xterm mock ────────────────────────────────────────────────────────────────
 vi.mock('@xterm/xterm', () => ({
-  // Must use regular function (not arrow) so `new Terminal()` works
   Terminal: vi.fn().mockImplementation(function() {
     return {
       loadAddon: vi.fn(),
@@ -30,6 +29,7 @@ vi.mock('@xterm/xterm', () => ({
       resize: vi.fn(),
       scrollToTop: vi.fn(),
       scrollToBottom: vi.fn(),
+      clearTextureAtlas: vi.fn(),
       dispose: vi.fn(),
       attachCustomKeyEventHandler: vi.fn(),
       unicode: { activeVersion: '' },
@@ -90,6 +90,8 @@ const stubBrowserGlobals = () => {
   vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => { cb(0); return 0 })
   vi.stubGlobal('cancelAnimationFrame', vi.fn())
   vi.stubGlobal('ResizeObserver', vi.fn(function() { return { observe: vi.fn(), disconnect: vi.fn() } }))
+  vi.stubGlobal('requestIdleCallback', (cb: () => void) => { cb(); return 0 })
+  vi.stubGlobal('cancelIdleCallback', vi.fn())
 }
 
 /**
@@ -104,6 +106,7 @@ const injectOpenedState = (inst: TerminalInstance) => {
     write: vi.fn(),
     refresh: vi.fn(),
     resize: vi.fn(),
+    clearTextureAtlas: vi.fn(),
     rows: 24,
     cols: 80,
     element: {},
@@ -221,11 +224,11 @@ describe('TerminalInstance rendering risk fixes', () => {
       inst.attach(mockContainer())
       await inst.open(80, 24)
 
-      expect((inst as any).rendererType).toBe('webgl')
+      expect(inst.rendererType).toBe('webgl')
 
       webglState.contextLossHandler!()
 
-      expect((inst as any).rendererType).toBe('canvas')
+      expect(inst.rendererType).toBe('canvas')
     })
   })
 

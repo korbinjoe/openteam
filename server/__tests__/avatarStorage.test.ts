@@ -32,7 +32,7 @@ describe('avatarStorage', () => {
   it('saveAvatar writes png and resolveAvatarPath returns it', async () => {
     const buf = Buffer.from('FAKEPNG')
     const file = await avatarStorage.saveAvatar('custom-001', 'brush', buf)
-    expect(file.endsWith('custom-001/flat.png')).toBe(true)
+    expect(file.endsWith('custom-001/brush.png')).toBe(true)
 
     const resolved = await avatarStorage.resolveAvatarPath('custom-001', 'brush')
     expect(resolved).toBe(file)

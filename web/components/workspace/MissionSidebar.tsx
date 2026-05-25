@@ -143,7 +143,7 @@ const MissionSidebar = ({ collapsed }: MissionSidebarProps) => {
         </div>
         <button
           onClick={() => openNewMission()}
-          className="w-full flex items-center gap-2 px-2.5 py-[7px] rounded-md hover:bg-bg-hover transition-colors group"
+          className="w-full flex items-center gap-2 px-2.5 py-[7px] rounded-md border border-border bg-bg-tertiary hover:bg-bg-hover hover:border-accent-brand/40 transition-colors group"
         >
           <Plus size={14} className="text-text-primary" />
           <span className="text-[13px] font-medium text-text-primary flex-1 text-left">New Mission</span>

@@ -18,6 +18,7 @@ import { ChevronDown, ChevronRight, Plus, Archive, Pin } from './icons'
 import type { Chat } from './types'
 import { MissionRow, CompletedRow } from './MissionSessionRows'
 import { ExternalSessionRow } from './ExternalSessionRow'
+import { cn } from '../../lib/utils'
 
 interface MissionSessionListProps {
   query?: string
@@ -375,7 +376,7 @@ const WorkspaceGroup = ({
 
   return (
     <div>
-      <div className={`group flex items-center gap-1 pr-1 rounded-sm transition-colors ${isCurrent ? 'bg-bg-hover/40' : 'hover:bg-bg-hover/50'}`}>
+      <div className={`group relative flex items-center rounded-sm transition-colors ${isCurrent ? 'bg-bg-hover/40' : 'hover:bg-bg-hover/50'}`}>
         <button
           onClick={onToggle}
           className="flex-1 min-w-0 flex items-center gap-1.5 px-2 py-1"
@@ -388,33 +389,46 @@ const WorkspaceGroup = ({
           {runningCount > 0 && (
             <span className="w-[6px] h-[6px] rounded-full bg-accent-brand animate-pulse flex-shrink-0" />
           )}
-          <span className="ml-auto font-mono text-[10px] text-text-muted tabular-nums">{totalCount}</span>
+          <span className="ml-auto font-mono text-[10px] text-text-muted tabular-nums transition-opacity duration-100 group-hover:opacity-0">{totalCount}</span>
         </button>
-        <button
-          onClick={(e) => { e.stopPropagation(); onNewTask(wsId) }}
-          title={`New mission in ${name} (⌘N)`}
-          aria-label={`New mission in ${name}`}
-          className="w-[18px] h-[18px] rounded flex items-center justify-center text-text-muted opacity-0 group-hover:opacity-100 hover:bg-bg-hover hover:text-text-primary transition-opacity flex-shrink-0"
-        >
-          <Plus size={11} />
-        </button>
-        {/* Reserve the Archive button slot even when there's nothing to archive
-            so the count column has a stable right edge across all workspaces.
-            Without this, "0" rows lose the 18px Archive slot and the digits
-            visibly shift right relative to rows that have it. */}
-        {activeChats.length + pinnedChats.length + sessions.length > 0 ? (
-          <button
-            onClick={(e) => { void handleArchiveAllClick(e) }}
-            disabled={archivingAll}
-            title={`Archive all missions in `}
-            aria-label={`Archive all missions in `}
-            className="w-[18px] h-[18px] rounded flex items-center justify-center text-text-muted opacity-0 group-hover:opacity-100 hover:bg-bg-hover hover:text-text-primary transition-opacity flex-shrink-0 disabled:opacity-50 disabled:cursor-progress"
+        {/* Floating hover actions overlay the count on the right — matches the
+            MissionRow hover pattern (see RowHoverActions) and removes the
+            reserved right padding the buttons used to take up. */}
+        <span className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-100 bg-bg-secondary/95 backdrop-blur-sm rounded px-0.5">
+          <span
+            role="button"
+            tabIndex={-1}
+            onClick={(e) => { e.stopPropagation(); onNewTask(wsId) }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); e.preventDefault(); onNewTask(wsId) }
+            }}
+            title={`New mission in ${name} (⌘N)`}
+            aria-label={`New mission in ${name}`}
+            className="w-5 h-5 rounded flex items-center justify-center text-text-muted hover:text-text-primary hover:bg-bg-hover cursor-pointer"
           >
-            <Archive size={11} />
-          </button>
-        ) : (
-          <span className="w-[18px] h-[18px] flex-shrink-0" aria-hidden />
-        )}
+            <Plus size={11} />
+          </span>
+          {activeChats.length + pinnedChats.length + sessions.length > 0 && (
+            <span
+              role="button"
+              tabIndex={-1}
+              aria-disabled={archivingAll}
+              onClick={(e) => { if (archivingAll) return; void handleArchiveAllClick(e) }}
+              onKeyDown={(e) => {
+                if (archivingAll) return
+                if (e.key === 'Enter' || e.key === ' ') { void handleArchiveAllClick(e as unknown as React.MouseEvent) }
+              }}
+              title={`Archive all missions in ${name}`}
+              aria-label={`Archive all missions in ${name}`}
+              className={cn(
+                'w-5 h-5 rounded flex items-center justify-center text-text-muted hover:text-text-primary hover:bg-bg-hover cursor-pointer',
+                archivingAll && 'opacity-50 cursor-progress',
+              )}
+            >
+              <Archive size={11} />
+            </span>
+          )}
+        </span>
       </div>
       {expanded && (
         <div className="flex flex-col gap-0.5 ml-2">

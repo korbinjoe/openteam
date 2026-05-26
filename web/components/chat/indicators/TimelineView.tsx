@@ -284,7 +284,7 @@ const TimelineStatsRow = ({ entry }: { entry: TimelineEntry }) => {
   const s = entry.stats
   if (!s) return null
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '4px 8px', margin: '4px 4px 2px 17px', borderRadius: 4, background: 'rgb(var(--bg-hover-subtle) / var(--bg-hover-subtle-alpha))', border: '1px solid rgb(var(--border-subtle))' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '2px 4px 2px 17px', opacity: 0.5 }}>
       {s.durationMs != null && (
         <span style={{ fontSize: 10, color: 'rgb(var(--text-muted))', fontFamily: 'monospace' }}>
           {s.durationMs >= 1000 ? `${(s.durationMs / 1000).toFixed(1)}s` : `${s.durationMs}ms`}
@@ -385,7 +385,15 @@ const renderTimelineItem = (item: TimelineEntry | ToolGroup | ExpertProgressGrou
 
 const TimelineView = ({ messages, onAnswerQuestion, isCompleted }: { messages: Message[]; onAnswerQuestion?: (answer: string) => void; isCompleted?: boolean; showAll?: boolean }) => {
   const entries = useMemo(() => buildTimeline(messages), [messages])
-  const renderItems = useMemo(() => groupConsecutiveTools(entries), [entries])
+  const collapsedEntries = useMemo(() => {
+    let lastStatsIdx = -1
+    for (let i = entries.length - 1; i >= 0; i--) {
+      if (entries[i].type === 'stats') { lastStatsIdx = i; break }
+    }
+    if (lastStatsIdx < 0) return entries
+    return entries.filter((e, i) => e.type !== 'stats' || i === lastStatsIdx)
+  }, [entries])
+  const renderItems = useMemo(() => groupConsecutiveTools(collapsedEntries), [collapsedEntries])
 
   if (entries.length === 0) return null
 

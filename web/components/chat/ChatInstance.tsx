@@ -14,7 +14,10 @@ import type { AgentActivity } from '../../types/chat'
 import { groupMessages } from './messages/MessageGroup'
 import ChatHeader from './ChatHeader'
 import ChatBody from './ChatBody'
-import MessageToolbar from './messages/MessageToolbar'
+import ChatPaneToolbarRow from './ChatPaneToolbarRow'
+import ChatViewModeToggle from './ChatViewModeToggle'
+import TerminalPanel, { type TerminalPanelHandle } from '../terminal/TerminalPanel'
+import { useChatViewMode } from '../../hooks/useChatViewMode'
 import InputArea, { type InputAreaHandle } from './input/InputArea'
 import QueuedMessagesBar from './input/QueuedMessagesBar'
 import AgentSwitcherModal from './modals/AgentSwitcherModal'
@@ -148,8 +151,10 @@ const ChatInstance = ({ chatId, workspaceId, isActive, isNewChat = false, initAg
   const [chatCollapsed, setChatCollapsed] = useState(false)
   const [isResizing, setIsResizing] = useState(false)
   const [filterAgentId, setFilterAgentId] = useState<string | null>(null)
+  const [viewMode, setViewMode] = useChatViewMode(chatId, agentScopeOverride ?? null)
 
   const inputAreaRef = useRef<InputAreaHandle>(null)
+  const terminalPanelRef = useRef<TerminalPanelHandle>(null)
   const [agentSwitcherOpen, setAgentSwitcherOpen] = useState(false)
 
   const onInitError = useCallback(() => navigate('/'), [navigate])
@@ -332,6 +337,11 @@ const ChatInstance = ({ chatId, workspaceId, isActive, isNewChat = false, initAg
         window.dispatchEvent(new CustomEvent('devpanel:toggle'))
         return
       }
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === 't' || e.key === 'T')) {
+        e.preventDefault()
+        setViewMode((prev) => prev === 'message' ? 'terminal' : 'message')
+        return
+      }
       if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && (e.key === 'k' || e.key === 'K')) {
         if (singleAgentMode) return
         e.preventDefault()
@@ -340,7 +350,19 @@ const ChatInstance = ({ chatId, workspaceId, isActive, isNewChat = false, initAg
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isActive, singleAgentMode])
+  }, [isActive, singleAgentMode, setViewMode])
+
+  // Route focus to the surface that owns input in the active view mode.
+  // Terminal mode hands the keyboard to xterm (bytes go straight to the
+  // agent's claude/codex PTY); message mode restores the React composer.
+  useEffect(() => {
+    if (!isActive) return
+    const raf = requestAnimationFrame(() => {
+      if (viewMode === 'terminal') terminalPanelRef.current?.focusActive()
+      else inputAreaRef.current?.focus()
+    })
+    return () => cancelAnimationFrame(raf)
+  }, [viewMode, isActive])
 
   const handleAddDirPick = useCallback((path: string) => {
     dirPicker.setDirModalOpen(false)
@@ -437,31 +459,57 @@ const ChatInstance = ({ chatId, workspaceId, isActive, isNewChat = false, initAg
               workspaceName={workspaceName} workspaceId={workspaceId} chatId={chatId}
               chatTitle={chatTitle} setChatTitle={setChatTitle}
               connected={connected} currentMode={currentMode}
+              trailing={<ChatViewModeToggle mode={viewMode} onChange={setViewMode} />}
           />
           {!cwdReady ? (
             <div style={LOADING_STYLE}>Loading workspace...</div>
           ) : (<>
           {allWorktreeSessions.length > 0 && <WorktreePanel sessions={allWorktreeSessions} repositories={wsRepositories} />}
-          {mergedMessages.length > 0 && !singleAgentMode && (
-            <MessageToolbar filterAgentId={filterAgentId} onFilterAgentChange={handleFilterAgentChange} agentNames={agentNames} agentPersonalities={agentPersonalities} expertActivities={expertActivities} activeAgentIds={activeAgentIds} />
+          {viewMode === 'message' ? (
+            <>
+              <ChatPaneToolbarRow
+                filterAgentId={filterAgentId}
+                onFilterAgentChange={handleFilterAgentChange}
+                agentNames={agentNames}
+                agentPersonalities={agentPersonalities}
+                expertActivities={expertActivities}
+                activeAgentIds={singleAgentMode || mergedMessages.length === 0 ? [] : activeAgentIds}
+              />
+
+              <ChatBody
+                messages={visibleMessages} groups={groups} viewKey={singleAgentMode ? lockedAgentKey : (filterAgentId ?? '__all__')}
+                currentMergedActivity={activeMergedActivity} groupActivities={groupActivities}
+                expertActivities={expertActivities} agentNames={agentNames} agentPersonalities={agentPersonalities}
+                thinking={thinking} currentAgentName={currentAgentName}
+                connected={connected} currentSessionId={currentSessionId}
+                reconnecting={reconnecting} showReconnected={showReconnected}
+                newMessageCount={newMessageCount}
+                virtuosoRef={virtuosoRef}
+                onAtBottomChange={onAtBottomChange}
+                followOutput={followOutput}
+                handleScrollToBottom={handleScrollToBottom}
+                handleAnswerQuestion={handleAnswerQuestion}
+                targetAgentId={targetAgentId}
+              />
+              {currentPlan && currentPlan.entries.length > 0 && (
+                <PlanCard entries={currentPlan.entries} />
+              )}
+            </>
+          ) : (
+            <TerminalPanel
+              ref={terminalPanelRef}
+              chatId={chatId}
+              gitStatus={primaryGitStatus}
+              agentActive={!!activeMergedActivity && !['completed', 'waiting_input', 'error', 'initializing'].includes(activeMergedActivity.phase)}
+              connected={connected}
+              lockedAgentId={singleAgentMode ? lockedAgentKey : null}
+              inTerminalView
+            />
           )}
-          <ChatBody
-            messages={visibleMessages} groups={groups} viewKey={singleAgentMode ? lockedAgentKey : (filterAgentId ?? '__all__')}
-            currentMergedActivity={activeMergedActivity} groupActivities={groupActivities}
-            expertActivities={expertActivities} agentNames={agentNames} agentPersonalities={agentPersonalities}
-            thinking={thinking} currentAgentName={currentAgentName}
-            connected={connected} currentSessionId={currentSessionId}
-            reconnecting={reconnecting} showReconnected={showReconnected}
-            newMessageCount={newMessageCount}
-            virtuosoRef={virtuosoRef}
-            onAtBottomChange={onAtBottomChange}
-            followOutput={followOutput}
-            handleScrollToBottom={handleScrollToBottom}
-            handleAnswerQuestion={handleAnswerQuestion}
-            targetAgentId={targetAgentId}
-          />
-          {currentPlan && currentPlan.entries.length > 0 && (
-            <PlanCard entries={currentPlan.entries} />
+          {viewMode === 'terminal' && queuedMessages.length > 0 && (
+            <div className="shrink-0 px-3 py-1.5 text-xs text-text-secondary bg-bg-secondary border-t border-border-subtle">
+              {t('chat:chatViewMode.queuePreservedNotice', { count: queuedMessages.length })}
+            </div>
           )}
           <GlobalHeartbeatBar expertActivities={expertActivities} agentNames={agentNames} agentPersonalities={agentPersonalities}
             onInterrupt={handleInterrupt}
@@ -469,20 +517,24 @@ const ChatInstance = ({ chatId, workspaceId, isActive, isNewChat = false, initAg
           {primaryGitStatus && (
             <GitStatusBar gitStatus={primaryGitStatus} aggregate={multiGitStatus.size > 1 ? gitAggregate : undefined} onViewChanges={handleViewChanges} repositories={wsRepositories} multiGitStatus={multiGitStatus} />
           )}
-          <QueuedMessagesBar queue={queuedMessages} onRemove={removeQueuedMessage} onClear={clearQueue} />
-          <InputArea ref={inputAreaRef} value={input} onChange={setInput} onSend={handleSend}
-            onInterrupt={handleInterrupt}
-            disabled={!canSend} activity={activeMergedActivity} slashCommands={currentSlashCommands}
-            model={chatModel} onModelChange={handleModelChange} availableModels={availableModels}
-            agents={inputAgents} expertActivities={expertActivities} targetAgentId={targetAgentId}
-            onTargetChange={(agent) => setTargetAgentId(agent.id ?? agent.name)}
-            cwd={currentWorkingDirectory}
-            queueSize={queuedMessages.length}
-            onRecallLastQueued={popLastQueued}
-            onOpenAgentSwitcher={singleAgentMode ? undefined : () => setAgentSwitcherOpen(true)}
-            singleAgentMode={singleAgentMode}
-            lockedAgentName={lockedAgent?.name}
-            isActive={isActive} />
+          {viewMode === 'message' && (
+            <>
+              <QueuedMessagesBar queue={queuedMessages} onRemove={removeQueuedMessage} onClear={clearQueue} />
+              <InputArea ref={inputAreaRef} value={input} onChange={setInput} onSend={handleSend}
+                onInterrupt={handleInterrupt}
+                disabled={!canSend} activity={activeMergedActivity} slashCommands={currentSlashCommands}
+                model={chatModel} onModelChange={handleModelChange} availableModels={availableModels}
+                agents={inputAgents} expertActivities={expertActivities} targetAgentId={targetAgentId}
+                onTargetChange={(agent) => setTargetAgentId(agent.id ?? agent.name)}
+                cwd={currentWorkingDirectory}
+                queueSize={queuedMessages.length}
+                onRecallLastQueued={popLastQueued}
+                onOpenAgentSwitcher={singleAgentMode ? undefined : () => setAgentSwitcherOpen(true)}
+                singleAgentMode={singleAgentMode}
+                lockedAgentName={lockedAgent?.name}
+                isActive={isActive} />
+            </>
+          )}
           </>)}
         </div>
 

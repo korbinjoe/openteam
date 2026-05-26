@@ -172,7 +172,19 @@
     "openAll": "Open all",
     "reconnecting": "Connection lost, reconnecting...",
     "emptyHint": "After sending a message, Agent terminals will appear here",
+    "emptyHintLocked": "Waiting for {{agent}} to start…",
     "hiddenCount": "{{count}} terminals closed"
+  },
+  "chatViewMode": {
+    "ariaLabel": "Chat view mode",
+    "message": "Message",
+    "terminal": "Terminal",
+    "tooltipMessage": "Message view ({{shortcut}})",
+    "tooltipTerminal": "Terminal view ({{shortcut}})",
+    "shortcut": "⌘⇧T",
+    "queuePreservedNotice": "{{count}} queued message(s) preserved — switch to message view to send",
+    "firstTurnHintLocked": "Switch to message view to launch {{agent}}",
+    "firstTurnHintMulti": "Switch to message view to launch an agent"
   },
   "whiteboard": {
     "goal": "Goal",

@@ -1,0 +1,583 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Mockup · Terminal View Mode — OpenTeam</title>
+    <meta name="viewport" content="width=1440" />
+    <style>
+      :root {
+        --bg-primary: 10 10 16;
+        --bg-secondary: 16 16 24;
+        --bg-tertiary: 22 22 32;
+        --bg-hover: 30 30 42;
+        --bg-input: 18 18 28;
+        --bg-elevated: 24 24 36;
+        --text-primary: 226 228 240;
+        --text-secondary: 148 156 172;
+        --text-emphasis: 248 250 252;
+        --text-muted: 90 100 120;
+        --accent-green: 52 211 153;
+        --accent-yellow: 251 191 36;
+        --accent-red: 239 68 68;
+        --accent-purple: 167 139 250;
+        --accent-brand: 90 143 202;
+        --accent-brand-light: 130 176 222;
+        --border-color: 38 38 54;
+        --border-subtle: 28 28 42;
+        --terminal-bg: 8 8 14;
+      }
+      * { box-sizing: border-box; }
+      html, body {
+        margin: 0; padding: 0;
+        background: rgb(var(--bg-primary));
+        color: rgb(var(--text-primary));
+        font: 13px/1.5 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Inter, system-ui, sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+      .frame {
+        width: 1440px; height: 880px;
+        margin: 24px auto;
+        display: grid;
+        grid-template-columns: 240px 1fr;
+        grid-template-rows: 1fr;
+        background: rgb(var(--bg-primary));
+        border: 1px solid rgb(var(--border-color));
+        border-radius: 10px;
+        overflow: hidden;
+        position: relative;
+      }
+      /* ── sidebar ── */
+      .sidebar {
+        background: rgb(var(--bg-secondary));
+        border-right: 1px solid rgb(var(--border-subtle));
+        display: flex; flex-direction: column;
+      }
+      .sb-h {
+        height: 36px; flex-shrink: 0;
+        display: flex; align-items: center; padding: 0 12px;
+        font-weight: 600; color: rgb(var(--text-emphasis));
+        border-bottom: 1px solid rgb(var(--border-subtle));
+        gap: 8px;
+      }
+      .sb-h .dot { width: 8px; height: 8px; border-radius: 999px; background: rgb(var(--accent-brand)); }
+      .sb-newmission {
+        margin: 12px; padding: 8px 12px;
+        border: 1px solid rgb(var(--border-color));
+        background: rgb(var(--bg-elevated));
+        border-radius: 8px;
+        font-size: 12px; font-weight: 500;
+        color: rgb(var(--text-primary));
+        display: flex; align-items: center; gap: 8px;
+      }
+      .sb-section { padding: 12px 12px 4px; font-size: 10px;
+        text-transform: uppercase; letter-spacing: .08em;
+        color: rgb(var(--text-muted)); }
+      .sb-row {
+        height: 32px; padding: 0 12px;
+        display: flex; align-items: center; gap: 8px;
+        font-size: 12px;
+        color: rgb(var(--text-primary));
+        border-left: 2px solid transparent;
+      }
+      .sb-row.active {
+        background: rgba(var(--accent-brand) / 0.10);
+        border-left-color: rgb(var(--accent-brand));
+        color: rgb(var(--text-emphasis));
+      }
+      .sb-row .grow { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .sb-row .meta { font-size: 10px; color: rgb(var(--text-muted)); }
+      .sb-row .pulse {
+        width: 6px; height: 6px; border-radius: 999px;
+        background: rgb(var(--accent-brand));
+        position: relative;
+      }
+      .sb-row .pulse::after {
+        content: ""; position: absolute; inset: -3px;
+        border-radius: 999px;
+        border: 1px solid rgba(var(--accent-brand) / 0.35);
+        animation: ripple 1.6s ease-out infinite;
+      }
+      @keyframes ripple { 0% { transform: scale(.6); opacity: .9; } 100% { transform: scale(1.6); opacity: 0; } }
+      /* ── chat shell ── */
+      .chat { display: flex; flex-direction: column; min-width: 0; }
+      .chat-header {
+        height: 36px; flex-shrink: 0;
+        display: flex; align-items: center; gap: 8px;
+        padding: 0 12px;
+        background: rgb(var(--bg-primary));
+        border-bottom: 1px solid rgb(var(--border-subtle));
+      }
+      .crumb { font-size: 12px; color: rgb(var(--text-secondary)); display: flex; align-items: center; gap: 4px; flex: 1; min-width: 0; }
+      .crumb .sep { color: rgb(var(--text-muted)); opacity: .5; }
+      .crumb .title { color: rgb(var(--text-emphasis)); font-weight: 600; }
+      .conn-dot { width: 6px; height: 6px; border-radius: 999px; background: rgb(var(--accent-green)); }
+
+      /* ── main two-pane (right IDE pane unchanged from message mode) ── */
+      .main { flex: 1; display: grid; grid-template-columns: 1fr 4px 38%; min-height: 0; }
+      .left-pane { display: flex; flex-direction: column; min-width: 0; min-height: 0; overflow: hidden; }
+      .ide-divider { background: rgb(var(--border-color)); cursor: col-resize; }
+      .ide-pane {
+        background: rgb(var(--bg-primary));
+        border-left: 1px solid rgb(var(--border-subtle));
+        display: flex; flex-direction: column;
+      }
+      .ide-tabs {
+        height: 35px; padding: 0 8px;
+        display: flex; align-items: center; gap: 0;
+        background: rgb(var(--bg-secondary));
+        border-bottom: 1px solid rgb(var(--border-color));
+        font-size: 12px;
+      }
+      .ide-tab { padding: 4px 10px; border-bottom: 2px solid transparent; color: rgb(var(--text-secondary)); cursor: pointer; }
+      .ide-tab.active { color: rgb(var(--text-emphasis)); border-bottom-color: rgb(var(--accent-brand)); }
+      .ide-body { flex: 1; padding: 16px; font: 12px/1.6 "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace; color: rgb(var(--text-secondary)); overflow: hidden; white-space: pre; }
+      .kw { color: rgb(var(--accent-purple)); }
+      .str { color: rgb(var(--accent-green)); }
+      .ln { color: rgb(var(--text-muted)); display: inline-block; width: 28px; text-align: right; padding-right: 12px; }
+
+      /* ── in-pane toolbar row: filter chips hidden in terminal mode, toggle still shown ── */
+      .pane-toolbar {
+        min-height: 38px; flex-shrink: 0;
+        display: flex; align-items: center; gap: 6px;
+        padding: 6px 12px;
+        font-size: 11px; color: rgb(var(--text-secondary));
+        border-bottom: 1px solid rgb(var(--border-subtle));
+        background: rgb(var(--bg-primary));
+      }
+      .pane-toolbar .hint { color: rgb(var(--text-muted)); font-size: 11px; }
+      .view-toggle {
+        margin-left: auto;
+        display: inline-flex; align-items: center;
+        height: 28px;
+        border: 1px solid rgb(var(--border-color));
+        background: rgb(var(--bg-secondary));
+        border-radius: 8px;
+        overflow: hidden;
+      }
+      .view-toggle button {
+        appearance: none; border: 0; cursor: pointer;
+        width: 30px; height: 26px;
+        display: inline-flex; align-items: center; justify-content: center;
+        background: transparent;
+        color: rgb(var(--text-secondary));
+        transition: background .12s ease, color .12s ease;
+      }
+      .view-toggle button:hover { color: rgb(var(--text-primary)); }
+      .view-toggle button[aria-pressed="true"] {
+        background: rgb(var(--bg-elevated));
+        color: rgb(var(--text-emphasis));
+      }
+      .view-toggle .divider {
+        width: 1px; height: 18px;
+        background: rgb(var(--border-subtle));
+      }
+
+      /* ── TerminalPanel (left pane body) ── */
+      .terminal-panel { flex: 1; display: flex; flex-direction: column; min-height: 0; background: rgb(var(--bg-secondary)); overflow: hidden; }
+      .term-tablist {
+        height: 34px; flex-shrink: 0;
+        display: flex; align-items: center; gap: 2px;
+        padding: 0 6px;
+        background: rgb(var(--bg-secondary));
+        border-bottom: 1px solid rgb(var(--border-subtle));
+      }
+      .term-tab {
+        display: inline-flex; align-items: center; gap: 6px;
+        height: 26px; padding: 0 10px;
+        font-size: 11.5px;
+        background: rgb(var(--bg-elevated));
+        border: 1px solid rgb(var(--border-subtle));
+        border-bottom: 0;
+        border-radius: 6px 6px 0 0;
+        color: rgb(var(--text-secondary));
+      }
+      .term-tab.active { background: rgb(var(--terminal-bg)); color: rgb(var(--text-emphasis)); border-color: rgb(var(--border-color)); }
+      .term-tab .dot { width: 6px; height: 6px; border-radius: 999px; }
+      .term-tab .running { background: rgb(var(--accent-brand)); position: relative; }
+      .term-tab .running::after { content: ""; position: absolute; inset: -3px; border-radius: 999px; border: 1px solid rgba(var(--accent-brand) / 0.35); animation: ripple 1.6s ease-out infinite; }
+      .term-tab .done { background: rgb(var(--accent-green)); }
+      .term-controls { margin-left: auto; display: flex; align-items: center; gap: 4px; padding-right: 6px; }
+      .term-controls .icon-btn {
+        appearance: none; border: 0; background: transparent;
+        width: 26px; height: 26px;
+        display: inline-flex; align-items: center; justify-content: center;
+        border-radius: 6px;
+        color: rgb(var(--text-secondary));
+        cursor: pointer;
+      }
+      .term-controls .icon-btn:hover { background: rgb(var(--bg-hover)); color: rgb(var(--text-primary)); }
+      .term-controls .icon-btn.active { background: rgb(var(--bg-elevated)); color: rgb(var(--text-emphasis)); }
+
+      .term-split { flex: 1; display: grid; grid-template-rows: 1fr 4px 1fr; min-height: 0; }
+      .term-tile {
+        background: rgb(var(--terminal-bg));
+        display: flex; flex-direction: column;
+        min-height: 0;
+        overflow: hidden;
+      }
+      .term-tile-head {
+        height: 26px; padding: 0 10px;
+        display: flex; align-items: center; gap: 8px;
+        background: rgba(255,255,255,0.02);
+        border-bottom: 1px solid rgb(var(--border-subtle));
+        font-size: 11px; color: rgb(var(--text-secondary));
+      }
+      .term-tile-head .agent-name { color: rgb(var(--text-emphasis)); font-weight: 500; }
+      .term-tile-head .status { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; }
+      .term-tile-head .status .dot { width: 6px; height: 6px; border-radius: 999px; }
+      .term-h-divider { background: rgb(var(--border-color)); }
+
+      .xterm {
+        flex: 1;
+        padding: 10px 12px;
+        font: 12px/1.5 "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+        color: #d1d5db;
+        overflow: hidden;
+        white-space: pre;
+      }
+      .xterm .prompt { color: rgb(var(--accent-brand-light)); }
+      .xterm .path { color: rgb(var(--accent-purple)); }
+      .xterm .ok { color: rgb(var(--accent-green)); }
+      .xterm .warn { color: rgb(var(--accent-yellow)); }
+      .xterm .err { color: rgb(var(--accent-red)); }
+      .xterm .dim { color: rgb(var(--text-muted)); }
+      .xterm .cursor {
+        display: inline-block; width: 7px; height: 14px;
+        background: rgb(var(--text-emphasis));
+        vertical-align: -2px;
+        animation: blink 1s steps(2, start) infinite;
+      }
+      @keyframes blink { to { visibility: hidden; } }
+
+      /* ── footer stack (heartbeat / git / input) — same as message mode ── */
+      .heartbeat {
+        height: 28px; padding: 0 12px;
+        display: flex; align-items: center; gap: 12px;
+        background: rgb(var(--bg-secondary));
+        border-top: 1px solid rgb(var(--border-subtle));
+        font-size: 11px;
+        color: rgb(var(--text-secondary));
+      }
+      .heartbeat .agent { display: inline-flex; align-items: center; gap: 6px; }
+      .avatar { width: 14px; height: 14px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; font-size: 8px; font-weight: 600; color: white; }
+      .avatar.fs { background: linear-gradient(135deg, #5a8fca 0%, #3e72ac 100%); }
+      .avatar.gm { background: linear-gradient(135deg, #34d399 0%, #16a34a 100%); }
+      .gitbar {
+        height: 26px; padding: 0 12px;
+        display: flex; align-items: center; gap: 14px;
+        background: rgb(var(--bg-primary));
+        border-top: 1px solid rgb(var(--border-subtle));
+        font-size: 11px; color: rgb(var(--text-secondary));
+      }
+      .input-area {
+        padding: 12px;
+        border-top: 1px solid rgb(var(--border-subtle));
+        background: rgb(var(--bg-primary));
+      }
+      .input-shell {
+        border: 1px solid rgb(var(--border-color));
+        background: rgb(var(--bg-input));
+        border-radius: 12px;
+        padding: 10px 12px 8px;
+        display: flex; flex-direction: column; gap: 8px;
+      }
+      .input-line {
+        font-size: 13px; color: rgb(var(--text-emphasis));
+        outline: none; border: 0; background: transparent;
+        padding: 0; min-height: 22px;
+        display: flex; align-items: center;
+      }
+      .input-line .placeholder { color: rgb(var(--text-muted)); }
+      .input-foot { display: flex; align-items: center; gap: 8px; font-size: 11px; color: rgb(var(--text-muted)); }
+      .input-foot .target { background: rgb(var(--bg-elevated)); border: 1px solid rgb(var(--border-subtle)); padding: 2px 8px; border-radius: 999px; color: rgb(var(--text-secondary)); }
+      .input-foot .target.bold { color: rgb(var(--text-emphasis)); }
+      .input-foot .send {
+        margin-left: auto;
+        padding: 4px 14px; border-radius: 8px;
+        background: rgb(var(--accent-brand)); color: white;
+        font-size: 11.5px; font-weight: 500;
+      }
+
+      /* ── callout badges ── */
+      .callout {
+        position: absolute;
+        background: rgb(var(--accent-brand));
+        color: white;
+        font-size: 10px; font-weight: 600;
+        padding: 4px 8px; border-radius: 6px;
+        white-space: nowrap;
+        box-shadow: 0 4px 12px rgba(0,0,0,.45);
+        z-index: 5;
+      }
+      .callout.subtle { background: rgb(var(--bg-elevated)); color: rgb(var(--text-secondary)); border: 1px solid rgb(var(--border-color)); }
+      .callout::before {
+        content: ""; position: absolute;
+        width: 0; height: 0;
+        border: 5px solid transparent;
+      }
+      .callout.above::before {
+        top: 100%; left: 14px;
+        border-top-color: rgb(var(--accent-brand));
+      }
+      .callout.subtle.above::before {
+        border-top-color: rgb(var(--bg-elevated));
+      }
+      .callout.below::before {
+        bottom: 100%; left: 14px;
+        border-bottom-color: rgb(var(--accent-brand));
+      }
+
+      .legend {
+        max-width: 1440px; margin: 0 auto 32px;
+        padding: 0 16px;
+        font-size: 12px; color: rgb(var(--text-secondary));
+      }
+      .legend h1 { color: rgb(var(--text-emphasis)); font-size: 15px; font-weight: 600; margin: 0 0 4px; }
+      .legend p { margin: 0 0 6px; }
+      .legend code {
+        background: rgb(var(--bg-elevated)); padding: 1px 5px; border-radius: 4px;
+        font: 11.5px "JetBrains Mono", monospace; color: rgb(var(--text-emphasis));
+      }
+      .legend strong { color: rgb(var(--text-emphasis)); }
+    </style>
+  </head>
+  <body>
+    <div class="legend">
+      <h1>Mockup · Terminal View Mode</h1>
+      <p>Same mission, terminal view active. The <strong>only</strong> change versus message mode is the left (conversation) pane body: <code>ChatBody</code> is replaced by <code>TerminalPanel</code>. To avoid stacking two chrome rows, <code>ChatPaneToolbarRow</code> is <strong>not rendered</strong> in terminal mode — instead, the view-mode toggle parasites the <code>TerminalPanel</code> tablist, sitting in its right-aligned controls cluster as a sibling of the layout-toggle button. <code>ChatHeader</code>, the right IDE pane, the resize divider, and the bottom-pinned bars (heartbeat, git, input) are unchanged.</p>
+    </div>
+
+    <div class="frame">
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <div class="sb-h"><span class="dot"></span>OpenTeam</div>
+        <div class="sb-newmission">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+          New Mission
+        </div>
+        <div class="sb-section">openteam</div>
+        <div class="sb-row active">
+          <span class="pulse"></span>
+          <span class="grow">Ship terminal view mode toggle</span>
+          <span class="meta">just now</span>
+        </div>
+        <div class="sb-row">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="rgb(52,211,153)" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>
+          <span class="grow">Refine sidebar collapse</span>
+          <span class="meta">1h</span>
+        </div>
+        <div class="sb-row">
+          <span style="width:6px;height:6px;border-radius:999px;background:rgb(var(--accent-yellow));"></span>
+          <span class="grow">Audit memory growth loop</span>
+          <span class="meta">3h</span>
+        </div>
+        <div class="sb-section">growth-house</div>
+        <div class="sb-row">
+          <span style="width:6px;height:6px;border-radius:999px;background:rgb(var(--text-muted));"></span>
+          <span class="grow">Q3 launch positioning</span>
+          <span class="meta">1d</span>
+        </div>
+      </aside>
+
+      <!-- Chat -->
+      <section class="chat">
+        <!-- ChatHeader is unchanged in terminal mode. No view-mode toggle here.
+             No plan/code badge here. -->
+        <header class="chat-header">
+          <span class="crumb">
+            <span>OpenTeam</span>
+            <span class="sep">›</span>
+            <span class="title">Ship terminal view mode toggle</span>
+          </span>
+          <span class="conn-dot" title="Connected"></span>
+        </header>
+
+        <div class="main">
+          <!-- LEFT PANE: TerminalPanel takes over the body slot.
+               No ChatPaneToolbarRow here — the view-mode toggle parasites
+               the TerminalPanel tablist (see term-controls below) so the
+               left pane shows exactly ONE chrome row above the body. -->
+          <div class="left-pane">
+            <!-- TerminalPanel (split layout, two agent tiles).
+                 Tablist now hosts BOTH the view-mode toggle and the
+                 existing layout-toggle in the right-aligned controls cluster. -->
+            <div class="terminal-panel">
+              <div class="term-tablist">
+                <div class="term-tab active">
+                  <span class="dot running"></span>
+                  <span class="avatar fs">F</span>
+                  fullstack
+                </div>
+                <div class="term-tab active">
+                  <span class="dot done"></span>
+                  <span class="avatar gm">G</span>
+                  growth-marketer
+                </div>
+                <div class="term-controls">
+                  <!-- Chat view-mode toggle (injected via headerExtras slot) -->
+                  <div class="view-toggle" role="group" aria-label="Chat view mode">
+                    <button aria-pressed="false" title="Message view (⌘⇧T)">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                    </button>
+                    <span class="divider"></span>
+                    <button aria-pressed="true" title="Terminal view (⌘⇧T)">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9l3 3-3 3"/><path d="M13 15h4"/></svg>
+                    </button>
+                  </div>
+                  <!-- existing TerminalPanel layout-toggle (Split / Tabbed) -->
+                  <button class="icon-btn active" title="Split layout">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="8" rx="1"/><rect x="3" y="13" width="18" height="8" rx="1"/></svg>
+                  </button>
+                  <button class="icon-btn" title="Tabbed layout">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="8" height="16" rx="1"/><rect x="13" y="4" width="8" height="16" rx="1"/></svg>
+                  </button>
+                </div>
+              </div>
+
+              <div class="term-split">
+                <!-- Tile 1: fullstack (running) -->
+                <div class="term-tile">
+                  <div class="term-tile-head">
+                    <span class="avatar fs">F</span>
+                    <span class="agent-name">fullstack</span>
+                    <span class="dim">claude-opus-4-7</span>
+                    <span class="status">
+                      <span class="dot" style="background: rgb(var(--accent-brand));"></span>
+                      Working · 2m 14s
+                    </span>
+                  </div>
+                  <div class="xterm"><span class="prompt">~/openteam (main)</span> <span class="dim">$</span> claude --resume
+<span class="dim">› Loaded session 7a3b2…  4 messages</span>
+
+<span class="dim">────────────────────────────────────────────────────────────</span>
+<span class="path">⏺</span> Reading <span class="ok">web/components/chat/ChatInstance.tsx</span>
+<span class="path">⏺</span> Reading <span class="ok">web/components/terminal/TerminalPanel.tsx</span>
+<span class="path">⏺</span> Editing <span class="ok">web/components/chat/ChatPaneToolbarRow.tsx</span>
+
+I'm threading <span class="warn">useChatViewMode(chatId, agentScope)</span> into
+ChatInstance and branching the <span class="warn">body slot</span> only — the right
+IDE pane, the resize divider, and the collapse chevron stay
+mounted in both modes.
+
+Next:
+  • move the view-toggle into the in-pane toolbar row
+  • hide the agent filter chips in terminal mode
+  • wire ⌘⇧T to setMode inside the isActive effect
+
+<span class="prompt">~/openteam (main)</span> <span class="dim">$</span> npm run lint -- --fix
+<span class="ok">✓</span> 0 errors, 0 warnings
+<span class="prompt">~/openteam (main)</span> <span class="dim">$</span> <span class="cursor"></span></div>
+                </div>
+
+                <div class="term-h-divider"></div>
+
+                <!-- Tile 2: growth-marketer (done) -->
+                <div class="term-tile">
+                  <div class="term-tile-head">
+                    <span class="avatar gm">G</span>
+                    <span class="agent-name">growth-marketer</span>
+                    <span class="dim">claude-sonnet-4-6</span>
+                    <span class="status">
+                      <span class="dot" style="background: rgba(52,211,153,0.45);"></span>
+                      ✓ Completed · 24s
+                    </span>
+                  </div>
+                  <div class="xterm"><span class="prompt">~/openteam (main)</span> <span class="dim">$</span> claude
+<span class="dim">› Started session 9c1f0…</span>
+
+Drafted launch-week copy for the new <span class="warn">chat view mode toggle</span>
+in <span class="ok">growth-house/launch.md</span>. Three options:
+
+  A — Power-user framing: "Drop into the terminal in one
+      keystroke. Same chat. Same input. Real CLI."
+  B — Attention-first: <span class="ok">"You picked the agent. Now pick</span>
+      <span class="ok">how you want to see it — cards or the raw stream."</span>
+  C — Receipts framing: "Every message you see is a real CLI
+      session. Now you can read it raw whenever you want."
+
+<span class="ok">Recommend option B</span> — it ties to the attention-first
+principle without sounding like a feature ad.
+
+<span class="prompt">~/openteam (main)</span> <span class="dim">$</span> <span class="dim">(session ended)</span></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- footer stack (heartbeat / git / input) — identical to message mode -->
+            <div class="heartbeat">
+              <span style="text-transform:uppercase;letter-spacing:.08em;color:rgb(var(--text-muted));font-size:10px;">Heartbeat</span>
+              <span class="agent"><span class="avatar fs">F</span>fullstack <span style="color:rgb(var(--accent-brand));">▸ working · 2m 14s</span></span>
+              <span class="agent"><span class="avatar gm">G</span>growth-marketer <span style="color:rgb(var(--accent-green));">✓ done</span></span>
+              <span style="margin-left:auto;color:rgb(var(--text-muted));">Cost $0.42 · 4.1k tokens</span>
+            </div>
+            <div class="gitbar">
+              <span style="color:rgb(var(--text-muted));">main</span>
+              <span><span style="color:rgb(var(--accent-yellow));">●</span> 7 changed</span>
+              <span><span style="color:rgb(var(--accent-green));">+</span> 142</span>
+              <span><span style="color:rgb(var(--accent-red));">−</span> 23</span>
+              <span style="margin-left:auto;color:rgb(var(--accent-brand));">View changes</span>
+            </div>
+
+            <div class="input-area">
+              <div class="input-shell">
+                <div class="input-line"><span class="placeholder">Reply to fullstack… (⌘⇧T to switch back to message view)</span></div>
+                <div class="input-foot">
+                  <span class="target bold">@ fullstack</span>
+                  <span>claude-opus-4-7</span>
+                  <span>·</span>
+                  <span>/ for commands</span>
+                  <span class="send">Send</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="ide-divider"></div>
+
+          <!-- RIGHT PANE: IDE — unchanged across both modes -->
+          <aside class="ide-pane">
+            <div class="ide-tabs">
+              <span class="ide-tab active">Files</span>
+              <span class="ide-tab">Terminal</span>
+              <span class="ide-tab">Changes <span style="background:rgba(var(--accent-brand) / 0.20);color:rgb(var(--accent-brand-light));padding:0 5px;border-radius:999px;font-size:10px;margin-left:4px;">7</span></span>
+              <span style="margin-left:auto;color:rgb(var(--text-muted));font-size:11px;">~/openteam</span>
+            </div>
+            <div class="ide-body"><span style="color:rgb(var(--text-muted));">// web/components/chat/ChatInstance.tsx — left-pane branch</span>
+<span class="ln">1</span><span class="kw">const</span> [mode, setMode] = useChatViewMode(chatId, agentScope)
+<span class="ln">2</span><span class="kw">const</span> viewToggle = (
+<span class="ln">3</span>  &lt;ChatViewModeToggle mode={mode} onChange={setMode} /&gt;
+<span class="ln">4</span>)
+<span class="ln">5</span>
+<span class="ln">6</span><span class="kw">return</span> (
+<span class="ln">7</span>  &lt;<span class="kw">div</span> style={chatPanelStyle}&gt;
+<span class="ln">8</span>    &lt;ChatHeader ... /&gt;          <span class="kw">// unchanged</span>
+<span class="ln">9</span>    {mode === <span class="str">'message'</span> ? (
+<span class="ln">10</span>      &lt;&gt;
+<span class="ln">11</span>        &lt;ChatPaneToolbarRow trailing={viewToggle} ... /&gt;
+<span class="ln">12</span>        &lt;ChatBody ... /&gt;
+<span class="ln">13</span>        {currentPlan && &lt;PlanCard ... /&gt;}
+<span class="ln">14</span>      &lt;/&gt;
+<span class="ln">15</span>    ) : (
+<span class="ln">16</span>      &lt;TerminalPanel
+<span class="ln">17</span>        chatId={chatId}
+<span class="ln">18</span>        lockedAgentId={singleAgent ? lockedKey : <span class="kw">null</span>}
+<span class="ln">19</span>        headerExtras={viewToggle}  <span class="kw">// parasites tablist</span>
+<span class="ln">20</span>      /&gt;
+<span class="ln">21</span>    )}
+<span class="ln">22</span>    &lt;GlobalHeartbeatBar ... /&gt;
+<span class="ln">23</span>    &lt;GitStatusBar ... /&gt;
+<span class="ln">24</span>    &lt;QueuedMessagesBar ... /&gt;
+<span class="ln">25</span>    &lt;InputArea ... /&gt;
+<span class="ln">26</span>  &lt;/<span class="kw">div</span>&gt;
+<span class="ln">27</span>  <span class="kw">// Right pane (RightPanel + divider) unchanged</span>
+<span class="ln">28</span>)</div>
+          </aside>
+        </div>
+      </section>
+
+      <!-- callouts -->
+      <div class="callout below" style="left: 720px; top: 92px;">View toggle joins the terminal tablist (no second chrome row)</div>
+      <div class="callout subtle below" style="right: 200px; top: 92px;">Right pane unchanged</div>
+    </div>
+  </body>
+</html>

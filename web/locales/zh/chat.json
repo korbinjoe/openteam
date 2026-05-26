@@ -172,7 +172,19 @@
     "openAll": "全部打开",
     "reconnecting": "连接中断，正在重连...",
     "emptyHint": "发送消息后，Agent 终端将在此显示",
+    "emptyHintLocked": "等待 {{agent}} 启动…",
     "hiddenCount": "已关闭 {{count}} 个终端"
+  },
+  "chatViewMode": {
+    "ariaLabel": "聊天视图模式",
+    "message": "消息",
+    "terminal": "终端",
+    "tooltipMessage": "消息视图（{{shortcut}}）",
+    "tooltipTerminal": "终端视图（{{shortcut}}）",
+    "shortcut": "⌘⇧T",
+    "queuePreservedNotice": "已保留 {{count}} 条队列消息——切回消息视图发送",
+    "firstTurnHintLocked": "切回消息视图以启动 {{agent}}",
+    "firstTurnHintMulti": "切回消息视图以启动 Agent"
   },
   "whiteboard": {
     "goal": "目标",

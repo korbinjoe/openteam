@@ -168,7 +168,6 @@ export class TerminalInstance {
 
       this.safeFit()
 
-      console.info('[DIAG] doOpen replay', { pendingDataCount: this.pendingData.length, pendingChars: this.pendingChars, hadTruncation: this.hadDataTruncation })
       if (this.pendingData.length > 0) {
         const buffered = this.pendingData.join('')
         this.pendingData = []
@@ -300,6 +299,12 @@ export class TerminalInstance {
   serialize(options?: { scrollback?: number }): string {
     if (!this.serializeAddon || this._state !== 'opened') return ''
     return this.serializeAddon.serialize(options)
+  }
+
+  /** Move keyboard focus into the underlying xterm. No-op until opened. */
+  focus(): void {
+    if (this._state !== 'opened') return
+    this.terminal?.focus()
   }
 
   onData(cb: DataCallback): void {

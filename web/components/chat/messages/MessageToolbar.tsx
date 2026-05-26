@@ -39,37 +39,40 @@ const MessageToolbar = ({
   if (agentIds.length <= 1) return null
 
   return (
-    <div className="flex items-center gap-2 px-3 py-1 border-b border-border-subtle/50 overflow-x-auto">
-      <div className="flex items-center gap-1 overflow-x-auto">
-        {/* All */}
-        <FilterChip
-          active={filterAgentId === null}
-          onClick={() => onFilterAgentChange(null)}
-          label={t('filter.all')}
-        />
-        {agentIds.map((agentId) => {
-          const personality = agentPersonalities?.[agentId]
-          const displayName = personality?.nickname || agentNames[agentId] || agentId
-          const activity = expertActivities?.[agentId]
-          const phaseColor = activity ? PHASE_DOT_COLORS[activity.phase] : undefined
-          const isActive = activity && !['completed', 'waiting_input'].includes(activity.phase)
+    <div className="flex items-center gap-1 overflow-x-auto">
+      <FilterChip
+        active={filterAgentId === null}
+        onClick={() => onFilterAgentChange(null)}
+        label={t('filter.all')}
+      />
+      {agentIds.map((agentId) => {
+        const personality = agentPersonalities?.[agentId]
+        const displayName = personality?.nickname || agentNames[agentId] || agentId
+        const activity = expertActivities?.[agentId]
+        const phaseColor = activity ? PHASE_DOT_COLORS[activity.phase] : undefined
+        const isActive = activity && !['completed', 'waiting_input'].includes(activity.phase)
 
-          return (
-            <FilterChip
-              key={agentId}
-              active={filterAgentId === agentId}
-              onClick={() => onFilterAgentChange(filterAgentId === agentId ? null : agentId)}
-              label={displayName}
-              avatar={<AgentAvatar name={displayName} agentId={agentId} size="xs" />}
-              statusDot={phaseColor}
-              pulse={!!isActive}
-            />
-          )
-        })}
-      </div>
+        return (
+          <FilterChip
+            key={agentId}
+            active={filterAgentId === agentId}
+            onClick={() => onFilterAgentChange(filterAgentId === agentId ? null : agentId)}
+            label={displayName}
+            avatar={<AgentAvatar name={displayName} agentId={agentId} size="xs" />}
+            statusDot={phaseColor}
+            pulse={!!isActive}
+          />
+        )
+      })}
     </div>
   )
 }
+
+/** Visibility helper mirroring MessageToolbar's internal "render if >1 chip" rule. */
+export const hasMultipleAgents = (
+  agentNames: Record<string, string>,
+  activeAgentIds?: string[],
+): boolean => (activeAgentIds ?? Object.keys(agentNames)).length > 1
 
 /* ── Filter Chip ────────────────────────────────────────── */
 

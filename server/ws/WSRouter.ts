@@ -4,6 +4,7 @@ import { ExpertHandler } from './ExpertHandler'
 import { ShellHandler } from './ShellHandler'
 import { GitWatchHandler } from './GitWatchHandler'
 import { ShellManager } from '../terminal/ShellManager'
+import type { TerminalViewManager } from '../terminal/TerminalViewManager'
 import type { SenseiUpgradeService } from '../services/update/SenseiUpgradeService'
 import type { ChatStore } from '../stores/ChatStore'
 import type { WorkspaceStore } from '../stores/WorkspaceStore'
@@ -18,6 +19,7 @@ export class WSRouter {
   private expertHandler: ExpertHandler
   private shellHandler: ShellHandler
   private gitWatchHandler?: GitWatchHandler
+  private terminalViewManager?: TerminalViewManager
   private senseiUpgradeService?: SenseiUpgradeService
   private chatStore?: ChatStore
   private workspaceStore?: WorkspaceStore
@@ -27,6 +29,7 @@ export class WSRouter {
   constructor(deps: {
     expertHandler: ExpertHandler
     gitWatchManager?: GitWatchManager
+    terminalViewManager?: TerminalViewManager
     senseiUpgradeService?: SenseiUpgradeService
     chatStore?: ChatStore
     workspaceStore?: WorkspaceStore
@@ -34,6 +37,7 @@ export class WSRouter {
     broadcast?: (msg: Record<string, unknown>) => void
   }) {
     this.expertHandler = deps.expertHandler
+    this.terminalViewManager = deps.terminalViewManager
     this.senseiUpgradeService = deps.senseiUpgradeService
     this.chatStore = deps.chatStore
     this.workspaceStore = deps.workspaceStore
@@ -55,11 +59,23 @@ export class WSRouter {
       this.expertHandler.handleStart(ws, payload, connectionId)
       return
     }
+    if (type === 'expert:cli-attach') {
+      this.terminalViewManager?.handleAttach(ws, payload, connectionId).catch((err) => {
+        log.error('expert:cli-attach error', { error: err instanceof Error ? err.message : String(err) })
+      })
+      return
+    }
+    if (type === 'expert:cli-detach') {
+      this.terminalViewManager?.handleDetach(payload, connectionId)
+      return
+    }
     if (type === 'expert:input') {
+      if (this.terminalViewManager?.forwardInput(payload, connectionId)) return
       this.expertHandler.handleInput(ws, payload, connectionId)
       return
     }
     if (type === 'expert:resize') {
+      if (this.terminalViewManager?.forwardResize(payload, connectionId)) return
       this.expertHandler.handleResize(ws, payload, connectionId)
       return
     }
@@ -202,6 +218,7 @@ export class WSRouter {
     if (connectionId) {
       this.shellHandler.handleDisconnect(connectionId)
       this.gitWatchHandler?.handleDisconnect(connectionId)
+      this.terminalViewManager?.handleDisconnect(connectionId)
       this.senseiUpgradeService?.cancel(connectionId)
     }
   }

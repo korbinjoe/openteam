@@ -47,6 +47,7 @@ import { VersionGate } from './services/update/VersionGate'
 
 import { SessionRegistry } from './terminal/SessionRegistry'
 import { IdleReaper } from './terminal/IdleReaper'
+import { TerminalViewManager } from './terminal/TerminalViewManager'
 
 import { MailboxManager } from './mailbox/MailboxManager'
 import { WhiteboardManager } from './whiteboard/WhiteboardManager'
@@ -213,7 +214,8 @@ const devInspector = process.env.NODE_ENV !== 'production' || process.env.DEV_PA
 import { GitWatchManager } from './git/GitWatchManager'
 const gitWatchManager = new GitWatchManager()
 
-const wsRouter = new WSRouter({ expertHandler, gitWatchManager, senseiUpgradeService, chatStore, workspaceStore, devInspector, broadcast })
+const terminalViewManager = new TerminalViewManager(sessionRegistry, chatStore)
+const wsRouter = new WSRouter({ expertHandler, gitWatchManager, terminalViewManager, senseiUpgradeService, chatStore, workspaceStore, devInspector, broadcast })
 
 let serverPort = PORTS.DEV_SERVER
 let asyncBootResult: AsyncBootResult | null = null

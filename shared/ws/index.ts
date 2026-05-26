@@ -27,6 +27,10 @@ export interface WsSendMessages {
   'expert:input': { chatId: string; agentId: string; data: string }
   'expert:stop': { chatId: string; agentId: string }
   'expert:resize': { chatId: string; agentId: string; cols: number; rows: number }
+  /** Web → Server: enter terminal view; server spawns a resume-PTY for this agent. */
+  'expert:cli-attach': { chatId: string; agentId: string; cols: number; rows: number }
+  /** Web → Server: leave terminal view; server kills the resume-PTY for this agent. */
+  'expert:cli-detach': { chatId: string; agentId: string }
   'expert:list': { chatId: string | undefined }
   'expert:clear-completed': { chatId: string | undefined }
   'shell:create': { cwd: string; cols?: number; rows?: number; nonce?: string }

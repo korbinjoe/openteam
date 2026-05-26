@@ -1,0 +1,509 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Mockup · Message View Mode (default) — OpenTeam</title>
+    <meta name="viewport" content="width=1440" />
+    <style>
+      :root {
+        --bg-primary: 10 10 16;
+        --bg-secondary: 16 16 24;
+        --bg-tertiary: 22 22 32;
+        --bg-hover: 30 30 42;
+        --bg-input: 18 18 28;
+        --bg-elevated: 24 24 36;
+        --text-primary: 226 228 240;
+        --text-secondary: 148 156 172;
+        --text-emphasis: 248 250 252;
+        --text-muted: 90 100 120;
+        --accent-green: 52 211 153;
+        --accent-yellow: 251 191 36;
+        --accent-red: 239 68 68;
+        --accent-purple: 167 139 250;
+        --accent-brand: 90 143 202;
+        --accent-brand-light: 130 176 222;
+        --border-color: 38 38 54;
+        --border-subtle: 28 28 42;
+      }
+      * { box-sizing: border-box; }
+      html, body {
+        margin: 0; padding: 0;
+        background: rgb(var(--bg-primary));
+        color: rgb(var(--text-primary));
+        font: 13px/1.5 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Inter, system-ui, sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+      .frame {
+        width: 1440px; height: 880px;
+        margin: 24px auto;
+        display: grid;
+        grid-template-columns: 240px 1fr;
+        grid-template-rows: 1fr;
+        background: rgb(var(--bg-primary));
+        border: 1px solid rgb(var(--border-color));
+        border-radius: 10px;
+        overflow: hidden;
+      }
+      /* ── sidebar ── */
+      .sidebar {
+        background: rgb(var(--bg-secondary));
+        border-right: 1px solid rgb(var(--border-subtle));
+        display: flex; flex-direction: column;
+      }
+      .sb-h {
+        height: 36px; flex-shrink: 0;
+        display: flex; align-items: center; padding: 0 12px;
+        font-weight: 600; color: rgb(var(--text-emphasis));
+        border-bottom: 1px solid rgb(var(--border-subtle));
+        gap: 8px;
+      }
+      .sb-h .dot { width: 8px; height: 8px; border-radius: 999px; background: rgb(var(--accent-brand)); }
+      .sb-newmission {
+        margin: 12px; padding: 8px 12px;
+        border: 1px solid rgb(var(--border-color));
+        background: rgb(var(--bg-elevated));
+        border-radius: 8px;
+        font-size: 12px; font-weight: 500;
+        color: rgb(var(--text-primary));
+        display: flex; align-items: center; gap: 8px;
+      }
+      .sb-section { padding: 12px 12px 4px; font-size: 10px;
+        text-transform: uppercase; letter-spacing: .08em;
+        color: rgb(var(--text-muted)); }
+      .sb-row {
+        height: 32px; padding: 0 12px;
+        display: flex; align-items: center; gap: 8px;
+        font-size: 12px;
+        color: rgb(var(--text-primary));
+        border-left: 2px solid transparent;
+      }
+      .sb-row.active {
+        background: rgba(var(--accent-brand) / 0.10);
+        border-left-color: rgb(var(--accent-brand));
+        color: rgb(var(--text-emphasis));
+      }
+      .sb-row .grow { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .sb-row .meta { font-size: 10px; color: rgb(var(--text-muted)); }
+      .sb-row .pulse {
+        width: 6px; height: 6px; border-radius: 999px;
+        background: rgb(var(--accent-brand));
+        position: relative;
+      }
+      .sb-row .pulse::after {
+        content: ""; position: absolute; inset: -3px;
+        border-radius: 999px;
+        border: 1px solid rgba(var(--accent-brand) / 0.35);
+        animation: ripple 1.6s ease-out infinite;
+      }
+      @keyframes ripple { 0% { transform: scale(.6); opacity: .9; } 100% { transform: scale(1.6); opacity: 0; } }
+      /* ── chat shell ── */
+      .chat { display: flex; flex-direction: column; min-width: 0; }
+      .chat-header {
+        height: 36px; flex-shrink: 0;
+        display: flex; align-items: center; gap: 8px;
+        padding: 0 12px;
+        background: rgb(var(--bg-primary));
+        border-bottom: 1px solid rgb(var(--border-subtle));
+      }
+      .crumb { font-size: 12px; color: rgb(var(--text-secondary)); display: flex; align-items: center; gap: 4px; flex: 1; min-width: 0; }
+      .crumb .sep { color: rgb(var(--text-muted)); opacity: .5; }
+      .crumb .title { color: rgb(var(--text-emphasis)); font-weight: 600; }
+      .conn-dot { width: 6px; height: 6px; border-radius: 999px; background: rgb(var(--accent-green)); }
+      /* ── main two-pane ── */
+      .main { flex: 1; display: grid; grid-template-columns: 1fr 4px 38%; min-height: 0; }
+      .messages-pane { display: flex; flex-direction: column; min-width: 0; min-height: 0; overflow: hidden; }
+      .ide-divider { background: rgb(var(--border-color)); cursor: col-resize; }
+      .ide-pane {
+        background: rgb(var(--bg-primary));
+        border-left: 1px solid rgb(var(--border-subtle));
+        display: flex; flex-direction: column;
+      }
+      .ide-tabs {
+        height: 35px; padding: 0 8px;
+        display: flex; align-items: center; gap: 0;
+        background: rgb(var(--bg-secondary));
+        border-bottom: 1px solid rgb(var(--border-color));
+        font-size: 12px;
+      }
+      .ide-tab { padding: 4px 10px; border-bottom: 2px solid transparent; color: rgb(var(--text-secondary)); cursor: pointer; }
+      .ide-tab.active { color: rgb(var(--text-emphasis)); border-bottom-color: rgb(var(--accent-brand)); }
+      .ide-body { flex: 1; padding: 16px; font: 12px/1.6 "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace; color: rgb(var(--text-secondary)); overflow: hidden; white-space: pre; }
+      .kw { color: rgb(var(--accent-purple)); }
+      .str { color: rgb(var(--accent-green)); }
+      .ln { color: rgb(var(--text-muted)); display: inline-block; width: 28px; text-align: right; padding-right: 12px; }
+      /* ── in-pane toolbar row (hosts filter chips + view-mode toggle) ── */
+      .pane-toolbar {
+        min-height: 38px; flex-shrink: 0;
+        display: flex; align-items: center; gap: 6px;
+        padding: 6px 12px;
+        font-size: 11px; color: rgb(var(--text-secondary));
+        border-bottom: 1px solid rgb(var(--border-subtle));
+        background: rgb(var(--bg-primary));
+      }
+      .pane-toolbar .filter-label { color: rgb(var(--text-muted)); margin-right: 2px; letter-spacing: .04em; text-transform: uppercase; font-size: 10px; }
+      .chip {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 3px 8px; border-radius: 999px;
+        font-size: 11px;
+        background: rgb(var(--bg-elevated));
+        border: 1px solid rgb(var(--border-subtle));
+        color: rgb(var(--text-secondary));
+      }
+      .chip.active { background: rgba(var(--accent-brand) / 0.15); border-color: rgba(var(--accent-brand) / 0.45); color: rgb(var(--accent-brand-light)); }
+      /* ── view-mode toggle (the new control, lives in the pane toolbar row) ── */
+      .view-toggle {
+        margin-left: auto;
+        display: inline-flex; align-items: center;
+        height: 28px;
+        border: 1px solid rgb(var(--border-color));
+        background: rgb(var(--bg-secondary));
+        border-radius: 8px;
+        overflow: hidden;
+      }
+      .view-toggle button {
+        appearance: none; border: 0; cursor: pointer;
+        width: 30px; height: 26px;
+        display: inline-flex; align-items: center; justify-content: center;
+        background: transparent;
+        color: rgb(var(--text-secondary));
+        transition: background .12s ease, color .12s ease;
+      }
+      .view-toggle button:hover { color: rgb(var(--text-primary)); }
+      .view-toggle button[aria-pressed="true"] {
+        background: rgb(var(--bg-elevated));
+        color: rgb(var(--text-emphasis));
+      }
+      .view-toggle .divider {
+        width: 1px; height: 18px;
+        background: rgb(var(--border-subtle));
+      }
+      /* ── message list ── */
+      .messages { flex: 1; overflow: auto; padding: 16px 18px 4px; min-height: 0; }
+      .msg-user {
+        margin: 12px 0 4px; padding: 10px 14px;
+        background: rgb(var(--bg-elevated));
+        border: 1px solid rgb(var(--border-subtle));
+        border-radius: 12px;
+        max-width: 78%; align-self: flex-end;
+        margin-left: auto;
+        font-size: 13px;
+        color: rgb(var(--text-primary));
+      }
+      .msg-user .who { font-size: 10px; color: rgb(var(--text-muted)); margin-bottom: 4px; }
+      .turn-card {
+        margin: 8px 0 14px;
+        padding: 12px 14px;
+        background: rgb(var(--bg-secondary));
+        border: 1px solid rgb(var(--border-subtle));
+        border-radius: 12px;
+      }
+      .turn-head {
+        display: flex; align-items: center; gap: 8px;
+        font-size: 12px; color: rgb(var(--text-secondary));
+        margin-bottom: 8px;
+      }
+      .avatar {
+        width: 18px; height: 18px; border-radius: 999px;
+        background: linear-gradient(135deg, rgb(var(--accent-brand)) 0%, rgb(var(--accent-purple)) 100%);
+        display: inline-flex; align-items: center; justify-content: center;
+        font-size: 10px; font-weight: 600; color: white;
+      }
+      .avatar.fs { background: linear-gradient(135deg, #5a8fca 0%, #3e72ac 100%); }
+      .avatar.gm { background: linear-gradient(135deg, #34d399 0%, #16a34a 100%); }
+      .turn-head .name { color: rgb(var(--text-emphasis)); font-weight: 500; }
+      .turn-head .live {
+        display: inline-flex; align-items: center; gap: 4px;
+        margin-left: auto;
+        font-size: 11px; color: rgb(var(--accent-brand));
+      }
+      .turn-head .live .pulse { width: 6px; height: 6px; border-radius: 999px; background: rgb(var(--accent-brand)); position: relative; }
+      .turn-head .live .pulse::after { content: ""; position: absolute; inset: -3px; border-radius: 999px; border: 1px solid rgba(var(--accent-brand) / 0.35); animation: ripple 1.6s ease-out infinite; }
+      .turn-body { font-size: 13px; color: rgb(var(--text-primary)); line-height: 1.6; }
+      .turn-tools {
+        margin-top: 10px;
+        display: flex; flex-direction: column; gap: 4px;
+        padding: 8px 10px;
+        background: rgba(255,255,255,0.02);
+        border: 1px solid rgb(var(--border-subtle));
+        border-radius: 8px;
+        font: 11.5px/1.4 "JetBrains Mono", ui-monospace, monospace;
+        color: rgb(var(--text-secondary));
+      }
+      .turn-tools .tool { display: flex; align-items: center; gap: 8px; }
+      .turn-tools .ok { color: rgb(var(--accent-green)); font-weight: 600; }
+      .turn-tools .run { color: rgb(var(--accent-brand)); font-weight: 600; }
+      /* ── footer stack ── */
+      .heartbeat {
+        height: 28px; padding: 0 12px;
+        display: flex; align-items: center; gap: 12px;
+        background: rgb(var(--bg-secondary));
+        border-top: 1px solid rgb(var(--border-subtle));
+        font-size: 11px;
+        color: rgb(var(--text-secondary));
+      }
+      .heartbeat .agent { display: inline-flex; align-items: center; gap: 6px; }
+      .gitbar {
+        height: 26px; padding: 0 12px;
+        display: flex; align-items: center; gap: 14px;
+        background: rgb(var(--bg-primary));
+        border-top: 1px solid rgb(var(--border-subtle));
+        font-size: 11px; color: rgb(var(--text-secondary));
+      }
+      .input-area {
+        padding: 12px;
+        border-top: 1px solid rgb(var(--border-subtle));
+        background: rgb(var(--bg-primary));
+      }
+      .input-shell {
+        border: 1px solid rgb(var(--border-color));
+        background: rgb(var(--bg-input));
+        border-radius: 12px;
+        padding: 10px 12px 8px;
+        display: flex; flex-direction: column; gap: 8px;
+      }
+      .input-line {
+        font-size: 13px; color: rgb(var(--text-emphasis));
+        outline: none; border: 0; background: transparent;
+        padding: 0; min-height: 22px;
+        display: flex; align-items: center;
+      }
+      .input-line .placeholder { color: rgb(var(--text-muted)); }
+      .input-foot { display: flex; align-items: center; gap: 8px; font-size: 11px; color: rgb(var(--text-muted)); }
+      .input-foot .target { background: rgb(var(--bg-elevated)); border: 1px solid rgb(var(--border-subtle)); padding: 2px 8px; border-radius: 999px; color: rgb(var(--text-secondary)); }
+      .input-foot .target.bold { color: rgb(var(--text-emphasis)); }
+      .input-foot .send {
+        margin-left: auto;
+        padding: 4px 14px; border-radius: 8px;
+        background: rgb(var(--accent-brand)); color: white;
+        font-size: 11.5px; font-weight: 500;
+      }
+      /* ── annotation badge for the new toggle ── */
+      .callout {
+        position: absolute;
+        background: rgb(var(--accent-brand));
+        color: white;
+        font-size: 10px; font-weight: 600;
+        padding: 4px 8px; border-radius: 6px;
+        white-space: nowrap;
+        box-shadow: 0 4px 12px rgba(0,0,0,.45);
+      }
+      .callout::before {
+        content: ""; position: absolute;
+        width: 0; height: 0;
+        border: 5px solid transparent;
+      }
+      .callout.above::before {
+        top: 100%; left: 14px;
+        border-top-color: rgb(var(--accent-brand));
+      }
+      .legend {
+        max-width: 1440px; margin: 0 auto 32px;
+        padding: 0 16px;
+        font-size: 12px; color: rgb(var(--text-secondary));
+      }
+      .legend h1 { color: rgb(var(--text-emphasis)); font-size: 15px; font-weight: 600; margin: 0 0 4px; }
+      .legend p { margin: 0 0 6px; }
+      .legend code {
+        background: rgb(var(--bg-elevated)); padding: 1px 5px; border-radius: 4px;
+        font: 11.5px "JetBrains Mono", monospace; color: rgb(var(--text-emphasis));
+      }
+    </style>
+  </head>
+  <body>
+    <div class="legend">
+      <h1>Mockup · Message View Mode (default)</h1>
+      <p>Mission "Ship terminal view mode toggle" rendered with the existing message stream. The new <strong>chat view mode toggle</strong> lives inside the left pane's toolbar row (sibling of the agent filter chips) — <em>not</em> in <code>ChatHeader</code>. <code>ChatHeader</code> stays scoped to mission identity + connection status, with no <code>plan</code>/<code>code</code> badge.</p>
+    </div>
+
+    <div class="frame" style="position: relative;">
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <div class="sb-h"><span class="dot"></span>OpenTeam</div>
+        <div class="sb-newmission">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+          New Mission
+        </div>
+        <div class="sb-section">openteam</div>
+        <div class="sb-row active">
+          <span class="pulse"></span>
+          <span class="grow">Ship terminal view mode toggle</span>
+          <span class="meta">2m</span>
+        </div>
+        <div class="sb-row">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="rgb(52,211,153)" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>
+          <span class="grow">Refine sidebar collapse</span>
+          <span class="meta">1h</span>
+        </div>
+        <div class="sb-row">
+          <span style="width:6px;height:6px;border-radius:999px;background:rgb(var(--accent-yellow));"></span>
+          <span class="grow">Audit memory growth loop</span>
+          <span class="meta">3h</span>
+        </div>
+        <div class="sb-section">growth-house</div>
+        <div class="sb-row">
+          <span style="width:6px;height:6px;border-radius:999px;background:rgb(var(--text-muted));"></span>
+          <span class="grow">Q3 launch positioning</span>
+          <span class="meta">1d</span>
+        </div>
+      </aside>
+
+      <!-- Chat -->
+      <section class="chat">
+        <!-- ChatHeader: workspace + mission title + connection dot only.
+             No view-mode toggle here, no plan/code badge here. -->
+        <header class="chat-header">
+          <span class="crumb">
+            <span>OpenTeam</span>
+            <span class="sep">›</span>
+            <span class="title">Ship terminal view mode toggle</span>
+          </span>
+          <span class="conn-dot" title="Connected"></span>
+        </header>
+
+        <div class="main">
+          <!-- Messages pane -->
+          <div class="messages-pane">
+            <!-- In-pane toolbar row: filter chips on the left, view-mode toggle on the right -->
+            <div class="pane-toolbar">
+              <span class="filter-label">Filter</span>
+              <span class="chip active"><span style="width:6px;height:6px;border-radius:999px;background:rgb(var(--accent-brand));"></span>All agents</span>
+              <span class="chip"><span class="avatar fs" style="width:12px;height:12px;font-size:8px;">F</span>fullstack</span>
+              <span class="chip"><span class="avatar gm" style="width:12px;height:12px;font-size:8px;">G</span>growth-marketer</span>
+
+              <!-- The new chat view mode toggle (right-aligned via margin-left:auto) -->
+              <div class="view-toggle" role="group" aria-label="Chat view mode">
+                <button aria-pressed="true" title="Message view (⌘⇧T)">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                </button>
+                <span class="divider"></span>
+                <button aria-pressed="false" title="Terminal view (⌘⇧T)">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9l3 3-3 3"/><path d="M13 15h4"/></svg>
+                </button>
+              </div>
+            </div>
+
+            <div class="messages">
+              <div class="msg-user">
+                <div class="who">You · 10:41</div>
+                Add the chat view mode toggle inside the left pane's toolbar row. Default to message view. ⌘⇧T should also flip it.
+              </div>
+
+              <div class="turn-card">
+                <div class="turn-head">
+                  <span class="avatar fs">F</span>
+                  <span class="name">fullstack</span>
+                  <span style="color: rgb(var(--text-muted));">· 10:41</span>
+                  <span class="live"><span class="pulse"></span>Working · 6 tools · 1m 12s</span>
+                </div>
+                <div class="turn-body">
+                  Reading <strong style="color:rgb(var(--text-emphasis));">ChatInstance.tsx</strong> and <strong style="color:rgb(var(--text-emphasis));">TerminalPanel.tsx</strong> to confirm the existing right-panel composition. Plan: thread <code style="background:rgba(99,102,241,0.12);padding:1px 4px;border-radius:4px;">useChatViewMode(chatId)</code> through, branch the body render inside the left pane, and leave the IDE divider + RightPanel untouched.
+                </div>
+                <div class="turn-tools">
+                  <div class="tool"><span class="ok">✓</span> Read web/components/chat/ChatInstance.tsx</div>
+                  <div class="tool"><span class="ok">✓</span> Read web/components/terminal/TerminalPanel.tsx</div>
+                  <div class="tool"><span class="ok">✓</span> Grep "lockedAgentId" web/components</div>
+                  <div class="tool"><span class="run">▸</span> Create web/components/chat/ChatPaneToolbarRow.tsx</div>
+                </div>
+              </div>
+
+              <div class="turn-card">
+                <div class="turn-head">
+                  <span class="avatar gm">G</span>
+                  <span class="name">growth-marketer</span>
+                  <span style="color: rgb(var(--text-muted));">· 10:43</span>
+                  <span style="margin-left:auto;color:rgb(var(--accent-green));font-size:11px;">✓ Completed</span>
+                </div>
+                <div class="turn-body">
+                  Drafted launch-week copy for the new toggle in <code style="background:rgba(99,102,241,0.12);padding:1px 4px;border-radius:4px;">growth-house/launch.md</code>. Three options ranging from "power user" framing to "everyone gets the receipts" framing. Recommend option B — it ties to the attention-first principle without sounding like a feature ad.
+                </div>
+              </div>
+
+              <div class="msg-user">
+                <div class="who">You · 10:44</div>
+                Looks good. Make sure the toggle has an aria-pressed state and respects ⌘⇧T only when the chat is active.
+              </div>
+
+              <div class="turn-card">
+                <div class="turn-head">
+                  <span class="avatar fs">F</span>
+                  <span class="name">fullstack</span>
+                  <span style="color: rgb(var(--text-muted));">· 10:44</span>
+                  <span class="live"><span class="pulse"></span>Editing · 2 tools</span>
+                </div>
+                <div class="turn-body">
+                  Wiring the keydown branch into the existing <code style="background:rgba(99,102,241,0.12);padding:1px 4px;border-radius:4px;">isActive</code>-guarded effect block in <strong style="color:rgb(var(--text-emphasis));">ChatInstance.tsx</strong>. Checking for ⌘⇧T (⌃⇧T on non-Mac) and calling <code style="background:rgba(99,102,241,0.12);padding:1px 4px;border-radius:4px;">setMode</code> with the inverse.
+                </div>
+              </div>
+            </div>
+
+            <!-- footer stack -->
+            <div class="heartbeat">
+              <span style="text-transform:uppercase;letter-spacing:.08em;color:rgb(var(--text-muted));font-size:10px;">Heartbeat</span>
+              <span class="agent"><span class="avatar fs" style="width:14px;height:14px;font-size:8px;">F</span>fullstack <span style="color:rgb(var(--accent-brand));">▸ working</span></span>
+              <span class="agent"><span class="avatar gm" style="width:14px;height:14px;font-size:8px;">G</span>growth-marketer <span style="color:rgb(var(--accent-green));">✓ done</span></span>
+              <span style="margin-left:auto;color:rgb(var(--text-muted));">Cost $0.42 · 4.1k tokens</span>
+            </div>
+            <div class="gitbar">
+              <span style="color:rgb(var(--text-muted));">main</span>
+              <span><span style="color:rgb(var(--accent-yellow));">●</span> 7 changed</span>
+              <span><span style="color:rgb(var(--accent-green));">+</span> 142</span>
+              <span><span style="color:rgb(var(--accent-red));">−</span> 23</span>
+              <span style="margin-left:auto;color:rgb(var(--accent-brand));">View changes</span>
+            </div>
+
+            <!-- input -->
+            <div class="input-area">
+              <div class="input-shell">
+                <div class="input-line"><span class="placeholder">Reply to fullstack… (⌘⇧T to switch to terminal view)</span></div>
+                <div class="input-foot">
+                  <span class="target bold">@ fullstack</span>
+                  <span>claude-opus-4-7</span>
+                  <span>·</span>
+                  <span>/ for commands</span>
+                  <span class="send">Send</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="ide-divider"></div>
+
+          <!-- IDE pane (unchanged in both modes) -->
+          <aside class="ide-pane">
+            <div class="ide-tabs">
+              <span class="ide-tab active">Files</span>
+              <span class="ide-tab">Terminal</span>
+              <span class="ide-tab">Changes <span style="background:rgba(var(--accent-brand) / 0.20);color:rgb(var(--accent-brand-light));padding:0 5px;border-radius:999px;font-size:10px;margin-left:4px;">7</span></span>
+              <span style="margin-left:auto;color:rgb(var(--text-muted));font-size:11px;">~/openteam</span>
+            </div>
+            <div class="ide-body"><span style="color:rgb(var(--text-muted));">// web/hooks/useChatViewMode.ts</span>
+<span class="ln">1</span><span class="kw">import</span> { useState, useCallback } <span class="kw">from</span> <span class="str">'react'</span>
+<span class="ln">2</span>
+<span class="ln">3</span><span class="kw">type</span> Mode = <span class="str">'message'</span> | <span class="str">'terminal'</span>
+<span class="ln">4</span>
+<span class="ln">5</span><span class="kw">const</span> KEY = (id: <span class="kw">string</span>, scope?: <span class="kw">string</span> | <span class="kw">null</span>) =>
+<span class="ln">6</span>  <span class="str">`openteam:chat-view:</span>${id}<span class="str">${scope ? </span>`:${scope}`<span class="str"> : ''}`</span>
+<span class="ln">7</span>
+<span class="ln">8</span><span class="kw">export const</span> useChatViewMode = (
+<span class="ln">9</span>  chatId: <span class="kw">string</span>,
+<span class="ln">10</span>  agentScope?: <span class="kw">string</span> | <span class="kw">null</span>,
+<span class="ln">11</span>) => {
+<span class="ln">12</span>  <span class="kw">const</span> [mode, setMode] = useState&lt;Mode&gt;(() =&gt; {
+<span class="ln">13</span>    <span class="kw">const</span> raw = localStorage.getItem(KEY(chatId, agentScope))
+<span class="ln">14</span>    <span class="kw">return</span> raw === <span class="str">'terminal'</span> ? <span class="str">'terminal'</span> : <span class="str">'message'</span>
+<span class="ln">15</span>  })
+<span class="ln">16</span>  <span class="kw">const</span> set = useCallback((next: Mode) =&gt; {
+<span class="ln">17</span>    setMode(next)
+<span class="ln">18</span>    localStorage.setItem(KEY(chatId, agentScope), next)
+<span class="ln">19</span>  }, [chatId, agentScope])
+<span class="ln">20</span>  <span class="kw">return</span> [mode, set] <span class="kw">as const</span>
+<span class="ln">21</span>}</div>
+          </aside>
+        </div>
+      </section>
+
+      <!-- callout pointing at the toggle inside the left-pane toolbar row -->
+      <div class="callout above" style="left: 690px; top: 138px;">NEW · view-mode toggle lives in the pane toolbar, not the header</div>
+    </div>
+  </body>
+</html>

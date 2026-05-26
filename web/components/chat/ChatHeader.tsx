@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback } from 'react'
+import { useRef, useState, useCallback, type CSSProperties, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { ChevronRight, Pencil, Check, X } from 'lucide-react'
@@ -15,12 +15,17 @@ export interface ChatHeaderProps {
   setChatTitle: (title: string) => void
   connected: boolean
   currentMode: string | undefined
+  /** Right-aligned controls rendered before the connection dot
+   *  (e.g., chat-view-mode toggle). Lives inline with the title row
+   *  so it shares chrome with breadcrumb/mode badge instead of
+   *  carrying its own row. */
+  trailing?: ReactNode
 }
 
 const ChatHeader = ({
   workspaceName, workspaceId, chatId,
   chatTitle, setChatTitle,
-  connected, currentMode,
+  connected, currentMode, trailing,
 }: ChatHeaderProps) => {
   const { t } = useTranslation(['chat', 'common'])
   const navigate = useNavigate()
@@ -63,7 +68,8 @@ const ChatHeader = ({
                 onChange={(e) => setEditTitleDraft(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') handleTitleSave(); if (e.key === 'Escape') setIsEditingTitle(false) }}
                 onBlur={handleTitleSave} aria-label={t('chat:editTitle')}
-                className="text-xs font-semibold text-text-emphasis bg-bg-input border border-accent-brand rounded px-1.5 py-0.5 outline-none w-full min-w-0"
+                style={{ fieldSizing: 'content' } as CSSProperties}
+                className="text-xs font-semibold text-text-emphasis bg-bg-input border border-accent-brand rounded px-1.5 py-0.5 outline-none min-w-[160px] max-w-full"
               />
               <button onMouseDown={(e) => e.preventDefault()} onClick={handleTitleSave} aria-label={t('common:action.confirm')} tabIndex={0}
                 className="p-0.5 rounded text-accent-green hover:bg-bg-hover-muted transition-colors">
@@ -97,6 +103,7 @@ const ChatHeader = ({
             {currentMode}
           </span>
         )}
+        {trailing && <span style={noDrag}>{trailing}</span>}
         <span title={connected ? 'Connected' : 'Connecting...'} className="flex items-center" style={noDrag}>
           <span className={cn('w-1.5 h-1.5 rounded-full transition-colors', connected ? 'bg-accent-green' : 'bg-accent-red')} />
         </span>

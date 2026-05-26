@@ -89,16 +89,10 @@ export const useTerminalInstances = ({
 
   const tryOpen = useCallback(async (agentId: string) => {
     const inst = terminalsRef.current.get(agentId)
-    if (!inst || inst.isOpened || inst.isOpening || inst.isDisposed) {
-      console.debug('[DIAG] tryOpen skipped', { agentId, isOpened: inst?.isOpened, isOpening: inst?.isOpening, isDisposed: inst?.isDisposed, exists: !!inst })
-      return
-    }
+    if (!inst || inst.isOpened || inst.isOpening || inst.isDisposed) return
 
     const container = containersRef.current.get(agentId)
-    if (!container || !isContainerRenderable(container)) {
-      console.debug('[DIAG] tryOpen: container not renderable', { agentId, hasContainer: !!container, offsetWidth: container?.offsetWidth, visibility: container ? window.getComputedStyle(container).visibility : 'N/A' })
-      return
-    }
+    if (!container || !isContainerRenderable(container)) return
 
     const initSize = estimateSize(container)
     const size = await inst.open(initSize.cols, initSize.rows)
@@ -118,8 +112,6 @@ export const useTerminalInstances = ({
   const disposeTerminal = useCallback((agentId: string) => {
     const inst = terminalsRef.current.get(agentId)
     if (inst) {
-      console.warn('[DIAG] disposeTerminal called', { agentId, state: inst.state, isOpened: inst.isOpened, hasPendingData: inst.hasPendingData })
-      console.trace('[DIAG] disposeTerminal stack')
       inst.dispose()
       terminalsRef.current.delete(agentId)
     }

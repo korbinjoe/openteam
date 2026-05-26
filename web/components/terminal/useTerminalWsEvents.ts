@@ -66,16 +66,10 @@ export const useTerminalWsEvents = ({
     const lastSeqByAgent = new Map<string, { sessionId: string; seq: number }>()
 
     const handleExpertData = (payload: { agentId: string; chatId?: string; sessionId?: string; seq?: number; snapshot?: boolean; data: string; ptySize?: { cols: number; rows: number } }) => {
-      if (!isCurrentChatEvent(payload)) {
-        console.warn('[DIAG] expert:data DROPPED by isCurrentChatEvent', { agentId: payload.agentId, payloadChatId: payload.chatId, currentChatId: chatIdRef.current })
-        return
-      }
+      if (!isCurrentChatEvent(payload)) return
       const currentExperts = expertsRef.current ?? []
       const currentExpert = currentExperts.find((e) => e.agentId === payload.agentId)
-      if (!currentExpert || !payload.sessionId) {
-        console.warn('[DIAG] expert:data DROPPED: expert not found or no sessionId', { agentId: payload.agentId, hasExpert: !!currentExpert, hasSessionId: !!payload.sessionId, expertIds: currentExperts.map(e => e.agentId) })
-        return
-      }
+      if (!currentExpert || !payload.sessionId) return
       if (!currentExpert.sessionId) {
         setExperts(prev => prev.map(e =>
           e.agentId === payload.agentId ? { ...e, sessionId: payload.sessionId! } : e
@@ -84,7 +78,6 @@ export const useTerminalWsEvents = ({
           e.agentId === payload.agentId ? { ...e, sessionId: payload.sessionId! } : e
         )
       } else if (currentExpert.sessionId !== payload.sessionId) {
-        console.warn('[DIAG] expert:data DROPPED: sessionId mismatch', { agentId: payload.agentId, expected: currentExpert.sessionId, got: payload.sessionId })
         return
       }
 
@@ -111,17 +104,85 @@ export const useTerminalWsEvents = ({
       } else {
         inst.write(payload.data)
       }
+
+      // First-frame open: when terminal mode is entered for a live ACP agent,
+      // the instance is created here (data-driven) AFTER the ref callback ran
+      // and AFTER the active-key effect resolved with no instance. Without
+      // this kick, pendingData accumulates forever and xterm never mounts —
+      // the container stays an empty <div class="h-full">.
+      if (!inst.isOpened && !inst.isOpening && !inst.isDisposed) {
+        tryOpen(payload.agentId).catch(() => {})
+      }
     }
 
+    // expert:started fires for fresh ACP launches AND for chat:resume-experts
+    // replays (live re-attach + dead-JSONL playback). Dispose any stale
+    // TerminalInstance from a prior run, then UPSERT the entry so terminal
+    // mode discovers persisted-but-not-running agents — `replayHistoryForDeadSession`
+    // does not trigger `expert:list-updated`, so without this upsert the dead
+    // JSONL case never populates `experts` and the cli-attach effect never fires.
     const handleExpertStarted = (payload: ExpertInfo & { chatId?: string }) => {
       if (!isCurrentChatEvent(payload)) return
 
       disposeTerminal(payload.agentId)
-      const remaining = (expertsRef.current ?? []).filter(e => e.agentId !== payload.agentId)
-      setExperts(prev => prev.filter(e => e.agentId !== payload.agentId))
-      expertsRef.current = remaining
-      if (activeKeyRef.current === payload.agentId) {
-        setActiveKey(remaining.length > 0 ? remaining[0].agentId : '')
+      const next: ExpertInfo = {
+        agentId: payload.agentId,
+        sessionId: payload.sessionId,
+        agentName: payload.agentName,
+        agentIcon: payload.agentIcon,
+        status: payload.status,
+        exitCode: payload.exitCode,
+        completedAt: payload.completedAt,
+      }
+      setExperts(prev => {
+        const idx = prev.findIndex(e => e.agentId === payload.agentId)
+        if (idx === -1) return [...prev, next]
+        const copy = prev.slice()
+        copy[idx] = { ...prev[idx], ...next }
+        return copy
+      })
+      const prevRef = expertsRef.current ?? []
+      const idxRef = prevRef.findIndex(e => e.agentId === payload.agentId)
+      expertsRef.current = idxRef === -1
+        ? [...prevRef, next]
+        : prevRef.map((e, i) => (i === idxRef ? { ...e, ...next } : e))
+      if (!activeKeyRef.current) setActiveKey(payload.agentId)
+    }
+
+    // Resume-PTY bridge: server tells us a view-PTY is up for an agent. Make
+    // sure that agent has an ExpertInfo slot so xterm renders and so the
+    // strict `expert:data` validator (which gates on the entry + sessionId)
+    // lets the first bytes through. We synthesize a "completed" entry — the
+    // resumed PTY is just a transient view onto an existing JSONL, not a
+    // newly-launched ACP session.
+    const handleViewAttached = (payload: { agentId: string; chatId?: string; sessionId: string; cwd?: string }) => {
+      if (!isCurrentChatEvent(payload)) return
+      const existing = (expertsRef.current ?? []).find(e => e.agentId === payload.agentId)
+      if (existing) {
+        // For live ACP agents the expert:list entry carries the ACP sessionId,
+        // not the cliSessionId that view-PTY / expert:data use. Overwrite so the
+        // sessionId guard in handleExpertData lets resume-PTY frames through.
+        if (existing.sessionId !== payload.sessionId) {
+          setExperts(prev => prev.map(e =>
+            e.agentId === payload.agentId ? { ...e, sessionId: payload.sessionId } : e
+          ))
+          expertsRef.current = (expertsRef.current ?? []).map(e =>
+            e.agentId === payload.agentId ? { ...e, sessionId: payload.sessionId } : e
+          )
+        }
+      } else {
+        const synthesized: ExpertInfo = {
+          agentId: payload.agentId,
+          sessionId: payload.sessionId,
+          agentName: payload.agentId,
+          agentIcon: '',
+          status: 'running',
+        }
+        setExperts(prev => prev.some(e => e.agentId === payload.agentId) ? prev : [...prev, synthesized])
+        expertsRef.current = [...(expertsRef.current ?? []), synthesized]
+      }
+      if (!activeKeyRef.current || activeKeyRef.current === '') {
+        setActiveKey(payload.agentId)
       }
     }
 
@@ -181,6 +242,10 @@ export const useTerminalWsEvents = ({
     const handleExpertError = (payload: { agentId?: string; chatId?: string; error?: string }) => {
       if (!isCurrentChatEvent(payload)) return
       if (!payload?.agentId) return
+      // Terminal-view errors (resume-PTY spawn failure, missing CLI, unsupported
+      // provider) are scoped to the view-PTY bridge — the underlying ACP agent
+      // is still valid and should keep its slot in the experts list.
+      if (payload.error?.startsWith('terminal_view_')) return
       disposeTerminal(payload.agentId)
       let nextActiveKeyOnError: string | null = null
       setExperts(prev => {
@@ -221,8 +286,39 @@ export const useTerminalWsEvents = ({
       })
     }
 
+    // Server-authoritative roster sync. Without this, multi-agent terminal view
+    // never knows which agents have JSONL sessions to resume — TerminalPanel's
+    // cli-attach effect iterates `experts`, finds it empty, and never sends
+    // `expert:cli-attach`, so no `claude --resume` PTY ever spawns.
+    // Merge instead of replace: preserve `expert:view-attached`-synthesized
+    // entries the server's expert list (live ACP processes only) doesn't know
+    // about yet.
+    const handleExpertListSync = (payload: { chatId?: string; experts: ExpertInfo[] }) => {
+      if (!isCurrentChatEvent(payload)) return
+      const incoming = payload.experts ?? []
+      const merge = (prev: ExpertInfo[]): ExpertInfo[] => {
+        const incomingMap = new Map(incoming.map(e => [e.agentId, e]))
+        const merged: ExpertInfo[] = prev.map(e => {
+          const next = incomingMap.get(e.agentId)
+          if (!next) return e
+          // Preserve sessionId already bound by view-attached if the server
+          // entry is missing one (live list may not include cliSessionId).
+          return { ...e, ...next, sessionId: next.sessionId || e.sessionId }
+        })
+        for (const e of incoming) {
+          if (!merged.some(m => m.agentId === e.agentId)) merged.push(e)
+        }
+        return merged
+      }
+      setExperts(merge)
+      expertsRef.current = merge(expertsRef.current ?? [])
+    }
+
     wsClient.on('expert:data', handleExpertData)
     wsClient.on('expert:started', handleExpertStarted)
+    wsClient.on('expert:view-attached', handleViewAttached)
+    wsClient.on('expert:list', handleExpertListSync)
+    wsClient.on('expert:list-updated', handleExpertListSync)
     wsClient.on('expert:exit', handleExpertExit)
     wsClient.on('expert:stopped', handleExpertStopped)
     wsClient.on('expert:resume-failed', handleExpertResumeFailed)
@@ -233,6 +329,9 @@ export const useTerminalWsEvents = ({
     return () => {
       wsClient.off('expert:data', handleExpertData)
       wsClient.off('expert:started', handleExpertStarted)
+      wsClient.off('expert:view-attached', handleViewAttached)
+      wsClient.off('expert:list', handleExpertListSync)
+      wsClient.off('expert:list-updated', handleExpertListSync)
       wsClient.off('expert:exit', handleExpertExit)
       wsClient.off('expert:stopped', handleExpertStopped)
       wsClient.off('expert:resume-failed', handleExpertResumeFailed)

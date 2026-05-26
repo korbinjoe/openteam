@@ -8,7 +8,7 @@
  * -  visible  open()
  * -  tab
  */
-import { useRef, useState, useEffect, forwardRef, useImperativeHandle, lazy, Suspense } from 'react'
+import { useRef, useState, useEffect, useMemo, forwardRef, useImperativeHandle, lazy, Suspense } from 'react'
 import { cn } from '@/lib/utils'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip'
@@ -29,6 +29,9 @@ export interface TerminalPanelHandle {
   stopAll: () => void
   switchToChangesTab: () => void
   reactivateAll?: () => void
+  /** Move keyboard focus into the currently active agent's xterm.
+   *  No-op if no agent is active or the instance is not yet opened. */
+  focusActive: () => void
 }
 
 interface TerminalPanelProps {
@@ -36,6 +39,21 @@ interface TerminalPanelProps {
   gitStatus?: GitStatusData | null
   agentActive?: boolean
   connected?: boolean
+  /**
+   * When set, the panel locks to this single agent: the multi-agent tablist,
+   * the layout-toggle button, and the hidden-experts reopen menu are all
+   * suppressed, and the empty state copy switches to a single-agent hint.
+   * Used by Agent view (?agent=X) and Quad tiles.
+   */
+  lockedAgentId?: string | null
+  /**
+   * When true, the panel is the primary surface of the conversation pane
+   * (terminal view mode). Switches empty-state copy to the
+   * "switch to message view to launch" hint, since the agent-launch path
+   * (cwd / repositories / model / system prompt) is only available via
+   * the React composer in message mode.
+   */
+  inTerminalView?: boolean
 }
 
 interface ExpertInfo {
@@ -110,8 +128,9 @@ const PULSE_STYLE = `
 `
 
 const TerminalPanel = forwardRef<TerminalPanelHandle, TerminalPanelProps>(
-  ({ chatId, gitStatus, agentActive = false, connected = true }, ref) => {
+  ({ chatId, gitStatus, agentActive = false, connected = true, lockedAgentId = null, inTerminalView = false }, ref) => {
     const { t } = useTranslation('chat')
+    const isLocked = !!lockedAgentId
     const [experts, setExperts] = useState<ExpertInfo[]>([])
     const expertsRef = useRef<ExpertInfo[]>([])
     const [activeKey, setActiveKey] = useState<string>('')
@@ -208,7 +227,13 @@ const TerminalPanel = forwardRef<TerminalPanelHandle, TerminalPanelProps>(
           }
         })
       },
-    }), [wsClient, experts, getOrCreateInstance, tryOpen])
+
+      focusActive: () => {
+        if (!activeKey || activeKey === CHANGES_TAB_KEY) return
+        const inst = terminalsRef.current.get(activeKey)
+        if (inst && inst.isOpened && !inst.isDisposed) inst.focus()
+      },
+    }), [wsClient, experts, getOrCreateInstance, tryOpen, activeKey])
 
     useEffect(() => {
       if (!activeKey && experts.length > 0) {
@@ -255,9 +280,74 @@ const TerminalPanel = forwardRef<TerminalPanelHandle, TerminalPanelProps>(
       }
     }, [wsClient, chatId, getOrCreateInstance])
 
+    // Resume-PTY bridge: when the chat pane enters terminal view, ask the
+    // server to spawn `claude --resume <cliSessionId>` (or codex equivalent).
+    // We attach for ANY agent with a persisted JSONL (running or not) — resume
+    // is the whole point. The server falls back to ChatStore.expertSessions
+    // when SessionRegistry has nothing live. Server then replies with
+    // `expert:view-attached` carrying the sessionId; useTerminalWsEvents uses
+    // that to populate the ExpertInfo slot so xterm has a place to mount and
+    // the strict `expert:data` validator lets the first frame through.
+    //
+    // Track attached agentIds in a ref so we only diff (attach new, detach
+    // gone). Re-running on every `experts` change with attach/detach in cleanup
+    // would kill and respawn the resume-PTY on each `expert:view-attached`
+    // round-trip — terminal flickers, server thrashes node-pty.
+    const attachedRef = useRef<Set<string>>(new Set())
+    useEffect(() => {
+      if (!inTerminalView || !chatId) {
+        if (attachedRef.current.size > 0) {
+          for (const agentId of attachedRef.current) {
+            if (!wsClient.isConnected()) break
+            wsClient.send('expert:cli-detach', { chatId: chatId ?? '', agentId })
+          }
+          attachedRef.current.clear()
+        }
+        return
+      }
+
+      const desired = new Set<string>()
+      if (isLocked && lockedAgentId) {
+        desired.add(lockedAgentId)
+      } else {
+        for (const e of experts) {
+          if (e.agentId !== CHANGES_TAB_KEY) desired.add(e.agentId)
+        }
+      }
+
+      if (wsClient.isConnected()) {
+        for (const agentId of desired) {
+          if (!attachedRef.current.has(agentId)) {
+            wsClient.send('expert:cli-attach', { chatId, agentId, cols: 80, rows: 24 })
+            attachedRef.current.add(agentId)
+          }
+        }
+        for (const agentId of attachedRef.current) {
+          if (!desired.has(agentId)) {
+            wsClient.send('expert:cli-detach', { chatId, agentId })
+            attachedRef.current.delete(agentId)
+          }
+        }
+      }
+    }, [inTerminalView, chatId, experts, isLocked, lockedAgentId, wsClient])
+
+    // On unmount / chat switch, detach everything still attached.
+    useEffect(() => () => {
+      if (attachedRef.current.size === 0) return
+      const cid = chatId
+      for (const agentId of attachedRef.current) {
+        if (!wsClient.isConnected() || !cid) break
+        wsClient.send('expert:cli-detach', { chatId: cid, agentId })
+      }
+      attachedRef.current.clear()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [chatId])
+
     // ── Agent Actions ──
     const handleHideExpert = (expertAgentId: string, e: React.MouseEvent) => {
       e.stopPropagation()
+      // Locked single-agent surfaces should never hide their only agent.
+      if (isLocked) return
       setHiddenExperts(prev => {
         const next = new Set(prev)
         next.add(expertAgentId)
@@ -298,24 +388,40 @@ const TerminalPanel = forwardRef<TerminalPanelHandle, TerminalPanelProps>(
       localStorage.setItem(LAYOUT_STORAGE_KEY, next)
     }
 
-    const visibleExperts = experts.filter(e => !hiddenExperts.has(e.agentId))
-    const hiddenList = experts.filter(e => hiddenExperts.has(e.agentId))
+    const scopedExperts = useMemo(
+      () => isLocked
+        ? experts.filter(e => e.agentId === lockedAgentId || e.agentName === lockedAgentId)
+        : experts,
+      [experts, isLocked, lockedAgentId],
+    )
+    const visibleExperts = isLocked
+      ? scopedExperts
+      : scopedExperts.filter(e => !hiddenExperts.has(e.agentId))
+    const hiddenList = isLocked ? [] : experts.filter(e => hiddenExperts.has(e.agentId))
     const hiddenCount = hiddenList.length
     const gridCols = getGridCols(visibleExperts.length)
     const gridRows = Math.ceil(visibleExperts.length / gridCols)
 
     return (
       <TooltipProvider delayDuration={300}>
-        <div className="h-full flex flex-col bg-bg-primary overflow-hidden">
+        <div className="flex-1 min-h-0 flex flex-col bg-bg-primary overflow-hidden">
           <style>{TABS_STYLE}</style>
           <Tabs
             className="unified-terminal-tabs"
             value={activeKey}
             onValueChange={setActiveKey}
           >
-            <div className="flex items-center h-9 bg-bg-secondary border-b border-border shrink-0">
+            {/* Toolbar row suppressed in terminal-view mode: ChatHeader already
+                hosts the view-mode toggle, and Mission terminal mode is a clean
+                Claude TUI surface — losing the tab strip / layout toggle /
+                Changes tab is intentional. Keep the row in non-terminal-view
+                hosts (Agent view / Quad tiles) so they retain those controls. */}
+            <div className={cn(
+              'flex items-center h-9 bg-bg-secondary border-b border-border shrink-0',
+              inTerminalView && 'hidden',
+            )}>
               <TabsList className="flex-1 border-b-0 h-[35px] min-h-[35px] px-2 bg-transparent">
-                {!isSplitActive && visibleExperts.map((expert) => {
+                {!isSplitActive && !isLocked && visibleExperts.map((expert) => {
                   const isRunning = expert.status === 'running'
                   const isSuccess = expert.exitCode === 0
 
@@ -375,19 +481,21 @@ const TerminalPanel = forwardRef<TerminalPanelHandle, TerminalPanelProps>(
               </TabsList>
 
               <div className="flex gap-1 items-center pr-2 shrink-0">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button
-                      onClick={handleToggleLayout}
-                      aria-label={layoutMode === 'split' ? t('terminal.tabMode') : t('terminal.splitMode')}
-                      tabIndex={0}
-                      className="inline-flex items-center justify-center p-1 rounded text-text-secondary hover:text-white/80 hover:bg-bg-hover transition-colors"
-                    >
-                      {layoutMode === 'split' ? <Layers size={12} /> : <Columns2 size={12} />}
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent>{layoutMode === 'split' ? t('terminal.tabMode') : t('terminal.splitMode')}</TooltipContent>
-                </Tooltip>
+                {!isLocked && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={handleToggleLayout}
+                        aria-label={layoutMode === 'split' ? t('terminal.tabMode') : t('terminal.splitMode')}
+                        tabIndex={0}
+                        className="inline-flex items-center justify-center p-1 rounded text-text-secondary hover:text-white/80 hover:bg-bg-hover transition-colors"
+                      >
+                        {layoutMode === 'split' ? <Layers size={12} /> : <Columns2 size={12} />}
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>{layoutMode === 'split' ? t('terminal.tabMode') : t('terminal.splitMode')}</TooltipContent>
+                  </Tooltip>
+                )}
                 {experts.length > 0 && (
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -403,7 +511,7 @@ const TerminalPanel = forwardRef<TerminalPanelHandle, TerminalPanelProps>(
                     <TooltipContent>Refresh agent list</TooltipContent>
                   </Tooltip>
                 )}
-                {hiddenCount > 0 && (
+                {!isLocked && hiddenCount > 0 && (
                   <div className="relative" ref={reopenMenuRef}>
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -474,11 +582,19 @@ const TerminalPanel = forwardRef<TerminalPanelHandle, TerminalPanelProps>(
                 <span>{t('terminal.reconnecting')}</span>
               </div>
             )}
-            {experts.length === 0 && activeKey !== CHANGES_TAB_KEY && (
+            {scopedExperts.length === 0 && activeKey !== CHANGES_TAB_KEY && (
               <div className="absolute inset-0 flex items-center justify-center text-text-secondary text-sm select-none">
                 <div className="text-center space-y-2">
                   <div className="text-lg opacity-50">&#x2328;&#xFE0F;</div>
-                  <div>{t('terminal.emptyHint')}</div>
+                  <div>
+                    {inTerminalView
+                      ? (isLocked
+                          ? t('chatViewMode.firstTurnHintLocked', { agent: lockedAgentId })
+                          : t('chatViewMode.firstTurnHintMulti'))
+                      : (isLocked
+                          ? t('terminal.emptyHintLocked', { agent: lockedAgentId })
+                          : t('terminal.emptyHint'))}
+                  </div>
                 </div>
               </div>
             )}
@@ -495,8 +611,8 @@ const TerminalPanel = forwardRef<TerminalPanelHandle, TerminalPanelProps>(
                 </div>
               </div>
             )}
-            {experts.map((expert) => {
-              const isHidden = hiddenExperts.has(expert.agentId)
+            {scopedExperts.map((expert) => {
+              const isHidden = !isLocked && hiddenExperts.has(expert.agentId)
               return (
               <div
                 key={expert.agentId}

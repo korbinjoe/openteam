@@ -9,8 +9,8 @@ import { BrowserWindow, screen, ipcMain, type Rectangle } from 'electron'
 import type { WindowManager } from './WindowManager'
 import { PORTS } from '../../shared/ports'
 
-const PANEL_WIDTH = 360
-const PANEL_HEIGHT = 420
+const PANEL_WIDTH = 280
+const PANEL_HEIGHT = 320
 const TRAY_GAP_Y = 4
 
 export const TRAY_IPC = {

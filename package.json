@@ -1,6 +1,6 @@
 {
   "name": "openteam",
-  "version": "0.1.0",
+  "version": "0.1.0-beta.0",
   "description": "Build your AI agent team in minutes — powered by Claude Code, Codex, and any CLI you plug in.",
   "type": "module",
   "main": "dist/electron/main.js",

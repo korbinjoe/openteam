@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { User, ChevronDown, ChevronRight } from 'lucide-react'
+import { User, ChevronDown, ChevronRight, Terminal } from 'lucide-react'
 import type { Message } from '../../../types/chat'
 import AgentAvatar from '@/components/ui/agent-avatar'
 import MentionTag from '../input/MentionTag'
@@ -53,6 +53,123 @@ const renderContentWithMentions = (content: string, mentions?: Message['mentions
   }
 
   return parts.length > 0 ? parts : content
+}
+
+/* ── Slash-command marker (paired with server SlashCommandResolver) ───────── */
+
+const SLASH_MARKER_RE = /^<!--OT_SLASH:([A-Za-z0-9+/=]+)-->\n?/
+
+interface SlashMarker {
+  cmd: string
+  args: string
+  original: string
+}
+
+const parseSlashMarker = (content: string): { marker: SlashMarker; body: string } | null => {
+  const m = content.match(SLASH_MARKER_RE)
+  if (!m) return null
+  try {
+    const bytes = Uint8Array.from(atob(m[1]), (c) => c.charCodeAt(0))
+    const json = new TextDecoder().decode(bytes)
+    const marker = JSON.parse(json) as SlashMarker
+    if (!marker?.cmd) return null
+    return { marker, body: content.slice(m[0].length) }
+  } catch {
+    return null
+  }
+}
+
+const SlashCommandMessage = ({ message, marker, body }: { message: Message; marker: SlashMarker; body: string }) => {
+  const [expanded, setExpanded] = useState(false)
+  const Icon = expanded ? ChevronDown : ChevronRight
+
+  return (
+    <div style={{
+      display: 'flex',
+      gap: 10,
+      padding: '10px 16px 6px',
+      animation: 'fadeIn 0.2s ease',
+    }}>
+      <ChatAvatar isUser />
+      <div style={{ flex: 1, minWidth: 0, paddingTop: 2 }}>
+        <div
+          role="button"
+          tabIndex={0}
+          aria-label={expanded ? `Collapse ${marker.cmd}` : `Expand ${marker.cmd}`}
+          onClick={() => setExpanded((v) => !v)}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExpanded((v) => !v) } }}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            padding: '6px 10px',
+            borderRadius: 6,
+            background: 'rgb(var(--accent-brand) / 0.06)',
+            border: '1px solid rgb(var(--accent-brand) / 0.25)',
+            cursor: 'pointer',
+            transition: 'background 0.1s',
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = 'rgb(var(--accent-brand) / 0.1)' }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = 'rgb(var(--accent-brand) / 0.06)' }}
+        >
+          <Icon size={12} style={{ color: 'rgb(var(--accent-brand))', flexShrink: 0 }} />
+          <Terminal size={11} style={{ color: 'rgb(var(--accent-brand))', flexShrink: 0 }} />
+          <span style={{
+            fontSize: 12,
+            color: 'rgb(var(--accent-brand))',
+            fontFamily: 'monospace',
+            fontWeight: 600,
+            flexShrink: 0,
+          }}>
+            {marker.cmd}
+          </span>
+          {marker.args && (
+            <span style={{
+              fontSize: 12,
+              color: 'rgb(var(--text-primary))',
+              fontFamily: 'monospace',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              minWidth: 0,
+              flex: 1,
+            }}>
+              {marker.args}
+            </span>
+          )}
+          <span style={{
+            fontSize: 10,
+            color: 'rgb(var(--text-muted))',
+            fontFamily: 'monospace',
+            marginLeft: 'auto',
+            flexShrink: 0,
+            opacity: 0.6,
+          }}>
+            {new Date(message.timestamp).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
+          </span>
+        </div>
+        {expanded && body && (
+          <div style={{
+            marginTop: 4,
+            padding: '8px 12px',
+            borderRadius: 8,
+            background: 'rgb(var(--bg-hover-subtle) / var(--bg-hover-subtle-alpha))',
+            border: '1px solid rgb(var(--border-subtle))',
+            color: 'rgb(var(--text-muted))',
+            fontSize: 11,
+            lineHeight: 1.6,
+            whiteSpace: 'pre-wrap',
+            wordBreak: 'break-word',
+            maxHeight: 300,
+            overflow: 'auto',
+            fontFamily: 'monospace',
+          }}>
+            {body}
+          </div>
+        )}
+      </div>
+    </div>
+  )
 }
 
 const isSystemInstructionsMessage = (content: string): boolean => {
@@ -143,6 +260,11 @@ const SystemInstructionsMessage = ({ message }: { message: Message }) => {
 const UserMessage = ({ message }: { message: Message }) => {
   const { t } = useTranslation('chat')
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null)
+
+  const slash = parseSlashMarker(message.content)
+  if (slash) {
+    return <SlashCommandMessage message={message} marker={slash.marker} body={slash.body} />
+  }
 
   if (isSystemInstructionsMessage(message.content)) {
     return <SystemInstructionsMessage message={message} />

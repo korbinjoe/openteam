@@ -117,9 +117,27 @@ const resolveCommandFile = async (cwd: string, segments: string[]): Promise<stri
 }
 
 /**
+ * Marker prefix injected into the expanded prompt so the chat UI can recover
+ * the user-typed slash command from JSONL-derived messages and render it as a
+ * compact chip instead of dumping the full command body.
+ *
+ * Format: `<!--OT_SLASH:<base64-json>-->\n<expanded body>`
+ * Payload: `{ cmd: "/openspec:proposal", args: "raw user args", original: "/openspec:proposal raw user args" }`
+ */
+const SLASH_MARKER_PREFIX = '<!--OT_SLASH:'
+const SLASH_MARKER_SUFFIX = '-->'
+
+const encodeSlashMarker = (payload: { cmd: string; args: string; original: string }): string => {
+  const json = JSON.stringify(payload)
+  const b64 = Buffer.from(json, 'utf-8').toString('base64')
+  return `${SLASH_MARKER_PREFIX}${b64}${SLASH_MARKER_SUFFIX}\n`
+}
+
+/**
  * If `text` starts with a custom slash command that resolves to a local
- * command/skill markdown file, return the expanded prompt. Otherwise return
- * the original text unchanged.
+ * command/skill markdown file, return the expanded prompt (prefixed with an
+ * OT_SLASH marker carrying the original user input). Otherwise return the
+ * original text unchanged.
  */
 export const expandSlashCommand = async (text: string, cwd: string): Promise<string> => {
   if (!text || !text.startsWith('/')) return text
@@ -143,7 +161,12 @@ export const expandSlashCommand = async (text: string, cwd: string): Promise<str
     if (!body) return text
     const expanded = applyArguments(body, rawArgs)
     log.debug('Expanded slash command', { name: rawName, file, argsLen: rawArgs.length })
-    return expanded
+    const marker = encodeSlashMarker({
+      cmd: `/${rawName}`,
+      args: rawArgs.trim(),
+      original: text.trim(),
+    })
+    return `${marker}${expanded}`
   } catch (err) {
     log.warn('Slash command expansion failed; passing through', {
       name: rawName,

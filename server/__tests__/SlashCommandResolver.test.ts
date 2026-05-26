@@ -15,6 +15,16 @@ const { expandSlashCommand } = await import('../runtime/SlashCommandResolver')
 
 const PROJECT_CWD = join(FAKE_HOME, 'project')
 
+const SLASH_MARKER_RE = /^<!--OT_SLASH:([A-Za-z0-9+/=]+)-->\n/
+
+const decodeMarker = (text: string): { cmd: string; args: string; original: string } | null => {
+  const m = text.match(SLASH_MARKER_RE)
+  if (!m) return null
+  return JSON.parse(Buffer.from(m[1], 'base64').toString('utf-8'))
+}
+
+const stripMarker = (text: string): string => text.replace(SLASH_MARKER_RE, '')
+
 const writeFileAt = async (path: string, body: string) => {
   await mkdir(join(path, '..'), { recursive: true })
   await writeFile(path, body, 'utf-8')
@@ -83,7 +93,30 @@ describe('expandSlashCommand', () => {
 
   it('expands project command with no args (no User arguments section)', async () => {
     const out = await expandSlashCommand('/openspec:proposal', PROJECT_CWD)
-    expect(out.trim()).toBe('Project body here.')
+    expect(stripMarker(out).trim()).toBe('Project body here.')
+  })
+
+  it('prefixes expanded output with OT_SLASH marker carrying cmd, args, original', async () => {
+    const out = await expandSlashCommand('/openspec:proposal build feature X', PROJECT_CWD)
+    const marker = decodeMarker(out)
+    expect(marker).toEqual({
+      cmd: '/openspec:proposal',
+      args: 'build feature X',
+      original: '/openspec:proposal build feature X',
+    })
+  })
+
+  it('preserves marker round-trip for args containing special chars and unicode', async () => {
+    const input = '/openspec:proposal IDE File 文件 "with quotes" --> tail'
+    const out = await expandSlashCommand(input, PROJECT_CWD)
+    const marker = decodeMarker(out)
+    expect(marker?.args).toBe('IDE File 文件 "with quotes" --> tail')
+    expect(marker?.original).toBe(input)
+  })
+
+  it('does not inject marker when command is not expanded', async () => {
+    const out = await expandSlashCommand('/nonexistent:command args', PROJECT_CWD)
+    expect(decodeMarker(out)).toBeNull()
   })
 
   it('falls back to user-level command and substitutes $ARGUMENTS', async () => {

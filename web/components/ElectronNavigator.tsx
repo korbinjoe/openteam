@@ -9,6 +9,7 @@ import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { API_BASE, authFetch } from '@/config/api'
 import { getChatTabActions } from '@/contexts/ChatTabContext'
+import { buildMissionUrl } from '@/components/workspace/urls'
 
 export const ElectronNavigator = () => {
   const navigate = useNavigate()
@@ -23,7 +24,7 @@ export const ElectronNavigator = () => {
         if (!res.ok) return
         const chat = await res.json() as { id: string; workspaceId: string; title: string }
         getChatTabActions()?.openTab(chat.id, chat.workspaceId, chat.title)
-        navigate(`/workspace/${chat.workspaceId}/chat/${chat.id}`)
+        navigate(buildMissionUrl(chat.workspaceId, chat.id))
       } catch { /* ignore */ }
     })
 

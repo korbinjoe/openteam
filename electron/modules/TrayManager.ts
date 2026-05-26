@@ -8,6 +8,7 @@ import { Tray, Menu, nativeImage, app } from 'electron'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 import type { WindowManager } from './WindowManager'
+import type { TrayPanelManager } from './TrayPanelManager'
 
 export type TrayStatus = 'idle' | 'working' | 'completed' | 'error'
 
@@ -50,7 +51,10 @@ export class TrayManager {
   /**  MenuItem  Menu  macOS representedObject  */
   private statusMenuItem: Electron.MenuItem | null = null
 
-  constructor(private windowManager: WindowManager) {}
+  constructor(
+    private windowManager: WindowManager,
+    private trayPanelManager?: TrayPanelManager,
+  ) {}
 
   onStatusChange(cb: (status: TrayStatus) => void): void {
     this.onStatusChangeCallback = cb
@@ -64,7 +68,11 @@ export class TrayManager {
       this.buildContextMenu()
 
       this.tray.on('click', () => {
-        this.windowManager.focusMain()
+        if (this.trayPanelManager) {
+          this.trayPanelManager.toggle(this.tray?.getBounds())
+        } else {
+          this.windowManager.focusMain()
+        }
       })
       console.log('[TrayManager] Tray created')
     } catch (err) {
@@ -82,8 +90,8 @@ export class TrayManager {
     this.onStatusChangeCallback?.(status)
   }
 
-  setBadgeCount(count: number): void {
-    this.tray?.setTitle(count > 0 ? String(count) : '')
+  setMissionCount(count: number): void {
+    this.tray?.setTitle(count > 0 ? `● ${count}` : '')
   }
 
   destroy(): void {

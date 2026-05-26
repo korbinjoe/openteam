@@ -25,6 +25,7 @@ import { createAdminRoutes } from '../routes/system/adminRoutes'
 import { createEventRoutes } from '../routes/system/eventRoutes'
 import { createLogRoutes } from '../routes/system/logRoutes'
 import { createUpdateRoutes } from '../routes/system/updateRoutes'
+import { createTrayRoutes } from '../routes/system/trayRoutes'
 import geminiRoutes from '../routes/system/geminiRoutes'
 import fileRoutes from '../routes/workspace/fileRoutes'
 
@@ -144,6 +145,7 @@ export const setupRoutes = (app: Express, d: RouteDeps) => {
   app.use(createEventRoutes(d.eventStore))
   app.use(createLogRoutes())
   app.use(createUpdateRoutes({ updateManager: d.updateManager, bundleStorage: d.bundleStorage, updateMonitor: d.updateMonitor, signatureVerifier: d.signatureVerifier }))
+  app.use(createTrayRoutes({ chatStore: d.chatStore, workspaceStore: d.workspaceStore, sessionRegistry: d.sessionRegistry }))
   app.use(geminiRoutes)
   app.use(fileRoutes)
 

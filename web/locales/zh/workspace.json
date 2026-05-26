@@ -265,7 +265,14 @@
     "clickToOpen": "点击文件以打开",
     "source": "源码",
     "cut": "剪切",
-    "addToChat": "加入当前会话"
+    "addToChat": "加入当前会话",
+    "fullscreen": {
+      "toggleTooltip": "切换 IDE 全屏 (⌘⇧F)",
+      "exitTooltip": "退出全屏 (⌘⇧F 或 Esc)"
+    },
+    "fontSize": {
+      "label": "字号"
+    }
   },
   "chatTab": {
     "unnamed": "未命名"

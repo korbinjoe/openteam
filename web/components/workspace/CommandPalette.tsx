@@ -58,6 +58,7 @@ const CommandPalette = () => {
     workspaceId,
     commandPaletteOpen, closeCommandPalette,
     openNewMission, togglePanel, toggleTerminal, cycleLayoutMode, toggleIde,
+    ideCollapsed,
   } = useWorkspace()
   const { chats } = useWorkspaceChats(workspaceId)
   const { agentNames } = useAgents()
@@ -110,9 +111,20 @@ const CommandPalette = () => {
       { type: 'action', id: 'toggle-terminal', label: 'Toggle Terminal',  shortcut: '⌘`', run: toggleTerminal },
       { type: 'action', id: 'toggle-ide',      label: 'Toggle IDE Panel', shortcut: '⌘J', run: toggleIde },
       { type: 'action', id: 'cycle-layout',    label: 'Cycle Layout',     shortcut: '⌘\\', run: cycleLayoutMode },
+      {
+        type: 'action',
+        id: 'toggle-fullscreen-ide',
+        label: 'Toggle IDE Fullscreen',
+        shortcut: '⌘⇧F',
+        run: () => {
+          if (ideCollapsed) toggleIde()
+          // Defer the toggle so the IDE panel mounts and can hear the event.
+          setTimeout(() => window.dispatchEvent(new CustomEvent('ide:toggle-fullscreen-ide')), 0)
+        },
+      },
     ]
     return [...out, ...actionEntries]
-  }, [chats, agentNames, workspaceId, navigate, openNewMission, togglePanel, toggleTerminal, toggleIde, cycleLayoutMode])
+  }, [chats, agentNames, workspaceId, navigate, openNewMission, togglePanel, toggleTerminal, toggleIde, cycleLayoutMode, ideCollapsed])
 
   // Filter: a mission title match surfaces the mission header + all its members; a
   // member name match surfaces the parent header + that member only (so the

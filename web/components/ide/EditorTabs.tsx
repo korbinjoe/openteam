@@ -68,7 +68,11 @@ interface EditorTabsProps {
   pendingKeyword?: string | null
   onPendingLineHandled?: () => void
   onRefreshTab?: (filePath: string) => void
+  /** S=12 / M=14 / L=16 (px). Defaults to M when omitted. */
+  fontSize?: 'S' | 'M' | 'L'
 }
+
+const FONT_SIZE_PX: Record<'S' | 'M' | 'L', number> = { S: 12, M: 14, L: 16 }
 
 const toRelative = (absolutePath: string, worktreePath?: string): string | null => {
   if (!worktreePath) return null
@@ -87,9 +91,9 @@ const ImagePreview = ({ filePath }: { filePath: string }) => (
   </div>
 )
 
-const MarkdownPreview = ({ content }: { content: string }) => (
+const MarkdownPreview = ({ content, fontSizePx }: { content: string; fontSizePx: number }) => (
   <div className="h-full overflow-auto bg-bg-primary p-4">
-    <div className="md-preview max-w-[760px]">
+    <div className="md-preview max-w-[760px] mx-auto" style={{ fontSize: `${fontSizePx}px` }}>
       <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
     </div>
   </div>
@@ -111,7 +115,9 @@ const EditorTabs = ({
   onContentChange, onSave,
   worktreePath, baseBranch, changeMap, agentActive: _agentActive,
   pendingLine, pendingKeyword, onPendingLineHandled, onRefreshTab,
+  fontSize = 'M',
 }: EditorTabsProps) => {
+  const fontSizePx = FONT_SIZE_PX[fontSize]
   const { t } = useTranslation(['workspace', 'chat'])
   const editorRef = useRef<MonacoEditor.IStandaloneCodeEditor | null>(null)
   const tabsRef = useRef(tabs)
@@ -433,7 +439,7 @@ const EditorTabs = ({
           ) : activeTab?.previewType === 'binary' ? (
             <BinaryPlaceholder name={activeTab.name} />
           ) : activeTab?.previewType === 'markdown' && (mdPreviewMode[activeTab.path] ?? true) ? (
-            <MarkdownPreview content={activeTab.content} />
+            <MarkdownPreview content={activeTab.content} fontSizePx={fontSizePx} />
           ) : activeTab && isActiveChanged && worktreePath && baseBranch && activeRelativePath ? (
             <Suspense fallback={
               <div className="h-full flex items-center justify-center">
@@ -496,7 +502,7 @@ const EditorTabs = ({
                     onMount={handleEditorMount}
                     options={{
                       minimap: { enabled: false },
-                      fontSize: 12,
+                      fontSize: fontSizePx,
                       lineNumbers: 'on',
                       scrollBeyondLastLine: false,
                       wordWrap: 'on',

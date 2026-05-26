@@ -265,7 +265,14 @@
     "clickToOpen": "Click a file to open",
     "source": "Source",
     "cut": "Cut",
-    "addToChat": "Add to current chat"
+    "addToChat": "Add to current chat",
+    "fullscreen": {
+      "toggleTooltip": "Toggle IDE fullscreen (⌘⇧F)",
+      "exitTooltip": "Exit fullscreen (⌘⇧F or Esc)"
+    },
+    "fontSize": {
+      "label": "Font size"
+    }
   },
   "chatTab": {
     "unnamed": "Untitled"

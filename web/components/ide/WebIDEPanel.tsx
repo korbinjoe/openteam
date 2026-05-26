@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useEffect, useMemo, lazy, Suspense } from 'react'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
-import { Files, GitBranch, Terminal, ChevronDown, ClipboardList, Globe } from 'lucide-react'
+import { Files, GitBranch, Terminal, ChevronDown, ClipboardList, Globe, Maximize2, Minimize2 } from 'lucide-react'
 import FileTree from './FileTree'
 import { useWebIDEState } from '@/hooks/useWebIDEState'
 import { getWebSocketClient } from '@/services/WebSocketClient'
@@ -61,6 +61,31 @@ const WebIDEPanel = ({ chatId, roots, gitStatus, multiGitStatus, onMultiOptimist
   const [treeRefreshTrigger, setTreeRefreshTrigger] = useState(0)
   const [revealPath, setRevealPath] = useState<string | null>(null)
   const [revealCounter, setRevealCounter] = useState(0)
+  const [isFullScreen, setIsFullScreen] = useState(false)
+  const [fontSize, setFontSize] = useState<'S' | 'M' | 'L'>(() => {
+    try {
+      const raw = localStorage.getItem('webide:reader')
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        if (parsed?.fontSize === 'S' || parsed?.fontSize === 'M' || parsed?.fontSize === 'L') {
+          return parsed.fontSize
+        }
+      }
+    } catch {
+      // ignore parse errors — fall back to default
+    }
+    return 'M'
+  })
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('webide:reader')
+      const prev = raw ? JSON.parse(raw) : {}
+      localStorage.setItem('webide:reader', JSON.stringify({ ...prev, fontSize }))
+    } catch {
+      // localStorage may be unavailable (private mode); ignore.
+    }
+  }, [fontSize])
 
   const { tabs, activeTabPath, setActiveTabPath, openFile, closeTab, updateContent, saveFile, pendingLine, pendingKeyword, clearPendingLine, pruneDeletedTabs, refreshOpenTabs, refreshTab } = useWebIDEState(worktreePath)
 
@@ -166,6 +191,38 @@ const WebIDEPanel = ({ chatId, roots, gitStatus, multiGitStatus, onMultiOptimist
     }
   }, [handleToggleTerminal])
 
+  // IDE fullscreen mode: lifts the entire WebIDE (file tree, tabs, editor,
+  // terminal, all view tabs) out of the right column into a `fixed inset-0`
+  // overlay. CSS-only — the component is not remounted, so all in-memory state
+  // (open tabs, Monaco models, treeWidth, terminalOpen) survives the toggle.
+  // Triggered by the header button, ⌘⇧F, or `ide:toggle-fullscreen-ide` event.
+  useEffect(() => {
+    const onToggle = () => setIsFullScreen(s => !s)
+    const onShortcut = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && (e.key === 'F' || e.key === 'f')) {
+        e.preventDefault()
+        setIsFullScreen(s => !s)
+      }
+    }
+    const onEsc = (e: KeyboardEvent) => {
+      // Only exit on Esc when nothing inside the IDE owns the keystroke
+      // (Monaco swallows Esc for its own actions). We let Monaco have it
+      // first; user can press Esc once more on empty focus to exit.
+      if (e.key !== 'Escape' || !isFullScreen) return
+      const target = e.target as HTMLElement | null
+      if (target?.closest('.monaco-editor, input, textarea, [contenteditable="true"]')) return
+      setIsFullScreen(false)
+    }
+    window.addEventListener('ide:toggle-fullscreen-ide', onToggle)
+    window.addEventListener('keydown', onShortcut)
+    window.addEventListener('keydown', onEsc)
+    return () => {
+      window.removeEventListener('ide:toggle-fullscreen-ide', onToggle)
+      window.removeEventListener('keydown', onShortcut)
+      window.removeEventListener('keydown', onEsc)
+    }
+  }, [isFullScreen])
+
   const handleDragStart = (e: React.MouseEvent) => {
     e.preventDefault()
     draggingRef.current = true
@@ -228,7 +285,13 @@ const WebIDEPanel = ({ chatId, roots, gitStatus, multiGitStatus, onMultiOptimist
   )
 
   return (
-    <div ref={panelRef} className="h-full flex flex-col bg-bg-primary overflow-hidden">
+    <div
+      ref={panelRef}
+      className={cn(
+        'h-full flex flex-col bg-bg-primary overflow-hidden',
+        isFullScreen && 'fixed inset-0 z-[90] h-screen w-screen',
+      )}
+    >
       {/* Top tab bar */}
       <div className="flex items-center h-9 bg-bg-secondary border-b border-border shrink-0 px-2 gap-1">
         <button onClick={() => setViewTab('files')} className={tabClass(viewTab === 'files')}>
@@ -258,6 +321,39 @@ const WebIDEPanel = ({ chatId, roots, gitStatus, multiGitStatus, onMultiOptimist
               {changesCount}
             </span>
           )}
+        </button>
+        <span className="flex-1" />
+        <div
+          className="flex items-center gap-0.5 mr-1"
+          role="group"
+          aria-label={t('ide.fontSize.label', { defaultValue: 'Font size' })}
+        >
+          {(['S', 'M', 'L'] as const).map(size => (
+            <button
+              key={size}
+              type="button"
+              onClick={() => setFontSize(size)}
+              title={t('ide.fontSize.label', { defaultValue: 'Font size' }) + ` ${size}`}
+              aria-pressed={fontSize === size}
+              className={cn(
+                'flex items-center justify-center w-6 h-6 text-[11px] rounded transition-colors',
+                fontSize === size
+                  ? 'bg-bg-tertiary text-text-primary'
+                  : 'text-text-muted hover:text-text-primary hover:bg-bg-hover',
+              )}
+            >
+              {size}
+            </button>
+          ))}
+        </div>
+        <button
+          type="button"
+          onClick={() => setIsFullScreen(s => !s)}
+          title={t('ide.fullscreen.toggleTooltip', { defaultValue: isFullScreen ? 'Exit fullscreen (⌘⇧F)' : 'Fullscreen IDE (⌘⇧F)' })}
+          aria-label={isFullScreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+          className="flex items-center justify-center w-7 h-7 text-text-muted hover:text-text-primary hover:bg-bg-hover rounded transition-colors"
+        >
+          {isFullScreen ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
         </button>
       </div>
 
@@ -321,6 +417,7 @@ const WebIDEPanel = ({ chatId, roots, gitStatus, multiGitStatus, onMultiOptimist
                     pendingKeyword={pendingKeyword}
                     onPendingLineHandled={clearPendingLine}
                     onRefreshTab={refreshTab}
+                    fontSize={fontSize}
                   />
                 </Suspense>
               </div>

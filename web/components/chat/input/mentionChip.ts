@@ -186,10 +186,7 @@ export const createCommandChip = (cmd: CommandMention): HTMLSpanElement => {
   chip.className = 'mention-chip command-chip'
   chip.innerHTML = `
     <svg class="chip-icon" viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
-    <span class="chip-label">/${escapeHtml(cmd.name)}</span>
-    <span class="chip-close" data-chip-close="1" aria-label="remove">
-      <svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </span>`.trim()
+    <span class="chip-label">/${escapeHtml(cmd.name)}</span>`.trim()
   return chip
 }
 
@@ -313,12 +310,6 @@ export const MENTION_CHIP_CSS = `
   letter-spacing: -0.01em;
 }
 .command-chip:hover { background: rgba(var(--accent-purple, 168, 85, 247), 0.2); }
-.command-chip .chip-close {
-  background: rgb(var(--accent-purple, 168, 85, 247));
-}
-.command-chip .chip-close:hover {
-  background: rgb(var(--accent-purple, 168, 85, 247));
-}
 .mention-tooltip {
   position: fixed;
   z-index: 9999;

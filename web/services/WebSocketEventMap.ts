@@ -73,6 +73,9 @@ export interface WsReceiveEventMap {
     cost?: number
     logLine?: string
     expertActivities?: Array<{ agentId: string; agentName: string; phase: string; currentTool?: string; toolCount: number; toolCompleted: number; cost?: number }>
+    /** Server's actual key for per-agent activity. Prefer over `expertActivities`
+     *  (which is a legacy alias the server never populates). */
+    agentActivities?: Array<{ agentId: string; agentName: string; phase: string; currentTool?: string; toolCount: number; toolCompleted: number; cost?: number }>
     latestMessage?: { role: 'user' | 'agent' | 'assistant'; text: string; at: number }
   }
   'chat:permission-request': {

@@ -12,8 +12,7 @@ import { API_BASE, authFetch } from '@/config/api'
 import { getWebSocketClient } from '@/services/WebSocketClient'
 import type { ChatActivityPayload } from '@/types/chat'
 import type { Chat, Workspace } from '@/components/workspace/types'
-
-const ACTIVE_PHASES = new Set(['thinking', 'tool_running', 'responding', 'initializing'])
+import { ACTIVE_PHASES, reconcileMembersFromActivity } from '@/lib/memberStatus'
 
 export interface WorkspaceLite {
   id: string
@@ -76,6 +75,7 @@ export const useAllChats = (): V2AllChatsResult => {
         else if (phase === 'waiting_input') { next.status = 'idle'; next.missionStatus = 'waiting_input' }
         else if (phase === 'waiting_confirmation') { next.status = 'idle'; next.missionStatus = 'waiting_confirm' }
         else if (ACTIVE_PHASES.has(phase)) { next.status = 'running'; next.missionStatus = 'running' }
+        next.members = reconcileMembersFromActivity(c.members, payload)
         return next
       }))
     }

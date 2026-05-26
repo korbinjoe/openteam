@@ -149,6 +149,10 @@ export interface ChatActivityPayload {
   cost?: number
   logLine?: string
   expertActivities?: ExpertActivitySnapshot[]
+  /** Server's actual field name for per-agent activity (see ActivityAggregator).
+   *  `expertActivities` above is a legacy alias that the server never populates;
+   *  consumers should prefer `agentActivities`. */
+  agentActivities?: ExpertActivitySnapshot[]
 }
 /** localStorage  messages/groupActivities */
 export interface HistoryMetadata {

@@ -9,6 +9,7 @@ import type { SessionRegistry } from '../terminal/SessionRegistry'
 import type { ChatTitleService } from '../services/chat/ChatTitleService'
 import { silentlyIgnore } from '../lib/silentlyIgnore'
 import { createLogger } from '../lib/logger'
+import { expandSlashCommand } from '../runtime/SlashCommandResolver'
 import { trackEvent } from '../lib/eventTracker'
 import { cwdToClaudeProjectKey } from '../../shared/projectKey'
 import { isPlaceholderTitle } from '../../shared/placeholderTitles'
@@ -102,8 +103,11 @@ export const createExpertDirectInput = (deps: ExpertDirectInputDeps) => {
           return
         }
 
-        log.info('Sending message via ACP', { agentId, chatId, sessionId: existing.sessionId, messageLen: cleanMessage.length, imageCount: images?.length ?? 0 })
-        existing.acpClient.prompt(existing.sessionId, cleanMessage, images?.map(i => ({ data: i.data, mimeType: i.mediaType }))).catch(err => {
+        const promptText = existing.provider === 'claude'
+          ? await expandSlashCommand(cleanMessage, existing.cwd)
+          : cleanMessage
+        log.info('Sending message via ACP', { agentId, chatId, sessionId: existing.sessionId, messageLen: promptText.length, imageCount: images?.length ?? 0, expanded: promptText !== cleanMessage })
+        existing.acpClient.prompt(existing.sessionId, promptText, images?.map(i => ({ data: i.data, mimeType: i.mediaType }))).catch(err => {
           const errorMsg = err instanceof Error ? err.message : String(err)
           log.warn('ACP prompt failed', { agentId, chatId, error: errorMsg })
           trackEvent('agent', 'agent.acp_prompt_failed', { agentId, chatId, error: errorMsg })

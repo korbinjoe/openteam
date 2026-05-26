@@ -26,6 +26,7 @@ import { createExpertExitHandler, type ExitHandlerDeps } from './ExpertExitHandl
 import { createExpertDirectInput } from './ExpertDirectInput'
 import { wireExpertStreamHandlers } from './ExpertEventWiring'
 import { flushPendingTasks } from './ExpertPendingTaskFlush'
+import { expandSlashCommand } from '../runtime/SlashCommandResolver'
 import type { MailboxManager } from '../mailbox/MailboxManager'
 import type { WhiteboardManager } from '../whiteboard/WhiteboardManager'
 import { ContextBriefing } from '../whiteboard/ContextBriefing'
@@ -361,8 +362,9 @@ export const createExpertLifecycle = (deps: ExpertLifecycleDeps) => {
           }
           log.debug('Codex task passed as CLI arg', { task: wrappedTask.substring(0, 50), briefingInjected })
         } else {
-          log.info('Sending task via ACP prompt', { agentId, task: task.substring(0, 50), briefingInjected, imageCount: initialImages?.length ?? 0 })
-          acpClient.prompt(sessionId, wrappedTask, initialImages).catch(err => {
+          const promptText = await expandSlashCommand(wrappedTask, cwd)
+          log.info('Sending task via ACP prompt', { agentId, task: task.substring(0, 50), briefingInjected, imageCount: initialImages?.length ?? 0, expanded: promptText !== wrappedTask })
+          acpClient.prompt(sessionId, promptText, initialImages).catch(err => {
             const errorMsg = err instanceof Error ? err.message : String(err)
             log.warn('ACP initial prompt failed', { agentId, error: errorMsg })
             sendTo(connectionId, {

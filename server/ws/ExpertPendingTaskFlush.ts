@@ -13,6 +13,7 @@
 import type { ACPClient } from '../acp/ACPClient'
 import type { SessionRegistry } from '../terminal/SessionRegistry'
 import type { ExpertSessionStore } from './ExpertSessionStore'
+import { expandSlashCommand } from '../runtime/SlashCommandResolver'
 import { createLogger } from '../lib/logger'
 
 const log = createLogger('ExpertPendingTaskFlush')
@@ -34,21 +35,31 @@ export const flushPendingTasks = (deps: FlushDeps): void => {
 
   log.info('Flushing pending tasks', { agentId, chatId, count: drained.length })
 
-  for (const entry of drained) {
-    const images = entry.images?.map(img => ({ data: img.data, mimeType: img.mediaType }))
-    acpClient.prompt(sessionId, entry.task, images).catch((err: unknown) => {
-      const errorMsg = err instanceof Error ? err.message : String(err)
-      log.warn('Pending-task prompt failed', { agentId, chatId, error: errorMsg })
-      sessionRegistry.sendToSession(sessionId, {
-        type: 'expert:error',
-        payload: {
-          agentId,
-          chatId,
-          error: 'pending_task_failed',
-          task: entry.task,
-          message: `Failed to deliver queued message: ${errorMsg}`,
-        },
+  const entry = store.get(key)
+  const shouldExpand = entry?.provider === 'claude'
+  const cwd = entry?.cwd ?? ''
+
+  for (const queued of drained) {
+    const images = queued.images?.map(img => ({ data: img.data, mimeType: img.mediaType }))
+    const promptPromise = shouldExpand
+      ? expandSlashCommand(queued.task, cwd)
+      : Promise.resolve(queued.task)
+
+    promptPromise
+      .then((text) => acpClient.prompt(sessionId, text, images))
+      .catch((err: unknown) => {
+        const errorMsg = err instanceof Error ? err.message : String(err)
+        log.warn('Pending-task prompt failed', { agentId, chatId, error: errorMsg })
+        sessionRegistry.sendToSession(sessionId, {
+          type: 'expert:error',
+          payload: {
+            agentId,
+            chatId,
+            error: 'pending_task_failed',
+            task: queued.task,
+            message: `Failed to deliver queued message: ${errorMsg}`,
+          },
+        })
       })
-    })
   }
 }

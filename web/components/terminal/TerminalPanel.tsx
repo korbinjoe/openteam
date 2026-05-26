@@ -294,12 +294,18 @@ const TerminalPanel = forwardRef<TerminalPanelHandle, TerminalPanelProps>(
     // would kill and respawn the resume-PTY on each `expert:view-attached`
     // round-trip — terminal flickers, server thrashes node-pty.
     const attachedRef = useRef<Set<string>>(new Set())
+    const attachedChatIdRef = useRef<string | undefined>(undefined)
     useEffect(() => {
+      if (attachedChatIdRef.current !== chatId) {
+        attachedRef.current.clear()
+        attachedChatIdRef.current = chatId
+      }
+
       if (!inTerminalView || !chatId) {
         if (attachedRef.current.size > 0) {
           for (const agentId of attachedRef.current) {
             if (!wsClient.isConnected()) break
-            wsClient.send('expert:cli-detach', { chatId: chatId ?? '', agentId })
+            wsClient.send('expert:cli-detach', { chatId, agentId })
           }
           attachedRef.current.clear()
         }
@@ -331,17 +337,19 @@ const TerminalPanel = forwardRef<TerminalPanelHandle, TerminalPanelProps>(
       }
     }, [inTerminalView, chatId, experts, isLocked, lockedAgentId, wsClient])
 
-    // On unmount / chat switch, detach everything still attached.
+    // On unmount only: detach all attached view-PTYs. Chat switches no longer
+    // send detach — server-side view-PTYs stay alive so re-entering the chat
+    // reuses the existing `claude --resume` instead of killing in-flight turns.
     useEffect(() => () => {
       if (attachedRef.current.size === 0) return
-      const cid = chatId
+      const cid = attachedChatIdRef.current
       for (const agentId of attachedRef.current) {
         if (!wsClient.isConnected() || !cid) break
         wsClient.send('expert:cli-detach', { chatId: cid, agentId })
       }
       attachedRef.current.clear()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [chatId])
+    }, [])
 
     // ── Agent Actions ──
     const handleHideExpert = (expertAgentId: string, e: React.MouseEvent) => {

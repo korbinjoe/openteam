@@ -15,7 +15,6 @@ import { IPCBridge } from './modules/IPCBridge'
 import { PowerSaveManager } from './modules/PowerSaveManager'
 import { UpdateBridge } from './modules/UpdateBridge'
 import { NotchManager } from './modules/NotchManager'
-import { SplashManager } from './modules/SplashManager'
 import { PORTS } from '../shared/ports'
 
 import { existsSync, readlinkSync } from 'fs'
@@ -99,7 +98,6 @@ const resolveServerBundle = (): string => {
 }
 
 const windowManager = new WindowManager()
-const splashManager = new SplashManager()
 const trayManager = new TrayManager(windowManager)
 const shortcutManager = new ShortcutManager(windowManager)
 const powerSaveManager = new PowerSaveManager()
@@ -161,8 +159,6 @@ if (process.platform === 'darwin') {
 }
 
 async function bootstrap() {
-  splashManager.create()
-
   if (!isDev) {
     process.env.ELECTRON = '1'
 
@@ -190,9 +186,7 @@ async function bootstrap() {
   const mainWindow = windowManager.createMainWindow(bootstrapServerPort, isDev, preloadPath, { deferShow: true })
 
   mainWindow.webContents.once('did-finish-load', () => {
-    splashManager.close().then(() => {
-      mainWindow.show()
-    })
+    mainWindow.show()
   })
 
   trayManager.setServerPort(bootstrapServerPort)
@@ -257,7 +251,6 @@ app.on('activate', () => {
 
 app.on('before-quit', () => {
   isQuitting = true
-  splashManager.destroy()
   notchManager?.destroy()
   shortcutManager.unregisterAll()
   updateBridge.destroy()

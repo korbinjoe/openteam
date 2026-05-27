@@ -349,6 +349,7 @@ export interface OpenTeamParsedMessage {
   jsonlUuid?: string
   turnIndex?: number
   apiCallId?: string
+  images?: Array<{ data: string; mediaType: string }>
   isTurnEnd?: boolean
 }
 

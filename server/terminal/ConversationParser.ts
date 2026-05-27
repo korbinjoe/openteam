@@ -56,6 +56,7 @@ export interface ParsedMessage {
   jsonlUuid?: string
   turnIndex?: number
   apiCallId?: string
+  images?: Array<{ data: string; mediaType: string }>
   /** stop_reason === 'end_turn' stats  */
   isTurnEnd?: boolean
 }
@@ -145,6 +146,13 @@ export function parseNewLines(
           turnIndex,
         })
       } else if (Array.isArray(content)) {
+        const imageBlocks: Array<{ data: string; mediaType: string }> = []
+        for (const block of content) {
+          if (block.type === 'image' && block.source?.data) {
+            imageBlocks.push({ data: block.source.data, mediaType: block.source.media_type || 'image/png' })
+          }
+        }
+
         for (const block of content) {
           if (block.type === 'text' && block.text) {
             turnIndex++
@@ -156,6 +164,7 @@ export function parseNewLines(
               type: 'text',
               jsonlUuid: uuid,
               turnIndex,
+              images: imageBlocks.length > 0 ? imageBlocks : undefined,
             })
           } else if (block.type === 'tool_result') {
             const resultContent = typeof block.content === 'string'

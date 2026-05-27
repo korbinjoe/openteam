@@ -49,6 +49,7 @@ export interface AgentActivity {
     path: string
     operation: 'create' | 'edit' | 'delete' | 'read'
   }
+  exitReason?: 'user_stop' | 'timeout' | 'model_switch'
   updatedAt: number
 }
 
@@ -148,6 +149,7 @@ export interface ChatActivityPayload {
   toolCompleted: number
   cost?: number
   logLine?: string
+  exitReason?: 'user_stop' | 'timeout' | 'model_switch'
   expertActivities?: ExpertActivitySnapshot[]
   /** Server's actual field name for per-agent activity (see ActivityAggregator).
    *  `expertActivities` above is a legacy alias that the server never populates;

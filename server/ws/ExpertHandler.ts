@@ -263,7 +263,7 @@ export class ExpertHandler {
     expert.acpClient.kill()
     trackEvent('agent', 'agent.stopped', { agentId: payload.agentId, connectionId })
 
-    this.sendTo(connectionId, { type: 'expert:stopped', payload: { agentId: payload.agentId, chatId: expert.chatId, exitCode: -1 } })
+    this.sendTo(connectionId, { type: 'expert:stopped', payload: { agentId: payload.agentId, chatId: expert.chatId, exitCode: -1, exitReason: 'user_stop' } })
     this.sendTo(connectionId, { type: 'expert:list-updated', payload: { experts: this.store.getExpertListForConnection(connectionId, expert.chatId), chatId: expert.chatId } })
   }
 
@@ -285,7 +285,7 @@ export class ExpertHandler {
       if (session) session.killReason = 'user_stop'
       expert.acpClient.kill()
       stoppedAgentIds.push(agentId)
-      this.sendTo(connectionId, { type: 'expert:stopped', payload: { agentId, chatId: expert.chatId, exitCode: -1 } })
+      this.sendTo(connectionId, { type: 'expert:stopped', payload: { agentId, chatId: expert.chatId, exitCode: -1, exitReason: 'user_stop' } })
     }
     this.sendTo(connectionId, { type: 'expert:all-stopped', payload: { stoppedExperts: stoppedAgentIds } })
     this.sendTo(connectionId, { type: 'expert:list-updated', payload: { experts: this.store.getExpertListForConnection(connectionId, activeChatId), chatId: activeChatId } })

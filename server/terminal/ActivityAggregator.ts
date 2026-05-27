@@ -38,6 +38,7 @@ export interface ChatActivityPayload {
   toolCompleted: number
   cost?: number
   logLine?: string
+  exitReason?: 'user_stop' | 'timeout' | 'model_switch'
   agentActivities?: AgentActivitySnapshot[]
   latestMessage?: {
     role: 'user' | 'agent' | 'assistant'
@@ -202,6 +203,7 @@ export class ActivityAggregator {
       toolCompleted: session.activitySnapshot?.toolCompleted ?? 0,
       cost: session.activitySnapshot?.cost,
       logLine: undefined,
+      ...(session.killReason ? { exitReason: session.killReason } : {}),
       ...(agents.length > 0 ? { agentActivities: agents } : {}),
     }
   }

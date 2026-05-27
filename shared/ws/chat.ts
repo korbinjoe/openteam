@@ -29,6 +29,7 @@ export interface ChatActivityPayload {
   toolCompleted: number
   cost?: number
   logLine?: string
+  exitReason?: 'user_stop' | 'timeout' | 'model_switch'
   agentActivities?: AgentActivitySnapshot[]
   latestMessage?: ChatLatestMessage
 }

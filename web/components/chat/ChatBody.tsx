@@ -78,7 +78,7 @@ const ChatBody = ({
   const Footer = useCallback(() => (
     <div style={{ paddingBottom: 8 }}>
       {thinking && <ThinkingIndicator agentName={currentAgentName} activity={currentMergedActivity} />}
-      {currentMergedActivity?.phase === 'completed' && Object.keys(expertActivities).length > 0 && (
+      {currentMergedActivity?.phase === 'completed' && !currentMergedActivity.exitReason && Object.keys(expertActivities).length > 0 && (
         <CompletionCeremony expertActivities={expertActivities} agentNames={agentNames} agentPersonalities={agentPersonalities} />
       )}
     </div>

@@ -156,10 +156,13 @@ export class IPCBridge {
     }
 
     if (status === 'completed' || status === 'error') {
-      const agentActivities = (data as { agentActivities?: Array<{ agentName: string }> }).agentActivities
-      const agentName = agentActivities?.[0]?.agentName || 'Agent'
-      const payloadData = data as { toolCompleted?: number; cost?: number }
-      this.showNativeNotification(data.chatId, agentName, status, payloadData.toolCompleted ?? 0, payloadData.cost)
+      const exitReason = (data as { exitReason?: string }).exitReason
+      if (!exitReason) {
+        const agentActivities = (data as { agentActivities?: Array<{ agentName: string }> }).agentActivities
+        const agentName = agentActivities?.[0]?.agentName || 'Agent'
+        const payloadData = data as { toolCompleted?: number; cost?: number }
+        this.showNativeNotification(data.chatId, agentName, status, payloadData.toolCompleted ?? 0, payloadData.cost)
+      }
     }
   }
 

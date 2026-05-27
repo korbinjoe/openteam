@@ -32,6 +32,7 @@ export const useExpertActivities = () => {
     const tokenInput = all.reduce((acc, a) => acc + (a.tokens?.input || 0), 0)
     const tokenOutput = all.reduce((acc, a) => acc + (a.tokens?.output || 0), 0)
     const background = all.some((a) => a.background)
+    const exitReason = all.find((a) => a.exitReason)?.exitReason
 
     return {
       phase,
@@ -42,6 +43,7 @@ export const useExpertActivities = () => {
       hasText,
       cost,
       tokens: tokenInput || tokenOutput ? { input: tokenInput, output: tokenOutput } : undefined,
+      exitReason,
       updatedAt: Date.now(),
     }
   }, [])
@@ -55,7 +57,7 @@ export const useExpertActivities = () => {
     if (!currentMergedActivity) return
     if (currentMergedActivity.phase === 'completed' && lastCompletionRef.current !== currentMergedActivity) {
       lastCompletionRef.current = currentMergedActivity
-      if (currentMergedActivity.toolCompleted > 0) {
+      if (currentMergedActivity.toolCompleted > 0 && !currentMergedActivity.exitReason) {
         setShowCompletion(true)
       }
 

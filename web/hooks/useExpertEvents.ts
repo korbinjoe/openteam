@@ -179,7 +179,7 @@ export const createExpertEventHandlers = (ctx: ExpertEventContext) => {
     })
   }
 
-  const handleExpertExit = (payload: { agentId: string; chatId?: string; finalActivity?: AgentActivity }) => {
+  const handleExpertExit = (payload: { agentId: string; chatId?: string; finalActivity?: AgentActivity; exitReason?: AgentActivity['exitReason'] }) => {
     if (!isCurrentChatEvent(payload)) return
     if (!payload?.agentId) return
     setExpertActivities((prev) => {
@@ -189,6 +189,7 @@ export const createExpertEventHandlers = (ctx: ExpertEventContext) => {
         [payload.agentId]: {
           ...(payload.finalActivity || prev[payload.agentId]),
           phase: 'completed' as const,
+          ...(payload.exitReason ? { exitReason: payload.exitReason } : {}),
           updatedAt: Date.now(),
         },
       }

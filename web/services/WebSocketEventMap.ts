@@ -33,7 +33,7 @@ export interface WsReceiveEventMap {
   'expert:activity': { agentId: string; chatId: string; activity: AgentActivity }
   'expert:started': { agentId: string; chatId: string; agentName: string; sessionId: string; agentIcon: string; status: 'running' | 'completed'; exitCode?: number }
   'expert:exit': { agentId: string; chatId: string; exitCode?: number }
-  'expert:stopped': { agentId: string; chatId: string; exitCode?: number }
+  'expert:stopped': { agentId: string; chatId: string; exitCode?: number; exitReason?: 'user_stop' | 'timeout' | 'model_switch' }
   'expert:data': { agentId: string; chatId: string; sessionId?: string; seq?: number; snapshot?: boolean; data: string; ptySize?: { cols: number; rows: number } }
   'expert:partial-text': { agentId: string; chatId: string; sessionId?: string; blockIndex: number; text: string }
   'expert:resume-failed': { agentId: string; chatId: string; agentName: string; reason: string; sessionId?: string; message?: string }

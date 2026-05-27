@@ -96,7 +96,7 @@ export class MemberAggregator {
       if (live) {
         status = phaseToStatus(agentAct?.phase) ?? 'running'
       } else if (expert?.exitCode !== undefined) {
-        status = (expert.taskCompleted ?? (expert.exitCode === 0)) ? 'done' : 'error'
+        status = (expert.taskCompleted ?? true) ? 'done' : 'error'
       }
 
       const lastMessage = previewFromActivity(agentAct)

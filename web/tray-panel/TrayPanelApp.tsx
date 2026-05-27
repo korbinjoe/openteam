@@ -15,7 +15,7 @@ export const TrayPanelApp = () => {
     <div className="flex h-full w-full flex-col rounded-lg bg-[#f6f6f6] shadow-xl ring-1 ring-black/10">
       {missions.length === 0 ? (
         <div className="flex flex-1 flex-col items-center justify-center px-4 py-6">
-          <p className="text-[13px] text-[#86868b]">No active missions</p>
+          <p className="text-[13px] text-[#48484a]">No active missions</p>
         </div>
       ) : (
         <div className="flex-1 overflow-y-auto py-1">
@@ -27,7 +27,7 @@ export const TrayPanelApp = () => {
                 className="flex w-full items-center gap-2.5 px-3 py-2 text-left transition-colors hover:bg-black/5 active:bg-black/8"
               >
                 <MissionIcon phase={mission.topPhase} />
-                <span className="flex-1 truncate text-[13px] text-[#1d1d1f]">
+                <span className="flex-1 truncate text-[13px] font-normal text-[#262626]">
                   {mission.title}
                 </span>
                 <AgentCount count={mission.agents.filter(a => a.phase !== 'completed').length} />
@@ -44,7 +44,7 @@ export const TrayPanelApp = () => {
         <button
           type="button"
           onClick={handleOpenWorkbench}
-          className="flex w-full items-center px-3 py-2 text-[13px] text-[#1d1d1f] transition-colors hover:bg-black/5 active:bg-black/8"
+          className="flex w-full items-center px-3 py-2 text-[13px] font-normal text-[#262626] transition-colors hover:bg-black/5 active:bg-black/8"
         >
           Open OpenTeam
         </button>
@@ -71,7 +71,7 @@ const MissionIcon = ({ phase }: { phase: string }) => {
 const AgentCount = ({ count }: { count: number }) => {
   if (count <= 0) return null
   return (
-    <span className="min-w-[18px] rounded-full bg-black/8 px-1.5 py-0.5 text-center text-[11px] font-medium text-[#86868b]">
+    <span className="min-w-[18px] rounded-full bg-black/8 px-1.5 py-0.5 text-center text-[11px] font-medium text-[#3c3c43]/60">
       {count}
     </span>
   )

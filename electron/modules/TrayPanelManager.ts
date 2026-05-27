@@ -87,6 +87,7 @@ export class TrayPanelManager {
       height: PANEL_HEIGHT,
       frame: false,
       transparent: true,
+      backgroundColor: '#00000000',
       hasShadow: true,
       resizable: false,
       movable: false,

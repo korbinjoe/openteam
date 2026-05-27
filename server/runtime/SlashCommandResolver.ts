@@ -145,13 +145,39 @@ export const expandSlashCommand = async (text: string, cwd: string): Promise<str
   if (!match) return text
 
   const [, rawName, rawArgs = ''] = match
-  // Skip bare names with no group separator — built-in commands (e.g. /clear,
-  // /help) are handled by the CLI itself; we only expand custom hierarchical
-  // commands.
-  if (!rawName.includes(':') && !rawName.includes('/')) return text
 
   const segments = rawName.split(/[:/]/).filter(Boolean)
-  if (segments.length < 2) return text
+  if (segments.length === 0) return text
+
+  // For flat names (no group separator), try resolving as a project/user
+  // custom command file first. If not found, assume it's a CLI built-in
+  // (e.g. /clear, /help) and pass through unchanged.
+  if (segments.length === 1) {
+    const flatFile = firstExisting([
+      join(cwd, '.claude', 'commands', `${segments[0]}.md`),
+      join(CLAUDE_HOME, 'commands', `${segments[0]}.md`),
+    ])
+    if (!flatFile) return text
+    try {
+      const raw = await readFile(flatFile, 'utf-8')
+      const body = stripFrontmatter(raw).trim()
+      if (!body) return text
+      const expanded = applyArguments(body, rawArgs)
+      log.debug('Expanded flat slash command', { name: rawName, file: flatFile, argsLen: rawArgs.length })
+      const marker = encodeSlashMarker({
+        cmd: `/${rawName}`,
+        args: rawArgs.trim(),
+        original: text.trim(),
+      })
+      return `${marker}${expanded}`
+    } catch (err) {
+      log.warn('Flat slash command expansion failed; passing through', {
+        name: rawName,
+        error: err instanceof Error ? err.message : String(err),
+      })
+      return text
+    }
+  }
 
   try {
     const file = await resolveCommandFile(cwd, segments)

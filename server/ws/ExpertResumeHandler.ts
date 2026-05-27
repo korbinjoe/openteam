@@ -23,7 +23,7 @@ import type { CliProvider, ExpertSessionInfo } from '../config/types'
 import { createLogger } from '../lib/logger'
 import { trackEvent } from '../lib/eventTracker'
 import { cwdToClaudeProjectKey } from '../../shared/projectKey'
-import { scanPluginSlashCommands } from '../runtime/PluginCommandsScanner'
+import { scanPluginSlashCommands, scanProjectSlashCommands } from '../runtime/PluginCommandsScanner'
 
 const log = createLogger('ExpertResume')
 
@@ -285,17 +285,23 @@ export const createExpertResumeHandler = (deps: ExpertResumeDeps) => {
 
     // Resume paths (re-attach / scrollback / dead-replay) never spawn the CLI,
     // so the `cli-init` event in ExpertEventWiring doesn't fire — meaning our
-    // plugin-command merge there is bypassed. Scan once here and push to every
-    // agent we resume, so the dialog box gets `<plugin>:<skill>` commands.
-    const pluginCommandsPromise = scanPluginSlashCommands().catch((err) => {
-      log.warn('Plugin commands scan failed during resume', {
+    // command merge there is bypassed. Scan plugins + project commands here and
+    // push to every agent we resume.
+    const commandsPromise = (async (resumeCwd: string) => {
+      const [pluginCmds, projectCmds] = await Promise.all([
+        scanPluginSlashCommands(),
+        scanProjectSlashCommands(resumeCwd),
+      ])
+      return [...pluginCmds, ...projectCmds]
+    })(chat?.worktreeSessions?.[0]?.worktreePath || process.cwd()).catch((err) => {
+      log.warn('Commands scan failed during resume', {
         chatId,
         error: err instanceof Error ? err.message : String(err),
       })
       return [] as string[]
     })
     const pushPluginCommands = (agentId: string) => {
-      pluginCommandsPromise.then((commands) => {
+      commandsPromise.then((commands) => {
         if (commands.length === 0) return
         sendTo(connectionId, {
           type: 'expert:slash-commands',

@@ -161,4 +161,32 @@ describe('expandSlashCommand', () => {
     expect(out).toContain('PROJECT review wins.')
     expect(out).not.toContain('Review the following:')
   })
+
+  it('expands flat (non-hierarchical) project command', async () => {
+    await writeFileAt(
+      join(PROJECT_CWD, '.claude/commands/cloud-debug.md'),
+      '---\ndescription: Debug cloud\n---\nCloud debug body.',
+    )
+    const out = await expandSlashCommand('/cloud-debug run', PROJECT_CWD)
+    expect(out).toContain('Cloud debug body.')
+    expect(out).not.toContain('---')
+    expect(out).toContain('## User arguments')
+    expect(out).toContain('run')
+    const marker = decodeMarker(out)
+    expect(marker?.cmd).toBe('/cloud-debug')
+  })
+
+  it('flat command falls through when no file exists (built-in)', async () => {
+    const out = await expandSlashCommand('/clear', PROJECT_CWD)
+    expect(out).toBe('/clear')
+  })
+
+  it('expands flat user-level command when no project file', async () => {
+    await writeFileAt(
+      join(FAKE_HOME, '.claude/commands/my-helper.md'),
+      'User helper body.',
+    )
+    const out = await expandSlashCommand('/my-helper', PROJECT_CWD)
+    expect(stripMarker(out).trim()).toBe('User helper body.')
+  })
 })

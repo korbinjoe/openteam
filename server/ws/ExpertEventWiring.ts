@@ -21,7 +21,7 @@ import { ExpertTokenTracker } from './ExpertTokenTracker'
 import { createActivityHandler } from './ExpertActivityHandler'
 import { flushPendingTasks } from './ExpertPendingTaskFlush'
 import { createLogger } from '../lib/logger'
-import { scanPluginSlashCommands } from '../runtime/PluginCommandsScanner'
+import { scanPluginSlashCommands, scanProjectSlashCommands } from '../runtime/PluginCommandsScanner'
 
 const log = createLogger('ExpertEventWiring')
 
@@ -160,16 +160,20 @@ export const wireExpertStreamHandlers = (deps: ExpertEventWiringDeps): WiredExpe
     // if the plugin scan is slow or fails.
     sendCommands(initData.slashCommands)
 
-    // Then merge in plugin-provided commands (`<plugin>:<skill>`) which Claude
-    // Code's stream-json mode does not enumerate.
-    scanPluginSlashCommands()
-      .then((pluginCommands) => {
-        if (pluginCommands.length === 0) return
-        const merged = Array.from(new Set([...initData.slashCommands, ...pluginCommands])).sort()
+    // Then merge in plugin-provided commands (`<plugin>:<skill>`) and project/user
+    // custom commands from `.claude/commands/` which stream-json mode does not enumerate.
+    Promise.all([
+      scanPluginSlashCommands(),
+      scanProjectSlashCommands(cwd),
+    ])
+      .then(([pluginCommands, projectCommands]) => {
+        const extra = [...pluginCommands, ...projectCommands]
+        if (extra.length === 0) return
+        const merged = Array.from(new Set([...initData.slashCommands, ...extra])).sort()
         sendCommands(merged)
       })
       .catch((err) => {
-        log.warn('Plugin commands scan failed', {
+        log.warn('Slash commands scan failed', {
           agentId,
           sessionId,
           error: err instanceof Error ? err.message : String(err),

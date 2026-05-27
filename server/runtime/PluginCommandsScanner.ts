@@ -114,3 +114,41 @@ export const scanPluginSlashCommands = async (): Promise<string[]> => {
   log.debug('Scanned plugin slash commands', { count: list.length })
   return list
 }
+
+/**
+ * Scan custom slash commands from project-level and user-level `.claude/commands/`.
+ *
+ * Resolution:
+ *   - Flat files:  `<dir>/.claude/commands/foo.md`        → "foo"
+ *   - Nested:      `<dir>/.claude/commands/group/sub.md`  → "group/sub"
+ *
+ * Both `cwd`-relative (project) and `~/.claude/commands` (user) are scanned.
+ * Results are de-duplicated (project wins) and sorted.
+ */
+export const scanProjectSlashCommands = async (cwd: string): Promise<string[]> => {
+  const results = new Set<string>()
+
+  const scanDir = async (baseDir: string) => {
+    const commandsDir = join(baseDir, '.claude', 'commands')
+    if (!existsSync(commandsDir)) return
+
+    const entries = await readdir(commandsDir, { withFileTypes: true }).catch(() => [])
+    for (const entry of entries) {
+      if (entry.isFile() && entry.name.endsWith('.md')) {
+        results.add(entry.name.replace(/\.md$/, ''))
+      } else if (entry.isDirectory()) {
+        const subFiles = await listFilesWithExt(join(commandsDir, entry.name), '.md')
+        for (const file of subFiles) {
+          results.add(`${entry.name}/${file.replace(/\.md$/, '')}`)
+        }
+      }
+    }
+  }
+
+  await scanDir(cwd)
+  await scanDir(homedir())
+
+  const list = Array.from(results).sort()
+  log.debug('Scanned project slash commands', { cwd, count: list.length })
+  return list
+}

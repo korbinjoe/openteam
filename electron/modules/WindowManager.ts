@@ -11,7 +11,7 @@ import { PORTS } from '../../shared/ports'
 export class WindowManager {
   private mainWindow: BrowserWindow | null = null
 
-  createMainWindow(serverPort: number, isDev: boolean, preloadPath?: string): BrowserWindow {
+  createMainWindow(serverPort: number, isDev: boolean, preloadPath?: string, options?: { deferShow?: boolean }): BrowserWindow {
     const validPreload = preloadPath && existsSync(preloadPath) ? preloadPath : undefined
     if (preloadPath && !validPreload) {
       console.warn(`[WindowManager] Preload not found: ${preloadPath}`)
@@ -32,9 +32,11 @@ export class WindowManager {
       },
     })
 
-    this.mainWindow.once('ready-to-show', () => {
-      this.mainWindow?.show()
-    })
+    if (!options?.deferShow) {
+      this.mainWindow.once('ready-to-show', () => {
+        this.mainWindow?.show()
+      })
+    }
 
     const url = isDev ? `http://localhost:${PORTS.DEV_UI}` : `http://localhost:${serverPort}`
     console.log(`[WindowManager] Loading: ${url} (preload: ${validPreload || 'none'})`)
@@ -78,7 +80,7 @@ export class WindowManager {
       const isRefresh =
         (input.key === 'r' && (input.meta || input.control)) ||
         input.key === 'F5'
-      if (isRefresh) {
+      if (isRefresh && !isDev) {
         e.preventDefault()
       }
       if (input.key === 'd' && input.shift && (input.meta || input.control)) {

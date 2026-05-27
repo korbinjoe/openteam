@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OpenTeam - Home (Empty State)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg-0: rgb(6, 6, 11);
+  --bg-1: rgb(10, 10, 16);
+  --bg-2: rgb(16, 16, 24);
+  --bg-3: rgb(22, 22, 32);
+  --bg-hover: rgb(30, 30, 42);
+  --bg-elevated: rgb(24, 24, 36);
+  --text-1: rgb(226, 228, 240);
+  --text-2: rgb(148, 156, 172);
+  --text-3: rgb(90, 100, 120);
+  --text-em: rgb(248, 250, 252);
+  --accent: rgb(90, 143, 202);
+  --accent-light: rgb(130, 176, 222);
+  --accent-deep: rgb(62, 114, 172);
+  --green: rgb(52, 211, 153);
+  --border: rgb(38, 38, 54);
+  --border-s: rgb(28, 28, 42);
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 14px;
+}
+
+body {
+  font-family: 'Nunito', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--bg-1);
+  color: var(--text-1);
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  display: flex;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Sidebar (context frame) ── */
+.sidebar {
+  width: 240px;
+  min-width: 240px;
+  background: var(--bg-2);
+  border-right: 1px solid var(--border-s);
+  padding: 12px 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.sb-header {
+  padding: 6px 16px 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sb-logo {
+  width: 22px; height: 22px;
+  background: var(--accent);
+  border-radius: 6px;
+  display: grid; place-items: center;
+  font-size: 11px; font-weight: 800; color: white;
+}
+
+.sb-brand { font-size: 13px; font-weight: 700; }
+
+.sb-new {
+  margin: 0 10px 14px;
+  padding: 7px 10px;
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  font-size: 11px; color: var(--text-2);
+  display: flex; align-items: center; gap: 6px;
+}
+
+.sb-new .k {
+  margin-left: auto;
+  font-size: 9px; color: var(--text-3); opacity: .7;
+}
+
+.sb-label {
+  padding: 10px 14px 4px;
+  font-size: 9px; font-weight: 700;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: .7px;
+}
+
+.sb-row {
+  padding: 5px 14px;
+  font-size: 11px; color: var(--text-2);
+  display: flex; align-items: center; gap: 8px;
+}
+
+.sb-row .cnt {
+  margin-left: auto;
+  font-size: 9px; color: var(--text-3);
+}
+
+.sb-spacer { flex: 1; }
+
+.sb-foot {
+  padding: 10px 14px 4px;
+  border-top: 1px solid var(--border-s);
+  display: flex; gap: 14px; justify-content: center;
+}
+
+.sb-foot-i {
+  width: 14px; height: 14px;
+  border-radius: 3px;
+  background: var(--bg-hover);
+  opacity: .4;
+}
+
+/* ── Main ── */
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.toolbar {
+  height: 38px; min-height: 38px;
+  border-bottom: 1px solid var(--border-s);
+  display: flex; align-items: center;
+  padding: 0 20px;
+  font-size: 11px; color: var(--text-3);
+}
+
+.toolbar span + span::before {
+  content: ' / ';
+  opacity: .4;
+  margin: 0 5px;
+}
+
+/* ── Home content ── */
+.home {
+  flex: 1;
+  overflow-y: auto;
+  padding: 56px 64px;
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.home-greeting {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-2);
+  margin-bottom: 6px;
+}
+
+.home-headline {
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--text-em);
+  letter-spacing: -.5px;
+  line-height: 1.15;
+  margin-bottom: 10px;
+}
+
+.home-sub {
+  font-size: 14px;
+  color: var(--text-3);
+  line-height: 1.6;
+  max-width: 440px;
+  margin-bottom: 32px;
+}
+
+/* CTA */
+.cta-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 56px;
+}
+
+.cta-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: var(--accent);
+  border-radius: var(--r-sm);
+  font-size: 13px;
+  font-weight: 700;
+  color: white;
+  cursor: pointer;
+  transition: background .15s;
+}
+
+.cta-primary:hover { background: var(--accent-light); }
+
+.cta-primary .k {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 5px;
+  background: rgba(255,255,255,.15);
+  border-radius: 3px;
+}
+
+.cta-hint {
+  font-size: 11px;
+  color: var(--text-3);
+}
+
+/* ── Team strip ── */
+.team-section {
+  margin-bottom: 48px;
+}
+
+.section-head {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-3);
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.section-head .online-count {
+  font-weight: 600;
+  color: var(--green);
+  font-size: 10px;
+}
+
+.team-strip {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.agent-chip {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 12px 6px 8px;
+  background: var(--bg-2);
+  border: 1px solid var(--border-s);
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-2);
+  transition: border-color .15s, background .15s;
+  cursor: default;
+}
+
+.agent-chip:hover {
+  border-color: var(--border);
+  background: var(--bg-3);
+}
+
+.agent-chip .av {
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  font-size: 9px; font-weight: 800; color: white;
+}
+
+.agent-chip .status {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--green);
+  opacity: .8;
+}
+
+/* ── Capabilities ── */
+.capabilities {
+  margin-bottom: 48px;
+}
+
+.cap-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+}
+
+.cap-item {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border-s);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: background .1s;
+  padding-right: 12px;
+  border-radius: var(--r-sm);
+}
+
+.cap-item:hover {
+  background: var(--bg-2);
+}
+
+.cap-item:nth-child(odd) { margin-right: 24px; }
+.cap-item:nth-child(even) { margin-left: 24px; }
+
+.cap-icon {
+  width: 28px; height: 28px;
+  border-radius: var(--r-sm);
+  background: var(--bg-3);
+  display: grid; place-items: center;
+  flex-shrink: 0;
+}
+
+.cap-icon svg {
+  width: 14px; height: 14px;
+  stroke: var(--text-2);
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.cap-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.cap-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-1);
+}
+
+.cap-desc {
+  font-size: 10px;
+  color: var(--text-3);
+}
+
+/* ── Shortcuts ── */
+.shortcuts {
+  display: flex;
+  gap: 20px;
+  padding-top: 4px;
+}
+
+.sc-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  color: var(--text-3);
+}
+
+.sc-item .k {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px; height: 16px;
+  padding: 0 3px;
+  font-size: 9px; font-weight: 700;
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  color: var(--text-2);
+}
+</style>
+</head>
+<body>
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sb-header">
+      <div class="sb-logo">T</div>
+      <div class="sb-brand">openteam</div>
+    </div>
+    <div class="sb-new">
+      <span>+ New Mission</span>
+      <span class="k">⌘N</span>
+    </div>
+    <div class="sb-label">Workspaces</div>
+    <div class="sb-row"><span>openteam</span><span class="cnt">48</span></div>
+    <div class="sb-row"><span>feizhu-share</span><span class="cnt">351</span></div>
+    <div class="sb-row"><span>aone-cloud-cli</span><span class="cnt">104</span></div>
+    <div class="sb-spacer"></div>
+    <div class="sb-foot">
+      <div class="sb-foot-i"></div>
+      <div class="sb-foot-i"></div>
+      <div class="sb-foot-i"></div>
+      <div class="sb-foot-i"></div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="toolbar">
+      <span>openteam</span>
+      <span>Home</span>
+    </div>
+
+    <div class="home">
+      <div class="home-greeting">Good afternoon</div>
+      <h1 class="home-headline">What should your team<br>work on?</h1>
+      <p class="home-sub">
+        Describe a task, assign agents, walk away.
+        They'll ship code, open PRs, and ping you when it's done.
+      </p>
+
+      <div class="cta-row">
+        <div class="cta-primary">
+          <span>New Mission</span>
+          <span class="k">⌘N</span>
+        </div>
+        <span class="cta-hint">or describe a task below</span>
+      </div>
+
+      <!-- Team -->
+      <div class="team-section">
+        <div class="section-head">
+          Your team
+          <span class="online-count">10 online</span>
+        </div>
+        <div class="team-strip">
+          <div class="agent-chip">
+            <div class="av" style="background:#6366f1">L</div>
+            <span>Lead</span>
+            <div class="status"></div>
+          </div>
+          <div class="agent-chip">
+            <div class="av" style="background:#3b82f6">F</div>
+            <span>Fullstack</span>
+            <div class="status"></div>
+          </div>
+          <div class="agent-chip">
+            <div class="av" style="background:#8b5cf6">A</div>
+            <span>Architect</span>
+            <div class="status"></div>
+          </div>
+          <div class="agent-chip">
+            <div class="av" style="background:#ec4899">U</div>
+            <span>UI Designer</span>
+            <div class="status"></div>
+          </div>
+          <div class="agent-chip">
+            <div class="av" style="background:#10b981">R</div>
+            <span>Reviewer</span>
+            <div class="status"></div>
+          </div>
+          <div class="agent-chip">
+            <div class="av" style="background:#f59e0b">D</div>
+            <span>DevOps</span>
+            <div class="status"></div>
+          </div>
+          <div class="agent-chip">
+            <div class="av" style="background:#ef4444">G</div>
+            <span>Growth</span>
+            <div class="status"></div>
+          </div>
+          <div class="agent-chip">
+            <div class="av" style="background:#06b6d4">P</div>
+            <span>Strategist</span>
+            <div class="status"></div>
+          </div>
+          <div class="agent-chip">
+            <div class="av" style="background:#a855f7">I</div>
+            <span>Image Creator</span>
+            <div class="status"></div>
+          </div>
+          <div class="agent-chip">
+            <div class="av" style="background:#64748b">S</div>
+            <span>Sensei</span>
+            <div class="status"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Capabilities -->
+      <div class="capabilities">
+        <div class="section-head">Start with a template</div>
+        <div class="cap-list">
+          <div class="cap-item">
+            <div class="cap-icon">
+              <svg viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+            </div>
+            <div class="cap-text">
+              <div class="cap-title">Ship a feature</div>
+              <div class="cap-desc">Code, tests, and PR in one shot</div>
+            </div>
+          </div>
+          <div class="cap-item">
+            <div class="cap-icon">
+              <svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>
+            </div>
+            <div class="cap-text">
+              <div class="cap-title">Fix a bug</div>
+              <div class="cap-desc">Trace, diagnose, patch</div>
+            </div>
+          </div>
+          <div class="cap-item">
+            <div class="cap-icon">
+              <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </div>
+            <div class="cap-text">
+              <div class="cap-title">Review code</div>
+              <div class="cap-desc">Deep review with suggestions</div>
+            </div>
+          </div>
+          <div class="cap-item">
+            <div class="cap-icon">
+              <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+            </div>
+            <div class="cap-text">
+              <div class="cap-title">Design UI</div>
+              <div class="cap-desc">From sketch to production code</div>
+            </div>
+          </div>
+          <div class="cap-item">
+            <div class="cap-icon">
+              <svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+            </div>
+            <div class="cap-text">
+              <div class="cap-title">Write tests</div>
+              <div class="cap-desc">Coverage targets, auto-generated</div>
+            </div>
+          </div>
+          <div class="cap-item">
+            <div class="cap-icon">
+              <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
+            </div>
+            <div class="cap-text">
+              <div class="cap-title">Refactor</div>
+              <div class="cap-desc">Restructure without regressions</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Shortcuts -->
+      <div class="shortcuts">
+        <div class="sc-item">
+          <span class="k">⌘</span><span class="k">N</span>
+          <span>New mission</span>
+        </div>
+        <div class="sc-item">
+          <span class="k">⌘</span><span class="k">K</span>
+          <span>Commands</span>
+        </div>
+        <div class="sc-item">
+          <span class="k">/</span>
+          <span>Search</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

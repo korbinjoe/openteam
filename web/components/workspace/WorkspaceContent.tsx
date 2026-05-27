@@ -46,18 +46,16 @@ const useSplitChatWidth = (): string => {
 }
 
 const WorkspaceContent = () => {
-  const { viewMode, layoutMode, ideCollapsed } = useWorkspace()
+  const { viewMode, layoutMode, ideCollapsed, activeChatId } = useWorkspace()
 
-  // Quad always tiles members of the *active mission* — never cross-mission chats.
-  // Independent of viewMode: when an agent is selected we still show all mission
-  // members and highlight the selected one (MemberBackedPane handles isActive).
+  if (!activeChatId) {
+    return <ChatPane />
+  }
+
   if (layoutMode === 'quad') {
     return <QuadFrame ideCollapsed={ideCollapsed} />
   }
 
-  // Single + split share one stable frame so ChatPane + IdeRegion keep their
-  // React positions across viewMode switches. Only MissionInfoSidebar enters/exits
-  // as a keyed sibling, which lets WebIDEPanel (terminal, file tree) stay alive.
   return <UnifiedFrame viewMode={viewMode} layoutMode={layoutMode} ideCollapsed={ideCollapsed} />
 }
 

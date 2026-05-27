@@ -1,12 +1,11 @@
 import { useNavigate } from 'react-router-dom'
 import { useWorkspace } from '../../contexts/WorkspaceContext'
-import { useWorkspaceMeta } from '../../hooks/useWorkspaceMeta'
 import { useWorkspaceChats } from '../../hooks/useWorkspaceChats'
 import { useAgents } from '../../hooks/useAgents'
 import LayoutControls from './LayoutControls'
-import { UsersGroup, ChevronRight, FolderGit } from './icons'
+import { UsersGroup, ChevronRight } from './icons'
 import { cn } from '../../lib/utils'
-import { buildMissionUrl } from './urls'
+import { buildMissionUrl, buildWorkspaceUrl } from './urls'
 import { memberStatusDot } from './MissionSessionRows'
 import type { Chat, ChatMember } from '../workspace/types'
 
@@ -15,12 +14,28 @@ import type { Chat, ChatMember } from '../workspace/types'
 // Terminal button lives inside WebIDEPanel's tab bar (the only IDE-column header).
 
 const WorkspaceToolbar = () => {
-  const { viewMode, workspaceId } = useWorkspace()
-  const { meta } = useWorkspaceMeta(workspaceId)
+  const { viewMode, workspaceId, activeChatId } = useWorkspace()
+  const navigate = useNavigate()
+
+  const handleGoHome = () => {
+    if (!workspaceId) return
+    navigate(buildWorkspaceUrl(workspaceId))
+  }
+
+  if (!activeChatId) {
+    return (
+      <div className="h-8 border-b border-border-subtle flex items-center px-3 gap-2 flex-shrink-0 bg-bg-tertiary">
+        <span className="text-[11px] font-semibold text-text-secondary">OpenTeam</span>
+        <ChevronRight size={11} className="text-text-muted flex-shrink-0" />
+        <span className="text-[11px] font-medium text-text-secondary">Home</span>
+        <span className="flex-1" />
+      </div>
+    )
+  }
 
   return (
     <div className="h-8 border-b border-border-subtle flex items-center px-3 gap-2 flex-shrink-0 bg-bg-tertiary">
-      <WorkspaceCrumb name={meta?.name ?? workspaceId ?? '—'} repoCount={meta?.repositories.length ?? 0} />
+      <BrandCrumb onClick={handleGoHome} />
       <ChevronRight size={11} className="text-text-muted flex-shrink-0" />
       {viewMode === 'mission-overview' ? <MissionInfoBar /> : <ActiveChatInfoBar />}
 
@@ -31,14 +46,14 @@ const WorkspaceToolbar = () => {
   )
 }
 
-const WorkspaceCrumb = ({ name, repoCount }: { name: string; repoCount: number }) => (
-  <div className="flex items-center gap-1.5 min-w-0 max-w-[200px]">
-    <FolderGit size={12} className="text-text-muted flex-shrink-0" />
-    <span className="text-[11px] font-medium text-text-secondary truncate" title={name}>{name}</span>
-    {repoCount > 0 && (
-      <span className="font-mono text-[10px] text-text-muted tabular-nums flex-shrink-0">{repoCount}</span>
-    )}
-  </div>
+const BrandCrumb = ({ onClick }: { onClick: () => void }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className="text-[11px] font-semibold text-text-secondary hover:text-text-primary transition-colors"
+  >
+    OpenTeam
+  </button>
 )
 
 // Max sibling agents to render as inline dots before collapsing the rest into "+N".

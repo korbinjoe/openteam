@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OpenTeam — Home Dashboard (No Mission Selected)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg-primary: rgb(10, 10, 16);
+    --bg-secondary: rgb(16, 16, 24);
+    --bg-tertiary: rgb(22, 22, 32);
+    --bg-hover: rgb(30, 30, 42);
+    --bg-elevated: rgb(24, 24, 36);
+    --bg-input: rgb(18, 18, 28);
+    --text-primary: rgb(226, 228, 240);
+    --text-secondary: rgb(148, 156, 172);
+    --text-emphasis: rgb(248, 250, 252);
+    --text-muted: rgb(90, 100, 120);
+    --accent-brand: rgb(90, 143, 202);
+    --accent-brand-light: rgb(130, 176, 222);
+    --accent-brand-deep: rgb(62, 114, 172);
+    --accent-green: rgb(52, 211, 153);
+    --accent-purple: rgb(167, 139, 250);
+    --accent-orange: rgb(245, 158, 11);
+    --accent-yellow: rgb(251, 191, 36);
+    --border-color: rgb(38, 38, 54);
+    --border-subtle: rgb(28, 28, 42);
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 14px;
+  }
+
+  body {
+    font-family: 'Nunito', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+    display: flex;
+  }
+
+  /* ─── Sidebar (context only — not the design target) ─── */
+  .sidebar {
+    width: 240px;
+    min-width: 240px;
+    background: var(--bg-secondary);
+    border-right: 1px solid var(--border-subtle);
+    display: flex;
+    flex-direction: column;
+    padding: 12px 0;
+  }
+
+  .sidebar-header {
+    padding: 8px 16px 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .sidebar-logo {
+    width: 24px;
+    height: 24px;
+    background: var(--accent-brand);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .sidebar-logo::after {
+    content: 'T';
+    color: white;
+    font-size: 12px;
+    font-weight: 800;
+  }
+
+  .sidebar-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+
+  .new-mission-btn {
+    margin: 0 12px 12px;
+    padding: 8px 12px;
+    background: var(--bg-hover);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+  }
+
+  .new-mission-btn .kbd {
+    margin-left: auto;
+    font-size: 10px;
+    color: var(--text-muted);
+    opacity: 0.6;
+  }
+
+  .sidebar-section {
+    padding: 8px 12px;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .sidebar-item {
+    padding: 6px 16px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+  }
+
+  .sidebar-item:hover { background: var(--bg-hover); }
+
+  .sidebar-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+  }
+
+  .dot-blue { background: var(--accent-brand); }
+  .dot-green { background: var(--accent-green); opacity: 0.4; }
+  .dot-gray { background: var(--text-muted); opacity: 0.4; }
+
+  .sidebar-item .time {
+    margin-left: auto;
+    font-size: 10px;
+    color: var(--text-muted);
+  }
+
+  .sidebar-workspace {
+    padding: 6px 16px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+  }
+
+  .sidebar-workspace .count {
+    font-size: 10px;
+    color: var(--text-muted);
+  }
+
+  .sidebar-spacer { flex: 1; }
+
+  .sidebar-footer {
+    padding: 8px 12px;
+    border-top: 1px solid var(--border-subtle);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    justify-content: center;
+  }
+
+  .sidebar-footer-icon {
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    background: var(--bg-hover);
+    opacity: 0.5;
+  }
+
+  /* ─── Main Content Area (THE DESIGN TARGET) ─── */
+  .main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* Top toolbar */
+  .toolbar {
+    height: 40px;
+    min-height: 40px;
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    gap: 8px;
+  }
+
+  .toolbar-breadcrumb {
+    font-size: 11px;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .toolbar-breadcrumb .separator { opacity: 0.4; }
+
+  .toolbar-badge {
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 3px;
+    background: rgba(90, 143, 202, 0.15);
+    color: var(--accent-brand-light);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+
+  .toolbar-spacer { flex: 1; }
+
+  .toolbar-actions {
+    display: flex;
+    gap: 4px;
+  }
+
+  .toolbar-btn {
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.4;
+    cursor: pointer;
+  }
+
+  .toolbar-btn:hover { background: var(--bg-hover); opacity: 0.7; }
+
+  /* ─── Dashboard ─── */
+  .dashboard {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 60px 40px 40px;
+    gap: 0;
+  }
+
+  /* Hero section */
+  .hero {
+    text-align: center;
+    margin-bottom: 48px;
+    max-width: 520px;
+  }
+
+  .hero-greeting {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--text-emphasis);
+    margin-bottom: 8px;
+    letter-spacing: -0.5px;
+  }
+
+  .hero-sub {
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    margin-bottom: 28px;
+  }
+
+  .hero-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 24px;
+    background: linear-gradient(135deg, var(--accent-brand) 0%, var(--accent-brand-deep) 100%);
+    border-radius: var(--radius-md);
+    color: white;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow:
+      0 4px 16px rgba(90, 143, 202, 0.25),
+      0 1px 3px rgba(0, 0, 0, 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+
+  .hero-cta:hover {
+    transform: translateY(-1px);
+    box-shadow:
+      0 6px 24px rgba(90, 143, 202, 0.3),
+      0 2px 4px rgba(0, 0, 0, 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  }
+
+  .hero-cta .icon {
+    font-size: 18px;
+    opacity: 0.9;
+  }
+
+  .hero-cta .shortcut {
+    font-size: 11px;
+    opacity: 0.6;
+    font-weight: 500;
+    padding: 2px 6px;
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 4px;
+  }
+
+  /* ─── Team Roster ─── */
+  .section-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 16px;
+    width: 100%;
+    max-width: 680px;
+  }
+
+  .team-roster {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 10px;
+    width: 100%;
+    max-width: 680px;
+    margin-bottom: 40px;
+  }
+
+  .agent-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    transition: border-color 0.15s, background 0.15s;
+    cursor: default;
+  }
+
+  .agent-card:hover {
+    border-color: var(--border-color);
+    background: var(--bg-tertiary);
+  }
+
+  .agent-card-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .agent-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    color: white;
+  }
+
+  .agent-name {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .agent-status {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 10px;
+    color: var(--accent-green);
+    font-weight: 500;
+  }
+
+  .agent-status-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--accent-green);
+  }
+
+  /* ─── Quick Templates ─── */
+  .templates {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    width: 100%;
+    max-width: 680px;
+    margin-bottom: 40px;
+  }
+
+  .template-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: 16px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s, transform 0.15s;
+  }
+
+  .template-card:hover {
+    border-color: rgba(90, 143, 202, 0.3);
+    background: var(--bg-tertiary);
+    transform: translateY(-1px);
+  }
+
+  .template-icon {
+    font-size: 18px;
+    margin-bottom: 8px;
+  }
+
+  .template-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+  }
+
+  .template-desc {
+    font-size: 10px;
+    color: var(--text-muted);
+    line-height: 1.4;
+  }
+
+  /* ─── Keyboard shortcuts footer ─── */
+  .shortcuts-footer {
+    width: 100%;
+    max-width: 680px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border-subtle);
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+  }
+
+  .shortcut-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10px;
+    color: var(--text-muted);
+  }
+
+  .shortcut-item .kbd {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 4px;
+    font-size: 9px;
+    font-weight: 700;
+    background: var(--bg-hover);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    color: var(--text-secondary);
+  }
+</style>
+</head>
+<body>
+  <!-- ─── Sidebar (context, not design target) ─── -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo"></div>
+      <div class="sidebar-title">openteam</div>
+    </div>
+
+    <div class="new-mission-btn">
+      <span>+ New Mission</span>
+      <span class="kbd">⌘N</span>
+    </div>
+
+    <div class="sidebar-section">PINNED</div>
+    <div class="sidebar-item">
+      <div class="sidebar-dot dot-green"></div>
+      <span>Feature: auth flow</span>
+      <span class="time">2h</span>
+    </div>
+    <div class="sidebar-item">
+      <div class="sidebar-dot dot-green"></div>
+      <span>Refactor: DB layer</span>
+      <span class="time">5h</span>
+    </div>
+    <div class="sidebar-item">
+      <div class="sidebar-dot dot-gray"></div>
+      <span>Design: dashboard</span>
+      <span class="time">1d</span>
+    </div>
+
+    <div class="sidebar-section" style="margin-top: 12px;">WORKSPACES</div>
+    <div class="sidebar-workspace"><span>openteam</span><span class="count">48</span></div>
+    <div class="sidebar-workspace"><span>feizhu-share</span><span class="count">351</span></div>
+    <div class="sidebar-workspace"><span>aone-cloud-cli</span><span class="count">104</span></div>
+
+    <div class="sidebar-spacer"></div>
+    <div class="sidebar-footer">
+      <div class="sidebar-footer-icon"></div>
+      <div class="sidebar-footer-icon"></div>
+      <div class="sidebar-footer-icon"></div>
+      <div class="sidebar-footer-icon"></div>
+    </div>
+  </aside>
+
+  <!-- ─── Main Content: HOME DASHBOARD ─── -->
+  <div class="main-content">
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <div class="toolbar-breadcrumb">
+        <span>openteam</span>
+        <span class="separator">›</span>
+        <span>Mission Control</span>
+        <span class="toolbar-badge">Home</span>
+      </div>
+      <div class="toolbar-spacer"></div>
+      <div class="toolbar-actions">
+        <div class="toolbar-btn">□</div>
+        <div class="toolbar-btn">⊞</div>
+      </div>
+    </div>
+
+    <!-- Dashboard content -->
+    <div class="dashboard">
+      <!-- Hero -->
+      <div class="hero">
+        <div class="hero-greeting">Ready to deploy.</div>
+        <div class="hero-sub">
+          Your team of AI agents is online and waiting for orders.<br>
+          Dispatch a mission — they'll work independently while you're away.
+        </div>
+        <div class="hero-cta">
+          <span class="icon">+</span>
+          <span>New Mission</span>
+          <span class="shortcut">⌘N</span>
+        </div>
+      </div>
+
+      <!-- Team Roster -->
+      <div class="section-label">Your Team — 6 agents online</div>
+      <div class="team-roster">
+        <div class="agent-card">
+          <div class="agent-card-header">
+            <div class="agent-avatar" style="background: linear-gradient(135deg, #6366f1, #4f46e5);">L</div>
+            <div class="agent-name">Lead</div>
+          </div>
+          <div class="agent-status">
+            <div class="agent-status-dot"></div>
+            Ready
+          </div>
+        </div>
+
+        <div class="agent-card">
+          <div class="agent-card-header">
+            <div class="agent-avatar" style="background: linear-gradient(135deg, #3b82f6, #2563eb);">F</div>
+            <div class="agent-name">Fullstack</div>
+          </div>
+          <div class="agent-status">
+            <div class="agent-status-dot"></div>
+            Ready
+          </div>
+        </div>
+
+        <div class="agent-card">
+          <div class="agent-card-header">
+            <div class="agent-avatar" style="background: linear-gradient(135deg, #8b5cf6, #7c3aed);">A</div>
+            <div class="agent-name">Architect</div>
+          </div>
+          <div class="agent-status">
+            <div class="agent-status-dot"></div>
+            Ready
+          </div>
+        </div>
+
+        <div class="agent-card">
+          <div class="agent-card-header">
+            <div class="agent-avatar" style="background: linear-gradient(135deg, #ec4899, #db2777);">U</div>
+            <div class="agent-name">UI Designer</div>
+          </div>
+          <div class="agent-status">
+            <div class="agent-status-dot"></div>
+            Ready
+          </div>
+        </div>
+
+        <div class="agent-card">
+          <div class="agent-card-header">
+            <div class="agent-avatar" style="background: linear-gradient(135deg, #10b981, #059669);">R</div>
+            <div class="agent-name">Reviewer</div>
+          </div>
+          <div class="agent-status">
+            <div class="agent-status-dot"></div>
+            Ready
+          </div>
+        </div>
+
+        <div class="agent-card">
+          <div class="agent-card-header">
+            <div class="agent-avatar" style="background: linear-gradient(135deg, #f59e0b, #d97706);">D</div>
+            <div class="agent-name">DevOps</div>
+          </div>
+          <div class="agent-status">
+            <div class="agent-status-dot"></div>
+            Ready
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Templates -->
+      <div class="section-label">Quick Start</div>
+      <div class="templates">
+        <div class="template-card">
+          <div class="template-icon">⚡</div>
+          <div class="template-title">Ship a feature</div>
+          <div class="template-desc">Describe what to build. Agents handle code, tests, and PR.</div>
+        </div>
+
+        <div class="template-card">
+          <div class="template-icon">🔧</div>
+          <div class="template-title">Fix a bug</div>
+          <div class="template-desc">Paste the error or describe the issue. Agents trace and fix.</div>
+        </div>
+
+        <div class="template-card">
+          <div class="template-icon">👁</div>
+          <div class="template-title">Code review</div>
+          <div class="template-desc">Point to a PR or branch. Get thorough review and suggestions.</div>
+        </div>
+
+        <div class="template-card">
+          <div class="template-icon">🎨</div>
+          <div class="template-title">Design a page</div>
+          <div class="template-desc">Share a sketch or describe UI. Get production-ready code.</div>
+        </div>
+
+        <div class="template-card">
+          <div class="template-icon">🧪</div>
+          <div class="template-title">Write tests</div>
+          <div class="template-desc">Specify coverage targets. Agents generate and validate tests.</div>
+        </div>
+
+        <div class="template-card">
+          <div class="template-icon">📐</div>
+          <div class="template-title">Refactor</div>
+          <div class="template-desc">Identify tech debt. Agents restructure with zero regressions.</div>
+        </div>
+      </div>
+
+      <!-- Keyboard shortcuts -->
+      <div class="shortcuts-footer">
+        <div class="shortcut-item">
+          <span class="kbd">⌘</span><span class="kbd">N</span>
+          <span>New mission</span>
+        </div>
+        <div class="shortcut-item">
+          <span class="kbd">⌘</span><span class="kbd">K</span>
+          <span>Command palette</span>
+        </div>
+        <div class="shortcut-item">
+          <span class="kbd">⌘</span><span class="kbd">⇧</span><span class="kbd">T</span>
+          <span>Team settings</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

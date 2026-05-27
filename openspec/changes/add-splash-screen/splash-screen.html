@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OpenTeam — Splash Screen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg-primary: rgb(10, 10, 16);
+    --bg-deep: rgb(6, 6, 12);
+    --text-primary: rgb(226, 228, 240);
+    --text-secondary: rgb(148, 156, 172);
+    --text-muted: rgb(90, 100, 120);
+    --accent-brand: rgb(90, 143, 202);
+    --accent-brand-light: rgb(130, 176, 222);
+    --accent-brand-deep: rgb(62, 114, 172);
+    --accent-glow: rgba(90, 143, 202, 0.12);
+  }
+
+  body {
+    font-family: 'Nunito', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg-deep);
+    color: var(--text-primary);
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-app-region: drag;
+    user-select: none;
+  }
+
+  /* ─── Background atmosphere ─── */
+  .bg-layer {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  .bg-layer::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 50% 40% at 50% 42%, rgba(90, 143, 202, 0.06) 0%, transparent 100%);
+  }
+
+  .bg-layer::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(circle 320px at 50% 44%, rgba(62, 114, 172, 0.04) 0%, transparent 100%);
+  }
+
+  /* Subtle grid pattern */
+  .bg-grid {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.025;
+    background-image:
+      linear-gradient(rgba(90, 143, 202, 0.5) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(90, 143, 202, 0.5) 1px, transparent 1px);
+    background-size: 60px 60px;
+    mask-image: radial-gradient(ellipse 50% 50% at 50% 50%, black 20%, transparent 70%);
+    -webkit-mask-image: radial-gradient(ellipse 50% 50% at 50% 50%, black 20%, transparent 70%);
+    animation: gridFadeIn 1.5s ease-out 0.3s both;
+  }
+
+  @keyframes gridFadeIn {
+    from { opacity: 0; }
+    to { opacity: 0.025; }
+  }
+
+  /* ─── Main container ─── */
+  .splash-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    animation: containerEntry 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  @keyframes containerEntry {
+    from { opacity: 0; transform: translateY(12px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  /* ─── Logo assembly ─── */
+  .logo-assembly {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    margin-bottom: 32px;
+  }
+
+  /* Outer ring pulse */
+  .logo-ring {
+    position: absolute;
+    inset: -20px;
+    border-radius: 38px;
+    border: 1px solid rgba(90, 143, 202, 0.08);
+    animation: ringPulse 3s ease-in-out infinite;
+  }
+
+  .logo-ring::after {
+    content: '';
+    position: absolute;
+    inset: -12px;
+    border-radius: 44px;
+    border: 1px solid rgba(90, 143, 202, 0.04);
+  }
+
+  @keyframes ringPulse {
+    0%, 100% { opacity: 0.5; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.03); }
+  }
+
+  /* Glow behind logo */
+  .logo-glow {
+    position: absolute;
+    inset: -30px;
+    border-radius: 40px;
+    background: radial-gradient(circle, rgba(90, 143, 202, 0.18) 0%, rgba(62, 114, 172, 0.06) 50%, transparent 70%);
+    animation: glowBreath 3s ease-in-out infinite;
+  }
+
+  @keyframes glowBreath {
+    0%, 100% { opacity: 0.7; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.08); }
+  }
+
+  /* Logo mark */
+  .logo-mark {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(145deg, rgba(130, 176, 222, 0.9) 0%, var(--accent-brand) 40%, var(--accent-brand-deep) 100%);
+    border-radius: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow:
+      0 8px 40px rgba(90, 143, 202, 0.25),
+      0 2px 8px rgba(0, 0, 0, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.12),
+      inset 0 -2px 4px rgba(0, 0, 0, 0.1);
+    animation: logoScale 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  @keyframes logoScale {
+    from { opacity: 0; transform: scale(0.7) rotate(-3deg); }
+    60% { transform: scale(1.02) rotate(0deg); }
+    to { opacity: 1; transform: scale(1) rotate(0deg); }
+  }
+
+  /* T-shape inside logo */
+  .logo-t {
+    position: relative;
+    width: 56px;
+    height: 54px;
+  }
+
+  .logo-t .bar-h {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 56px;
+    height: 14px;
+    background: white;
+    border-radius: 7px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  .logo-t .bar-v {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 15px;
+    height: 54px;
+    background: white;
+    border-radius: 7.5px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  /* ─── Wordmark ─── */
+  .wordmark {
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: -0.3px;
+    color: var(--text-primary);
+    margin-bottom: 10px;
+    animation: textReveal 0.7s ease-out 0.25s both;
+  }
+
+  @keyframes textReveal {
+    from { opacity: 0; transform: translateY(6px); letter-spacing: 4px; }
+    to { opacity: 1; transform: translateY(0); letter-spacing: -0.3px; }
+  }
+
+  .wordmark span {
+    color: var(--accent-brand-light);
+  }
+
+  /* ─── Tagline ─── */
+  .tagline {
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--text-muted);
+    letter-spacing: 0.2px;
+    margin-bottom: 52px;
+    animation: fadeUp 0.6s ease-out 0.5s both;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ─── Agent dots loading indicator ─── */
+  .agent-dots {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    animation: fadeUp 0.5s ease-out 0.7s both;
+  }
+
+  .agent-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent-brand);
+    opacity: 0.2;
+    animation: dotActivate 2.4s ease-in-out infinite;
+  }
+
+  .agent-dot:nth-child(1) { animation-delay: 0s; }
+  .agent-dot:nth-child(2) { animation-delay: 0.3s; }
+  .agent-dot:nth-child(3) { animation-delay: 0.6s; }
+  .agent-dot:nth-child(4) { animation-delay: 0.9s; }
+  .agent-dot:nth-child(5) { animation-delay: 1.2s; }
+
+  @keyframes dotActivate {
+    0%, 100% { opacity: 0.15; transform: scale(0.8); background: var(--accent-brand); }
+    20% { opacity: 1; transform: scale(1.2); background: var(--accent-brand-light); box-shadow: 0 0 8px rgba(90, 143, 202, 0.5); }
+    40% { opacity: 0.4; transform: scale(1); }
+  }
+
+  /* Connector lines between dots */
+  .agent-dots::before {
+    content: '';
+    position: absolute;
+    width: 42px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(90, 143, 202, 0.15), transparent);
+  }
+
+  /* ─── Status ─── */
+  .status {
+    margin-top: 24px;
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--text-muted);
+    opacity: 0;
+    animation: statusFade 0.5s ease-out 1.4s forwards;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  @keyframes statusFade {
+    from { opacity: 0; }
+    to { opacity: 0.6; }
+  }
+
+  .status-dot {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--accent-brand);
+    animation: statusBlink 1.5s ease-in-out infinite;
+  }
+
+  @keyframes statusBlink {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 1; }
+  }
+
+  /* ─── Version ─── */
+  .version {
+    position: fixed;
+    bottom: 20px;
+    right: 24px;
+    font-size: 10px;
+    color: var(--text-muted);
+    opacity: 0.3;
+    letter-spacing: 0.8px;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+
+  /* ─── Keyboard shortcut hint ─── */
+  .shortcut-hint {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 10px;
+    color: var(--text-muted);
+    opacity: 0;
+    animation: hintAppear 0.5s ease-out 2.5s forwards;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  @keyframes hintAppear {
+    from { opacity: 0; }
+    to { opacity: 0.35; }
+  }
+
+  .kbd {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px 5px;
+    font-size: 9px;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 600;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 4px;
+    line-height: 1;
+  }
+
+  /* ─── Exit animation (add .exiting to body) ─── */
+  body.exiting .splash-container {
+    animation: exitScale 0.4s cubic-bezier(0.4, 0, 1, 1) forwards;
+  }
+
+  body.exiting .bg-layer,
+  body.exiting .bg-grid {
+    animation: exitFade 0.4s ease-in forwards;
+  }
+
+  @keyframes exitScale {
+    to { opacity: 0; transform: scale(1.04); filter: blur(4px); }
+  }
+
+  @keyframes exitFade {
+    to { opacity: 0; }
+  }
+</style>
+</head>
+<body>
+  <!-- Background layers -->
+  <div class="bg-layer"></div>
+  <div class="bg-grid"></div>
+
+  <!-- Main splash content -->
+  <div class="splash-container">
+    <!-- Logo assembly -->
+    <div class="logo-assembly">
+      <div class="logo-ring"></div>
+      <div class="logo-glow"></div>
+      <div class="logo-mark">
+        <div class="logo-t">
+          <div class="bar-h"></div>
+          <div class="bar-v"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Wordmark -->
+    <div class="wordmark">Open<span>Team</span></div>
+
+    <!-- Tagline -->
+    <div class="tagline">Your AI team is warming up</div>
+
+    <!-- Agent activation dots -->
+    <div class="agent-dots">
+      <div class="agent-dot"></div>
+      <div class="agent-dot"></div>
+      <div class="agent-dot"></div>
+      <div class="agent-dot"></div>
+      <div class="agent-dot"></div>
+    </div>
+
+    <!-- Status line -->
+    <div class="status">
+      <div class="status-dot"></div>
+      Initializing workspace
+    </div>
+  </div>
+
+  <!-- Bottom elements -->
+  <div class="shortcut-hint">
+    <span>Press</span>
+    <span class="kbd">⌘</span><span class="kbd">N</span>
+    <span>to dispatch your first mission</span>
+  </div>
+  <div class="version">v1.0</div>
+</body>
+</html>

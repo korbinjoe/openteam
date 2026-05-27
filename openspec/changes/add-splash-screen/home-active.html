@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OpenTeam — Home Dashboard (Active Missions)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg-primary: rgb(10, 10, 16);
+    --bg-secondary: rgb(16, 16, 24);
+    --bg-tertiary: rgb(22, 22, 32);
+    --bg-hover: rgb(30, 30, 42);
+    --bg-elevated: rgb(24, 24, 36);
+    --text-primary: rgb(226, 228, 240);
+    --text-secondary: rgb(148, 156, 172);
+    --text-emphasis: rgb(248, 250, 252);
+    --text-muted: rgb(90, 100, 120);
+    --accent-brand: rgb(90, 143, 202);
+    --accent-brand-light: rgb(130, 176, 222);
+    --accent-brand-deep: rgb(62, 114, 172);
+    --accent-green: rgb(52, 211, 153);
+    --accent-yellow: rgb(251, 191, 36);
+    --accent-red: rgb(239, 68, 68);
+    --accent-purple: rgb(167, 139, 250);
+    --border-color: rgb(38, 38, 54);
+    --border-subtle: rgb(28, 28, 42);
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 14px;
+  }
+
+  body {
+    font-family: 'Nunito', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+    display: flex;
+  }
+
+  /* ─── Sidebar ─── */
+  .sidebar {
+    width: 240px;
+    min-width: 240px;
+    background: var(--bg-secondary);
+    border-right: 1px solid var(--border-subtle);
+    display: flex;
+    flex-direction: column;
+    padding: 12px 0;
+  }
+
+  .sidebar-header {
+    padding: 8px 16px 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .sidebar-logo {
+    width: 24px;
+    height: 24px;
+    background: var(--accent-brand);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .sidebar-logo::after {
+    content: 'T';
+    color: white;
+    font-size: 12px;
+    font-weight: 800;
+  }
+
+  .sidebar-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+
+  .new-mission-btn {
+    margin: 0 12px 12px;
+    padding: 8px 12px;
+    background: var(--bg-hover);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .new-mission-btn .kbd {
+    margin-left: auto;
+    font-size: 10px;
+    color: var(--text-muted);
+    opacity: 0.6;
+  }
+
+  .sidebar-section {
+    padding: 8px 12px;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .sidebar-item {
+    padding: 6px 16px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .sidebar-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .dot-running {
+    background: var(--accent-brand);
+    box-shadow: 0 0 6px rgba(90, 143, 202, 0.4);
+    animation: pulse 1.6s ease-in-out infinite;
+  }
+
+  .dot-done { background: var(--accent-green); opacity: 0.4; }
+  .dot-error { background: var(--accent-red); }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 0.7; }
+    50% { opacity: 1; }
+  }
+
+  .sidebar-item .time {
+    margin-left: auto;
+    font-size: 10px;
+    color: var(--text-muted);
+  }
+
+  .sidebar-item .badge {
+    margin-left: auto;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 3px;
+    background: rgba(90, 143, 202, 0.15);
+    color: var(--accent-brand-light);
+  }
+
+  .sidebar-spacer { flex: 1; }
+
+  .sidebar-footer {
+    padding: 8px 12px;
+    border-top: 1px solid var(--border-subtle);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    justify-content: center;
+  }
+
+  .sidebar-footer-icon {
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    background: var(--bg-hover);
+    opacity: 0.5;
+  }
+
+  /* ─── Main Content ─── */
+  .main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .toolbar {
+    height: 40px;
+    min-height: 40px;
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    gap: 8px;
+  }
+
+  .toolbar-breadcrumb {
+    font-size: 11px;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .toolbar-badge {
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 3px;
+    background: rgba(90, 143, 202, 0.15);
+    color: var(--accent-brand-light);
+    text-transform: uppercase;
+  }
+
+  .toolbar-spacer { flex: 1; }
+
+  /* ─── Dashboard (Active State) ─── */
+  .dashboard {
+    flex: 1;
+    overflow-y: auto;
+    padding: 36px 48px;
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+  }
+
+  /* Summary header */
+  .summary-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+  }
+
+  .summary-greeting {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--text-emphasis);
+    letter-spacing: -0.3px;
+  }
+
+  .summary-stats {
+    display: flex;
+    gap: 16px;
+  }
+
+  .stat {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--text-secondary);
+    font-weight: 600;
+  }
+
+  .stat-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+  }
+
+  .stat-dot.running { background: var(--accent-brand); }
+  .stat-dot.done { background: var(--accent-green); }
+  .stat-dot.error { background: var(--accent-red); }
+
+  .stat-number {
+    font-weight: 800;
+    color: var(--text-primary);
+    font-size: 13px;
+  }
+
+  /* ─── Needs Review section ─── */
+  .section-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .section-title .count {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 10px;
+    background: rgba(90, 143, 202, 0.12);
+    color: var(--accent-brand-light);
+  }
+
+  .review-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 12px;
+  }
+
+  .review-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: 16px;
+    cursor: pointer;
+    transition: border-color 0.15s, transform 0.1s;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .review-card:hover {
+    border-color: rgba(90, 143, 202, 0.3);
+    transform: translateY(-1px);
+  }
+
+  .review-card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .review-card-status {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .review-card-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-primary);
+    flex: 1;
+  }
+
+  .review-card-time {
+    font-size: 10px;
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+
+  .review-card-body {
+    padding-left: 18px;
+  }
+
+  .review-card-desc {
+    font-size: 11px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    margin-bottom: 8px;
+  }
+
+  .review-card-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 10px;
+    color: var(--text-muted);
+  }
+
+  .review-card-agent {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .review-card-agent-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 7px;
+    font-weight: 800;
+    color: white;
+  }
+
+  .review-card-actions {
+    display: flex;
+    gap: 6px;
+  }
+
+  .review-card-btn {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+
+  .btn-primary {
+    background: rgba(90, 143, 202, 0.15);
+    color: var(--accent-brand-light);
+  }
+
+  .btn-primary:hover { background: rgba(90, 143, 202, 0.25); }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--text-muted);
+  }
+
+  .btn-ghost:hover { background: var(--bg-hover); }
+
+  /* ─── Running Missions ─── */
+  .running-missions {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 12px;
+  }
+
+  .running-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .running-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent-brand), var(--accent-brand-light), var(--accent-brand));
+    background-size: 200% 100%;
+    animation: shimmer 2s linear infinite;
+  }
+
+  @keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  .running-card-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .running-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent-brand);
+    position: relative;
+  }
+
+  .running-dot::before {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    border-radius: 50%;
+    background: var(--accent-brand);
+    opacity: 0.3;
+    animation: pulse 1.6s ease-in-out infinite;
+  }
+
+  .running-card-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-primary);
+    flex: 1;
+  }
+
+  .running-card-elapsed {
+    font-size: 10px;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .running-card-step {
+    font-size: 10px;
+    color: var(--text-secondary);
+    padding-left: 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .running-card-step .step-label {
+    color: var(--text-muted);
+  }
+
+  .running-card-progress {
+    height: 3px;
+    background: var(--bg-hover);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .running-card-progress-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: var(--accent-brand);
+    transition: width 0.3s;
+  }
+
+  /* ─── New Mission CTA (smaller, for active users) ─── */
+  .new-mission-cta {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    border: 1px dashed var(--border-color);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    gap: 8px;
+  }
+
+  .new-mission-cta:hover {
+    border-color: var(--accent-brand);
+    background: rgba(90, 143, 202, 0.04);
+  }
+
+  .new-mission-cta-text {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+  }
+
+  .new-mission-cta .kbd {
+    font-size: 9px;
+    padding: 2px 5px;
+    background: var(--bg-hover);
+    border: 1px solid var(--border-color);
+    border-radius: 3px;
+    color: var(--text-muted);
+  }
+</style>
+</head>
+<body>
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo"></div>
+      <div class="sidebar-title">openteam</div>
+    </div>
+
+    <div class="new-mission-btn">
+      <span>+ New Mission</span>
+      <span class="kbd">⌘N</span>
+    </div>
+
+    <div class="sidebar-section">ACTIVE</div>
+    <div class="sidebar-item">
+      <div class="sidebar-dot dot-running"></div>
+      <span>Implement OAuth flow</span>
+      <span class="badge">3m</span>
+    </div>
+    <div class="sidebar-item">
+      <div class="sidebar-dot dot-running"></div>
+      <span>Add rate limiting</span>
+      <span class="badge">8m</span>
+    </div>
+
+    <div class="sidebar-section" style="margin-top: 8px;">NEEDS REVIEW</div>
+    <div class="sidebar-item">
+      <div class="sidebar-dot dot-done"></div>
+      <span>Fix login redirect bug</span>
+      <span class="time">12m</span>
+    </div>
+    <div class="sidebar-item">
+      <div class="sidebar-dot dot-done"></div>
+      <span>Refactor user store</span>
+      <span class="time">1h</span>
+    </div>
+    <div class="sidebar-item">
+      <div class="sidebar-dot dot-error"></div>
+      <span>Deploy staging</span>
+      <span class="time">25m</span>
+    </div>
+
+    <div class="sidebar-section" style="margin-top: 8px;">WORKSPACES</div>
+    <div class="sidebar-item">
+      <span style="padding-left: 14px;">openteam</span>
+      <span class="time">48</span>
+    </div>
+
+    <div class="sidebar-spacer"></div>
+    <div class="sidebar-footer">
+      <div class="sidebar-footer-icon"></div>
+      <div class="sidebar-footer-icon"></div>
+      <div class="sidebar-footer-icon"></div>
+      <div class="sidebar-footer-icon"></div>
+    </div>
+  </aside>
+
+  <!-- Main content -->
+  <div class="main-content">
+    <div class="toolbar">
+      <div class="toolbar-breadcrumb">
+        <span>openteam</span>
+        <span style="opacity:0.4">›</span>
+        <span>Mission Control</span>
+        <span class="toolbar-badge">Home</span>
+      </div>
+      <div class="toolbar-spacer"></div>
+    </div>
+
+    <div class="dashboard">
+      <!-- Summary -->
+      <div class="summary-header">
+        <div class="summary-greeting">Welcome back.</div>
+        <div class="summary-stats">
+          <div class="stat">
+            <div class="stat-dot running"></div>
+            <span class="stat-number">2</span> running
+          </div>
+          <div class="stat">
+            <div class="stat-dot done"></div>
+            <span class="stat-number">2</span> ready for review
+          </div>
+          <div class="stat">
+            <div class="stat-dot error"></div>
+            <span class="stat-number">1</span> needs attention
+          </div>
+        </div>
+      </div>
+
+      <!-- Needs Review -->
+      <div>
+        <div class="section-title">
+          Ready for review
+          <span class="count">3</span>
+        </div>
+        <div class="review-cards">
+          <!-- Done card -->
+          <div class="review-card">
+            <div class="review-card-header">
+              <div class="review-card-status" style="background: var(--accent-green);"></div>
+              <div class="review-card-title">Fix login redirect bug</div>
+              <div class="review-card-time">Completed 12m ago</div>
+            </div>
+            <div class="review-card-body">
+              <div class="review-card-desc">
+                Fixed the redirect loop in OAuth callback. Root cause: missing state param validation.
+                Changed 3 files, added regression test.
+              </div>
+              <div class="review-card-meta">
+                <div class="review-card-agent">
+                  <div class="review-card-agent-dot" style="background: #3b82f6;">F</div>
+                  Fullstack
+                </div>
+                <span>3 files changed</span>
+                <span>+42 −8</span>
+                <div class="review-card-actions" style="margin-left: auto;">
+                  <div class="review-card-btn btn-primary">Review →</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Done card 2 -->
+          <div class="review-card">
+            <div class="review-card-header">
+              <div class="review-card-status" style="background: var(--accent-green);"></div>
+              <div class="review-card-title">Refactor user store</div>
+              <div class="review-card-time">Completed 1h ago</div>
+            </div>
+            <div class="review-card-body">
+              <div class="review-card-desc">
+                Extracted user state into a dedicated Zustand store. Removed prop drilling through 4 component layers.
+              </div>
+              <div class="review-card-meta">
+                <div class="review-card-agent">
+                  <div class="review-card-agent-dot" style="background: #8b5cf6;">A</div>
+                  Architect
+                </div>
+                <span>7 files changed</span>
+                <span>+156 −89</span>
+                <div class="review-card-actions" style="margin-left: auto;">
+                  <div class="review-card-btn btn-primary">Review →</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Error card -->
+          <div class="review-card" style="border-color: rgba(239, 68, 68, 0.2);">
+            <div class="review-card-header">
+              <div class="review-card-status" style="background: var(--accent-red);"></div>
+              <div class="review-card-title">Deploy staging</div>
+              <div class="review-card-time">Failed 25m ago</div>
+            </div>
+            <div class="review-card-body">
+              <div class="review-card-desc">
+                Build failed: TypeScript error in <code style="font-size:10px; padding:1px 4px; background:rgba(239,68,68,0.1); border-radius:3px; color:var(--accent-red);">src/api/routes.ts:142</code> — Property 'userId' does not exist on type 'Session'.
+              </div>
+              <div class="review-card-meta">
+                <div class="review-card-agent">
+                  <div class="review-card-agent-dot" style="background: #f59e0b;">D</div>
+                  DevOps
+                </div>
+                <span>Exit code 1</span>
+                <div class="review-card-actions" style="margin-left: auto;">
+                  <div class="review-card-btn btn-primary">Investigate →</div>
+                  <div class="review-card-btn btn-ghost">Retry</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Currently Running -->
+      <div>
+        <div class="section-title">Running now</div>
+        <div class="running-missions">
+          <div class="running-card">
+            <div class="running-card-header">
+              <div class="running-dot"></div>
+              <div class="running-card-title">Implement OAuth flow</div>
+              <div class="running-card-elapsed">3m 22s</div>
+            </div>
+            <div class="running-card-step">
+              <span class="step-label">Step 3/5:</span>
+              Writing integration tests
+            </div>
+            <div class="running-card-progress">
+              <div class="running-card-progress-fill" style="width: 60%;"></div>
+            </div>
+          </div>
+
+          <div class="running-card">
+            <div class="running-card-header">
+              <div class="running-dot"></div>
+              <div class="running-card-title">Add rate limiting</div>
+              <div class="running-card-elapsed">8m 14s</div>
+            </div>
+            <div class="running-card-step">
+              <span class="step-label">Step 4/6:</span>
+              Configuring Redis middleware
+            </div>
+            <div class="running-card-progress">
+              <div class="running-card-progress-fill" style="width: 67%;"></div>
+            </div>
+          </div>
+
+          <!-- New mission CTA inline -->
+          <div class="new-mission-cta">
+            <span class="new-mission-cta-text">+ Dispatch another mission</span>
+            <span class="kbd">⌘N</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

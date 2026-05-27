@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OpenTeam - Home (Active State)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --bg-0: rgb(6, 6, 11);
+  --bg-1: rgb(10, 10, 16);
+  --bg-2: rgb(16, 16, 24);
+  --bg-3: rgb(22, 22, 32);
+  --bg-hover: rgb(30, 30, 42);
+  --text-1: rgb(226, 228, 240);
+  --text-2: rgb(148, 156, 172);
+  --text-3: rgb(90, 100, 120);
+  --text-em: rgb(248, 250, 252);
+  --accent: rgb(90, 143, 202);
+  --accent-light: rgb(130, 176, 222);
+  --green: rgb(52, 211, 153);
+  --yellow: rgb(251, 191, 36);
+  --red: rgb(239, 68, 68);
+  --border: rgb(38, 38, 54);
+  --border-s: rgb(28, 28, 42);
+  --r-sm: 6px;
+  --r-md: 10px;
+}
+
+body {
+  font-family: 'Nunito', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--bg-1);
+  color: var(--text-1);
+  height: 100vh; width: 100vw;
+  overflow: hidden; display: flex;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Sidebar ── */
+.sidebar {
+  width: 240px; min-width: 240px;
+  background: var(--bg-2);
+  border-right: 1px solid var(--border-s);
+  padding: 12px 0;
+  display: flex; flex-direction: column;
+}
+
+.sb-header {
+  padding: 6px 16px 14px;
+  display: flex; align-items: center; gap: 8px;
+}
+
+.sb-logo {
+  width: 22px; height: 22px;
+  background: var(--accent);
+  border-radius: 6px;
+  display: grid; place-items: center;
+  font-size: 11px; font-weight: 800; color: white;
+}
+
+.sb-brand { font-size: 13px; font-weight: 700; }
+
+.sb-new {
+  margin: 0 10px 14px;
+  padding: 7px 10px;
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  font-size: 11px; color: var(--text-2);
+  display: flex; align-items: center; gap: 6px;
+}
+
+.sb-new .k {
+  margin-left: auto;
+  font-size: 9px; color: var(--text-3); opacity: .7;
+}
+
+.sb-label {
+  padding: 10px 14px 4px;
+  font-size: 9px; font-weight: 700;
+  color: var(--text-3);
+  text-transform: uppercase; letter-spacing: .7px;
+}
+
+.sb-row {
+  padding: 5px 14px;
+  font-size: 11px; color: var(--text-2);
+  display: flex; align-items: center; gap: 7px;
+}
+
+.sb-dot {
+  width: 5px; height: 5px;
+  border-radius: 50%; flex-shrink: 0;
+}
+
+.sb-row .meta {
+  margin-left: auto;
+  font-size: 9px; color: var(--text-3);
+}
+
+.sb-row .badge-live {
+  margin-left: auto;
+  font-size: 8px; font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: rgba(90,143,202,.12);
+  color: var(--accent-light);
+}
+
+.sb-spacer { flex: 1; }
+
+.sb-foot {
+  padding: 10px 14px 4px;
+  border-top: 1px solid var(--border-s);
+  display: flex; gap: 14px; justify-content: center;
+}
+
+.sb-foot-i {
+  width: 14px; height: 14px;
+  border-radius: 3px;
+  background: var(--bg-hover); opacity: .4;
+}
+
+/* ── Main ── */
+.main {
+  flex: 1; display: flex; flex-direction: column; overflow: hidden;
+}
+
+.toolbar {
+  height: 38px; min-height: 38px;
+  border-bottom: 1px solid var(--border-s);
+  display: flex; align-items: center;
+  padding: 0 20px;
+  font-size: 11px; color: var(--text-3);
+}
+
+.toolbar span + span::before {
+  content: ' / '; opacity: .4; margin: 0 5px;
+}
+
+/* ── Home content ── */
+.home {
+  flex: 1; overflow-y: auto;
+  padding: 40px 64px;
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+/* Summary bar */
+.summary {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 36px;
+}
+
+.summary-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--text-em);
+  letter-spacing: -.3px;
+  margin-right: auto;
+}
+
+.summary-stat {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 11px; color: var(--text-2); font-weight: 600;
+}
+
+.summary-stat .dot {
+  width: 6px; height: 6px; border-radius: 50%;
+}
+
+.summary-stat .num {
+  font-weight: 800; color: var(--text-1);
+}
+
+/* ── Section ── */
+.feed-section {
+  margin-bottom: 36px;
+}
+
+.feed-label {
+  font-size: 10px; font-weight: 700;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: .6px;
+  margin-bottom: 10px;
+  display: flex; align-items: center; gap: 7px;
+}
+
+.feed-label .count {
+  font-size: 9px; font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 8px;
+  background: rgba(90,143,202,.1);
+  color: var(--accent-light);
+}
+
+/* ── Feed items (no cards - just rows) ── */
+.feed-item {
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border-s);
+  display: grid;
+  grid-template-columns: 8px 1fr auto;
+  gap: 14px;
+  align-items: start;
+  cursor: pointer;
+  transition: background .1s;
+  margin: 0 -8px;
+  padding-left: 8px;
+  padding-right: 8px;
+  border-radius: var(--r-sm);
+}
+
+.feed-item:hover {
+  background: var(--bg-2);
+}
+
+.feed-item:last-child { border-bottom: none; }
+
+.feed-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  margin-top: 5px;
+}
+
+.feed-body {
+  display: flex; flex-direction: column; gap: 4px;
+  min-width: 0;
+}
+
+.feed-title {
+  font-size: 13px; font-weight: 700;
+  color: var(--text-1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.feed-desc {
+  font-size: 11px; color: var(--text-2);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.feed-meta {
+  display: flex; align-items: center; gap: 10px;
+  margin-top: 4px;
+  font-size: 10px; color: var(--text-3);
+}
+
+.feed-agent {
+  display: flex; align-items: center; gap: 4px;
+}
+
+.feed-agent .mini-av {
+  width: 14px; height: 14px;
+  border-radius: 4px;
+  display: grid; place-items: center;
+  font-size: 7px; font-weight: 800; color: white;
+}
+
+.feed-right {
+  display: flex; flex-direction: column;
+  align-items: flex-end; gap: 6px;
+  padding-top: 2px;
+}
+
+.feed-time {
+  font-size: 10px; color: var(--text-3); white-space: nowrap;
+}
+
+.feed-action {
+  font-size: 10px; font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 4px;
+  background: rgba(90,143,202,.1);
+  color: var(--accent-light);
+  transition: background .15s;
+  cursor: pointer;
+}
+
+.feed-action:hover { background: rgba(90,143,202,.2); }
+
+.feed-action.destructive {
+  background: rgba(239,68,68,.08);
+  color: rgb(252,165,165);
+}
+
+.feed-action.destructive:hover { background: rgba(239,68,68,.15); }
+
+/* ── Running section ── */
+.running-item {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border-s);
+  display: grid;
+  grid-template-columns: 6px 1fr auto;
+  gap: 12px;
+  align-items: center;
+}
+
+.running-item:last-child { border-bottom: none; }
+
+.running-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: blink 2s ease-in-out infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: .5; }
+  50% { opacity: 1; }
+}
+
+.running-body {
+  display: flex; flex-direction: column; gap: 3px;
+  min-width: 0;
+}
+
+.running-title {
+  font-size: 12px; font-weight: 700; color: var(--text-1);
+}
+
+.running-step {
+  font-size: 10px; color: var(--text-3);
+}
+
+.running-right {
+  text-align: right;
+}
+
+.running-elapsed {
+  font-size: 10px; color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.running-progress {
+  margin-top: 3px;
+  width: 80px; height: 2px;
+  background: var(--bg-3);
+  border-radius: 1px;
+  overflow: hidden;
+  margin-left: auto;
+}
+
+.running-progress-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 1px;
+}
+
+/* ── New mission inline ── */
+.new-inline {
+  margin-top: 12px;
+  padding: 10px 14px;
+  border: 1px dashed var(--border);
+  border-radius: var(--r-sm);
+  font-size: 11px; font-weight: 600;
+  color: var(--text-3);
+  cursor: pointer;
+  display: flex; align-items: center; gap: 8px;
+  transition: border-color .15s, color .15s;
+}
+
+.new-inline:hover {
+  border-color: var(--accent);
+  color: var(--text-2);
+}
+
+.new-inline .k {
+  font-size: 9px;
+  padding: 1px 4px;
+  background: var(--bg-3);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+}
+</style>
+</head>
+<body>
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sb-header">
+      <div class="sb-logo">T</div>
+      <div class="sb-brand">openteam</div>
+    </div>
+    <div class="sb-new">
+      <span>+ New Mission</span>
+      <span class="k">⌘N</span>
+    </div>
+
+    <div class="sb-label">Running</div>
+    <div class="sb-row">
+      <div class="sb-dot" style="background:var(--accent)"></div>
+      <span>Implement OAuth flow</span>
+      <span class="badge-live">3m</span>
+    </div>
+    <div class="sb-row">
+      <div class="sb-dot" style="background:var(--accent)"></div>
+      <span>Add rate limiting</span>
+      <span class="badge-live">8m</span>
+    </div>
+
+    <div class="sb-label">Review</div>
+    <div class="sb-row">
+      <div class="sb-dot" style="background:var(--green);opacity:.5"></div>
+      <span>Fix login redirect</span>
+      <span class="meta">12m</span>
+    </div>
+    <div class="sb-row">
+      <div class="sb-dot" style="background:var(--green);opacity:.5"></div>
+      <span>Refactor user store</span>
+      <span class="meta">1h</span>
+    </div>
+    <div class="sb-row">
+      <div class="sb-dot" style="background:var(--red)"></div>
+      <span>Deploy staging</span>
+      <span class="meta">25m</span>
+    </div>
+
+    <div class="sb-label">Workspaces</div>
+    <div class="sb-row"><span style="padding-left:12px">openteam</span><span class="meta">48</span></div>
+    <div class="sb-row"><span style="padding-left:12px">feizhu-share</span><span class="meta">351</span></div>
+
+    <div class="sb-spacer"></div>
+    <div class="sb-foot">
+      <div class="sb-foot-i"></div>
+      <div class="sb-foot-i"></div>
+      <div class="sb-foot-i"></div>
+      <div class="sb-foot-i"></div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="toolbar">
+      <span>openteam</span>
+      <span>Home</span>
+    </div>
+
+    <div class="home">
+      <!-- Summary -->
+      <div class="summary">
+        <div class="summary-title">Welcome back</div>
+        <div class="summary-stat">
+          <div class="dot" style="background:var(--accent)"></div>
+          <span class="num">2</span> running
+        </div>
+        <div class="summary-stat">
+          <div class="dot" style="background:var(--green)"></div>
+          <span class="num">2</span> done
+        </div>
+        <div class="summary-stat">
+          <div class="dot" style="background:var(--red)"></div>
+          <span class="num">1</span> failed
+        </div>
+      </div>
+
+      <!-- Needs Review -->
+      <div class="feed-section">
+        <div class="feed-label">
+          Needs your review
+          <span class="count">3</span>
+        </div>
+
+        <div class="feed-item">
+          <div class="feed-dot" style="background:var(--green)"></div>
+          <div class="feed-body">
+            <div class="feed-title">Fix login redirect bug</div>
+            <div class="feed-desc">
+              Fixed redirect loop in OAuth callback. Root cause: missing state param validation on the return path. Added regression test.
+            </div>
+            <div class="feed-meta">
+              <div class="feed-agent">
+                <div class="mini-av" style="background:#3b82f6">F</div>
+                Fullstack
+              </div>
+              <span>3 files</span>
+              <span>+42 -8</span>
+            </div>
+          </div>
+          <div class="feed-right">
+            <div class="feed-time">12m ago</div>
+            <div class="feed-action">Review</div>
+          </div>
+        </div>
+
+        <div class="feed-item">
+          <div class="feed-dot" style="background:var(--green)"></div>
+          <div class="feed-body">
+            <div class="feed-title">Refactor user store</div>
+            <div class="feed-desc">
+              Extracted user state into dedicated Zustand store. Removed prop drilling through 4 component layers. All existing tests pass.
+            </div>
+            <div class="feed-meta">
+              <div class="feed-agent">
+                <div class="mini-av" style="background:#8b5cf6">A</div>
+                Architect
+              </div>
+              <span>7 files</span>
+              <span>+156 -89</span>
+            </div>
+          </div>
+          <div class="feed-right">
+            <div class="feed-time">1h ago</div>
+            <div class="feed-action">Review</div>
+          </div>
+        </div>
+
+        <div class="feed-item">
+          <div class="feed-dot" style="background:var(--red)"></div>
+          <div class="feed-body">
+            <div class="feed-title">Deploy staging</div>
+            <div class="feed-desc">
+              Build failed: TypeScript error in src/api/routes.ts:142 - Property 'userId' does not exist on type 'Session'.
+            </div>
+            <div class="feed-meta">
+              <div class="feed-agent">
+                <div class="mini-av" style="background:#f59e0b">D</div>
+                DevOps
+              </div>
+              <span>Exit code 1</span>
+            </div>
+          </div>
+          <div class="feed-right">
+            <div class="feed-time">25m ago</div>
+            <div class="feed-action destructive">Investigate</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Running -->
+      <div class="feed-section">
+        <div class="feed-label">Running now</div>
+
+        <div class="running-item">
+          <div class="running-dot"></div>
+          <div class="running-body">
+            <div class="running-title">Implement OAuth flow</div>
+            <div class="running-step">Writing integration tests (3/5)</div>
+          </div>
+          <div class="running-right">
+            <div class="running-elapsed">3m 22s</div>
+            <div class="running-progress"><div class="running-progress-fill" style="width:60%"></div></div>
+          </div>
+        </div>
+
+        <div class="running-item">
+          <div class="running-dot"></div>
+          <div class="running-body">
+            <div class="running-title">Add rate limiting middleware</div>
+            <div class="running-step">Configuring Redis adapter (4/6)</div>
+          </div>
+          <div class="running-right">
+            <div class="running-elapsed">8m 14s</div>
+            <div class="running-progress"><div class="running-progress-fill" style="width:67%"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- New mission inline -->
+      <div class="new-inline">
+        + Dispatch another mission
+        <span class="k">⌘N</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

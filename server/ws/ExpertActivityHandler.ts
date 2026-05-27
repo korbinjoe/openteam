@@ -5,6 +5,7 @@ import type { FileOperationCollector } from '../terminal/FileOperationCollector'
 import type { ExpertTokenTracker } from './ExpertTokenTracker'
 import type { MailboxManager } from '../mailbox/MailboxManager'
 import { createAgentMessage } from '../../shared/agent-message-types'
+import { getGitWatchManager } from '../git/GitWatchManager'
 import { createLogger } from '../lib/logger'
 
 const log = createLogger('Expert')
@@ -38,6 +39,7 @@ export const createActivityHandler = (ctx: ActivityHandlerContext) => {
 
     if (activity.phase === 'completed') {
       tokenTracker.flush(activity)
+      getGitWatchManager()?.notifyChangeForChat(chatId)
     } else if (activity.phase === 'waiting_confirmation') {
       tokenTracker.flush(activity)
       if (mailboxManager && chatId) {
@@ -68,6 +70,7 @@ export const createActivityHandler = (ctx: ActivityHandlerContext) => {
       }
     } else if (activity.phase === 'waiting_input') {
       tokenTracker.flush(activity)
+      getGitWatchManager()?.notifyChangeForChat(chatId)
     } else {
       tokenTracker.throttledUpsert(activity)
     }

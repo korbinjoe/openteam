@@ -147,6 +147,17 @@ export class GitWatchManager extends EventEmitter {
     this.scheduleEmit(path, entry)
   }
 
+  notifyChangeForChat(chatId: string): void {
+    const paths = this.chatPaths.get(chatId)
+    if (!paths) return
+    for (const path of paths) {
+      const entry = this.watchers.get(path)
+      if (entry && entry.subscribers.size > 0) {
+        this.scheduleEmit(path, entry)
+      }
+    }
+  }
+
   /**
    *  watcher
    *  WebIDE —— repo

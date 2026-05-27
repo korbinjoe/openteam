@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 import { Files, GitBranch, Terminal, ChevronDown, ClipboardList, Globe, Maximize2, Minimize2 } from 'lucide-react'
 import FileTree from './FileTree'
+import { isMacElectron } from '@/utils/env'
 import { useWebIDEState } from '@/hooks/useWebIDEState'
 import { getWebSocketClient } from '@/services/WebSocketClient'
 import type { GitStatusData } from '@/hooks/useGitStatus'
@@ -293,7 +294,10 @@ const WebIDEPanel = ({ chatId, roots, gitStatus, multiGitStatus, onMultiOptimist
       )}
     >
       {/* Top tab bar */}
-      <div className="flex items-center h-9 bg-bg-secondary border-b border-border shrink-0 px-2 gap-1">
+      <div
+        className="flex items-center h-9 bg-bg-secondary border-b border-border shrink-0 px-2 gap-1"
+        style={isFullScreen && isMacElectron ? { paddingLeft: 76 } : undefined}
+      >
         <button onClick={() => setViewTab('files')} className={tabClass(viewTab === 'files')}>
           <Files size={13} />
           <span>File</span>

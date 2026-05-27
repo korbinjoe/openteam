@@ -1,9 +1,8 @@
 /**
  * Shared types for the macOS tray mission overview surface.
  *
- * Renderer (`web/tray-panel/`), Electron main (`TrayPanelManager`,
- * `IPCBridge`), and the server endpoint (`/api/tray/active-missions`)
- * all import these to stay in sync.
+ * Electron main (`TrayManager`) and the server endpoint
+ * (`/api/tray/active-missions`) import these to stay in sync.
  */
 
 export interface TrayMissionAgent {

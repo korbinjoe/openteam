@@ -205,9 +205,17 @@ describe('ActivityDeriver', () => {
     expect(deriver.getState().phase).toBe('completed')
   })
 
-  it('onProcessExit(1) → error', () => {
+  it('onProcessExit(1) from initializing → error', () => {
     deriver.onProcessExit(1)
     expect(deriver.getState().phase).toBe('error')
+  })
+
+  it('onProcessExit(1) from waiting_input → completed (task already done)', () => {
+    deriver.onDeltaMessages([userMsg(), agentTextMsg(), statsMsg(true)])
+    vi.runAllTimers()
+    expect(deriver.getState().phase).toBe('waiting_input')
+    deriver.onProcessExit(1)
+    expect(deriver.getState().phase).toBe('completed')
   })
 
   it('onDeltaMessages does not change phase after completed', () => {

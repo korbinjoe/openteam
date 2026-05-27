@@ -116,6 +116,7 @@ export interface ExpertSessionInfo {
   provider?: CliProvider
   cwd: string
   exitCode?: number
+  taskCompleted?: boolean
 }
 
 export type ChatMemberStatus = 'running' | 'waiting' | 'error' | 'idle' | 'done'

@@ -167,10 +167,12 @@ export const createExpertExitHandler = (deps: ExitHandlerDeps) => {
 
     trackEvent('agent', 'agent.exited', { agentId, exitCode, chatId: expertInfo.chatId, connectionId: currentConnectionId })
 
+    const taskCompleted = finalActivity?.phase !== 'error'
+
     const chat = chatStore.get(chatId)
     if (chat?.expertSessions?.[agentId]) {
       const updatedSessions = { ...chat.expertSessions }
-      updatedSessions[agentId] = { ...updatedSessions[agentId], exitCode }
+      updatedSessions[agentId] = { ...updatedSessions[agentId], exitCode, taskCompleted }
       chatStore.update(chatId, { expertSessions: updatedSessions }).catch((err) =>
         log.warn('Failed to persist exitCode', { agentId, error: err instanceof Error ? err.message : String(err) }),
       )
@@ -178,7 +180,7 @@ export const createExpertExitHandler = (deps: ExitHandlerDeps) => {
 
     const execLogId = store.getMeta(currentKey, 'executionLogId') as string | undefined
     if (execLogId) {
-      const status = exitCode === 0 ? 'completed' as const : 'error' as const
+      const status = taskCompleted ? 'completed' as const : 'error' as const
       const duration = expertInfo.sessionId ? Date.now() - (sessionRegistry.get(expertInfo.sessionId)?.createdAt || Date.now()) : undefined
       const totalCost = finalActivity?.cost
       const tokenSums = finalActivity?.modelUsage?.reduce((acc, u) => ({
@@ -205,7 +207,7 @@ export const createExpertExitHandler = (deps: ExitHandlerDeps) => {
     if (mailboxManager && chatId) {
       try {
         const taskId = store.getMeta(currentKey, 'taskEnvelopeId') as string || store.getMeta(currentKey, 'executionLogId') as string || ''
-        const msgType = exitCode === 0 ? 'task:completed' as const : 'task:failed' as const
+        const msgType = taskCompleted ? 'task:completed' as const : 'task:failed' as const
         const entry = store.get(currentKey)
         let summary = ''
         if (entry) {

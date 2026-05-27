@@ -51,16 +51,16 @@ const WorkspaceHome = () => {
 
   return (
     <div className="flex-1 overflow-y-auto">
-      <div className="max-w-[680px] mx-auto px-12 py-8">
+      <div className="max-w-[760px] mx-auto px-16 py-10">
         {/* Header */}
-        <div className="mb-7">
+        <div className="mb-9">
           {!hasActivity && <div className="text-[13px] font-medium text-text-muted mb-1">{getGreeting()}</div>}
           {hasActivity ? (
-            <div className="flex items-center gap-4">
-              <h2 className="text-[22px] font-extrabold text-text-emphasis tracking-tight mr-auto">
+            <div className="flex items-center gap-5">
+              <h2 className="text-[20px] font-extrabold text-text-emphasis tracking-[-0.3px] mr-auto">
                 Welcome back
               </h2>
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-5">
                 {running.length > 0 && <StatBadge color="bg-accent-brand" count={running.length} label="running" />}
                 {awaitingReview.length > 0 && <StatBadge color="bg-accent-yellow" count={awaitingReview.length} label="to review" />}
                 {failedChats.length > 0 && <StatBadge color="bg-accent-red" count={failedChats.length} label="failed" />}
@@ -89,7 +89,7 @@ const WorkspaceHome = () => {
 
         {/* Activity feed */}
         {hasActivity && (
-          <div className="mb-7">
+          <div className="mb-9">
             {awaitingReview.length > 0 && (
               <FeedSection label="Needs your review" count={awaitingReview.length}>
                 {awaitingReview.slice(0, FEED_PREVIEW_COUNT).map((chat) => (
@@ -144,9 +144,9 @@ const WorkspaceHome = () => {
 
             <button
               onClick={() => openNewMission()}
-              className="w-full mt-2 py-2 px-3 border border-dashed border-border-subtle rounded-md text-[11px] font-semibold text-text-muted hover:border-accent-brand hover:text-text-secondary transition-colors flex items-center justify-center gap-2"
+              className="w-full mt-3 py-2.5 px-3.5 border border-dashed border-border-subtle rounded-md text-[11px] font-semibold text-text-muted hover:border-accent-brand hover:text-text-secondary transition-colors flex items-center gap-2"
             >
-              + New mission
+              + Dispatch another mission
               <kbd className="text-[9px] px-1 py-px bg-bg-hover border border-border-subtle rounded">⌘N</kbd>
             </button>
           </div>
@@ -154,7 +154,7 @@ const WorkspaceHome = () => {
 
         {/* Team strip */}
         {availableAgents.length > 0 && (
-          <div className="mb-7">
+          <div className="mb-9">
             <div className="text-[10px] font-bold text-text-muted uppercase tracking-[0.6px] mb-2.5 flex items-center gap-2">
               Your team
               <span className="text-[10px] font-semibold text-accent-green normal-case tracking-normal">
@@ -178,7 +178,7 @@ const WorkspaceHome = () => {
 
         {/* Templates — only for empty state */}
         {!hasActivity && (
-          <div className="mb-7">
+          <div className="mb-9">
             <div className="text-[10px] font-bold text-text-muted uppercase tracking-[0.6px] mb-2.5">
               Start with a template
             </div>
@@ -250,11 +250,11 @@ const CompletedSection = ({
 }
 
 const FeedSection = ({ label, count, children }: { label: string; count?: number; children: React.ReactNode }) => (
-  <div className="mb-4 last:mb-0">
-    <div className="text-[9px] font-bold text-text-muted uppercase tracking-[0.5px] mb-1.5 flex items-center gap-[6px]">
+  <div className="mb-9 last:mb-0">
+    <div className="text-[10px] font-bold text-text-muted uppercase tracking-[0.6px] mb-2.5 flex items-center gap-[7px]">
       {label}
       {count != null && (
-        <span className="text-[9px] font-bold px-1.5 py-px rounded-lg bg-accent-brand/10 text-accent-brand-light">
+        <span className="text-[9px] font-bold px-1.5 py-px rounded-full bg-accent-brand/10 text-accent-brand-light">
           {count}
         </span>
       )}
@@ -297,27 +297,30 @@ const FeedItem = ({
   return (
     <button
       onClick={onClick}
-      className="w-full grid grid-cols-[6px_1fr_auto] gap-3 items-start py-2.5 border-b border-border-subtle/50 last:border-b-0 rounded hover:bg-bg-hover/50 transition-colors text-left px-1 -mx-1"
+      className="w-full grid grid-cols-[8px_1fr_auto] gap-3.5 items-start py-3.5 border-b border-border-subtle last:border-b-0 rounded-md hover:bg-bg-secondary transition-colors text-left px-2 -mx-2"
     >
-      <span className={cn('w-1.5 h-1.5 rounded-full mt-1.5', dotColor)} />
-      <div className="flex flex-col gap-0.5 min-w-0">
-        <div className="flex items-center gap-2">
-          <span className="text-[12px] font-semibold text-text-primary truncate">{chat.title}</span>
-          <span className="text-[10px] text-text-muted shrink-0 hidden sm:inline">{agentName}</span>
-        </div>
+      <span className={cn('w-2 h-2 rounded-full mt-[5px]', dotColor)} />
+      <div className="flex flex-col gap-1 min-w-0">
+        <span className="text-[13px] font-bold text-text-primary truncate">{chat.title}</span>
         {summary && (
-          <span className="text-[10px] text-text-muted truncate">{summary}</span>
+          <span className="text-[11px] text-text-secondary leading-[1.5] line-clamp-2">{summary}</span>
         )}
+        <div className="flex items-center gap-2.5 mt-1 text-[10px] text-text-muted">
+          <div className="flex items-center gap-1">
+            <AgentAvatar name={agentName} agentId={chat.primaryAgentId} size="xs" />
+            <span>{agentName}</span>
+          </div>
+        </div>
       </div>
-      <div className="flex items-center gap-2.5 shrink-0 mt-0.5">
+      <div className="flex flex-col items-end gap-1.5 pt-0.5 shrink-0">
         <span className="text-[10px] text-text-muted whitespace-nowrap">
           {relativeTime(chat.lastMessageAt)}
         </span>
         <span className={cn(
-          'text-[10px] font-bold px-2 py-[2px] rounded',
+          'text-[10px] font-bold px-2.5 py-[3px] rounded',
           isError
-            ? 'bg-accent-red/[0.08] text-red-300'
-            : 'bg-accent-brand/10 text-accent-brand-light',
+            ? 'bg-accent-red/[0.08] text-red-300 hover:bg-accent-red/[0.15]'
+            : 'bg-accent-brand/10 text-accent-brand-light hover:bg-accent-brand/20',
         )}>
           {actionLabel}
         </span>
@@ -338,18 +341,23 @@ const RunningItem = ({
   return (
     <button
       onClick={onClick}
-      className="w-full grid grid-cols-[6px_1fr_auto] gap-3 items-center py-2 border-b border-border-subtle/50 last:border-b-0 text-left hover:bg-bg-hover/50 rounded transition-colors px-1 -mx-1"
+      className="w-full grid grid-cols-[6px_1fr_auto] gap-3 items-center py-3 border-b border-border-subtle last:border-b-0 text-left hover:bg-bg-secondary rounded-md transition-colors px-2 -mx-2"
     >
-      <span className="w-1.5 h-1.5 rounded-full bg-accent-brand animate-pulse" />
-      <div className="flex flex-col gap-px min-w-0">
-        <span className="text-[12px] font-semibold text-text-primary truncate">{chat.title}</span>
+      <span className="w-1.5 h-1.5 rounded-full bg-accent-brand animate-[pulse_2s_ease-in-out_infinite]" />
+      <div className="flex flex-col gap-[3px] min-w-0">
+        <span className="text-[12px] font-bold text-text-primary truncate">{chat.title}</span>
         {currentStep && (
           <span className="text-[10px] text-text-muted truncate">{currentStep}</span>
         )}
       </div>
-      <span className="text-[10px] text-text-muted tabular-nums whitespace-nowrap shrink-0">
-        {relativeTime(chat.lastMessageAt)}
-      </span>
+      <div className="flex flex-col items-end shrink-0">
+        <span className="text-[10px] text-text-muted tabular-nums whitespace-nowrap">
+          {relativeTime(chat.lastMessageAt)}
+        </span>
+        <div className="mt-[3px] w-20 h-0.5 bg-bg-hover rounded-sm overflow-hidden">
+          <div className="h-full bg-accent-brand rounded-sm w-3/5" />
+        </div>
+      </div>
     </button>
   )
 }

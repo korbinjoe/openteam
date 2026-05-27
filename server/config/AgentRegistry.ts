@@ -6,6 +6,7 @@ import chokidar from 'chokidar'
 import type { AgentDefinition, AgentPersonality, HeartbeatConfig, BootConfig, CliProvider } from './types'
 import type { McpServerConfig } from './types'
 import { createLogger } from '../lib/logger'
+import { parseInstanceId } from '../../shared/utils'
 
 const log = createLogger('AgentRegistry')
 
@@ -489,7 +490,10 @@ export class AgentRegistry {
   }
 
   get(id: string): AgentDefinition | undefined {
-    return this.agents.get(id)
+    const direct = this.agents.get(id)
+    if (direct) return direct
+    const { baseId } = parseInstanceId(id)
+    return baseId !== id ? this.agents.get(baseId) : undefined
   }
 
   getByName(name: string): AgentDefinition | undefined {

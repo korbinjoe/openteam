@@ -6,6 +6,7 @@ import { API_BASE, authFetch } from '@/config/api'
 import { toast } from 'sonner'
 import { Users } from './icons'
 import { buildMissionUrl } from './urls'
+import { nextInstanceId } from '../../../shared/utils'
 
 const AddAgentPicker = () => {
   const { workspaceId, addAgentOpen, addAgentTaskId, closeAddAgent } = useWorkspace()
@@ -14,7 +15,6 @@ const AddAgentPicker = () => {
   const inputRef = useRef<HTMLInputElement>(null)
   const [filter, setFilter] = useState('')
   const [busyAgentId, setBusyAgentId] = useState<string | null>(null)
-  const [existingIds, setExistingIds] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     if (addAgentOpen) {
@@ -23,26 +23,6 @@ const AddAgentPicker = () => {
       setTimeout(() => inputRef.current?.focus(), 50)
     }
   }, [addAgentOpen])
-
-  // Pre-load existing members so we can disable agents already on the mission.
-  useEffect(() => {
-    if (!addAgentOpen || !addAgentTaskId) {
-      setExistingIds(new Set())
-      return
-    }
-    let cancelled = false
-    authFetch(`${API_BASE}/api/chats/${addAgentTaskId}`)
-      .then((res) => res.ok ? res.json() : null)
-      .then((chat) => {
-        if (cancelled || !chat) return
-        const ids = new Set<string>()
-        if (chat.primaryAgentId) ids.add(chat.primaryAgentId)
-        for (const id of chat.teamAgentIds ?? []) ids.add(id)
-        setExistingIds(ids)
-      })
-      .catch(() => {})
-    return () => { cancelled = true }
-  }, [addAgentOpen, addAgentTaskId])
 
   const filteredAgents = useMemo(() => {
     const q = filter.trim().toLowerCase()
@@ -60,22 +40,15 @@ const AddAgentPicker = () => {
 
   const handleSelect = async (agentId: string) => {
     if (!addAgentTaskId || busyAgentId) return
-    if (existingIds.has(agentId)) {
-      toast.message('Agent already on this mission')
-      return
-    }
     setBusyAgentId(agentId)
     try {
       const getRes = await authFetch(`${API_BASE}/api/chats/${addAgentTaskId}`)
       if (!getRes.ok) throw new Error('Chat not found')
       const chat = await getRes.json()
       const teamAgentIds: string[] = Array.isArray(chat.teamAgentIds) ? [...chat.teamAgentIds] : []
-      if (chat.primaryAgentId === agentId || teamAgentIds.includes(agentId)) {
-        toast.message('Agent already on this mission')
-        closeAddAgent()
-        return
-      }
-      teamAgentIds.push(agentId)
+      const allIds = [chat.primaryAgentId, ...teamAgentIds].filter(Boolean)
+      const memberId = nextInstanceId(agentId, allIds)
+      teamAgentIds.push(memberId)
       const putRes = await authFetch(`${API_BASE}/api/chats/${addAgentTaskId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -87,10 +60,8 @@ const AddAgentPicker = () => {
       }))
       toast.success('Agent added to mission')
       closeAddAgent()
-      // V2: each added agent gets its own 1:1 conversation thread. Jump to it
-      // so the user immediately sees the independent surface, not the group.
       if (workspaceId) {
-        navigate(buildMissionUrl(workspaceId, addAgentTaskId, agentId))
+        navigate(buildMissionUrl(workspaceId, addAgentTaskId, memberId))
       }
     } catch (err) {
       console.error('[AddAgentPicker] add failed:', err)
@@ -132,14 +103,13 @@ const AddAgentPicker = () => {
               {availableAgents.length === 0 ? 'Loading agents…' : 'No agents match your search.'}
             </div>
           ) : filteredAgents.map((ag) => {
-            const isMember = existingIds.has(ag.id)
             const isBusy = busyAgentId === ag.id
             const initial = (ag.icon || ag.name.slice(0, 1) || '?').slice(0, 1).toUpperCase()
             return (
               <button
                 key={ag.id}
                 type="button"
-                disabled={isMember || isBusy}
+                disabled={isBusy}
                 onClick={() => handleSelect(ag.id)}
                 className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-md cursor-pointer hover:bg-bg-hover transition-colors text-left disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
               >
@@ -152,8 +122,6 @@ const AddAgentPicker = () => {
                 </div>
                 {isBusy ? (
                   <span className="text-[10px] text-text-muted">Adding…</span>
-                ) : isMember ? (
-                  <span className="text-[10px] text-text-muted">Joined</span>
                 ) : (
                   <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-text-muted">
                     <line x1="5" y1="12" x2="19" y2="12" />

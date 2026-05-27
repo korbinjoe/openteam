@@ -8,6 +8,7 @@ import { buildMissionUrl } from './urls'
 import { removeAgentFromChat, deleteChatWithJsonl, formatPurgeFailures } from '../../services/chatService'
 import { ApiError } from '../../services/api'
 import type { Chat, ChatMember, ChatMemberStatus } from '../workspace/types'
+import { parseInstanceId } from '../../../shared/utils'
 
 // Server returns 409 with a JSON body { error: "Cannot purge a running chat..." }
 // when the chat or agent is still running. Surface that text to the user so they
@@ -164,20 +165,40 @@ export const MissionRow = ({ chat, isSelected, agentNames, onPin, onArchive, onA
 
   // Prefer server-derived members (carries per-agent status). Fall back to the
   // teamAgentIds shape when the API hasn't enriched yet (legacy callers, race).
-  const members = useMemo<Array<{ agentId: string; isLead: boolean; member?: ChatMember }>>(() => {
+  const members = useMemo<Array<{ agentId: string; isLead: boolean; member?: ChatMember; displayName: string }>>(() => {
+    let raw: Array<{ agentId: string; isLead: boolean; member?: ChatMember }>
     if (chat.members && chat.members.length > 0) {
-      return chat.members.map((m) => ({ agentId: m.agentId, isLead: m.role === 'lead', member: m }))
+      raw = chat.members.map((m) => ({ agentId: m.agentId, isLead: m.role === 'lead', member: m }))
+    } else {
+      const ids: string[] = [chat.primaryAgentId, ...(chat.teamAgentIds || [])]
+      const seen = new Set<string>()
+      raw = ids
+        .filter((id) => {
+          if (!id || seen.has(id)) return false
+          seen.add(id)
+          return true
+        })
+        .map((id, idx) => ({ agentId: id, isLead: idx === 0 }))
     }
-    const ids: string[] = [chat.primaryAgentId, ...(chat.teamAgentIds || [])]
-    const seen = new Set<string>()
-    return ids
-      .filter((id) => {
-        if (!id || seen.has(id)) return false
-        seen.add(id)
-        return true
-      })
-      .map((id, idx) => ({ agentId: id, isLead: idx === 0 }))
-  }, [chat.members, chat.primaryAgentId, chat.teamAgentIds])
+    const baseCount = new Map<string, number>()
+    for (const m of raw) {
+      const { baseId } = parseInstanceId(m.agentId)
+      baseCount.set(baseId, (baseCount.get(baseId) ?? 0) + 1)
+    }
+    const baseSeq = new Map<string, number>()
+    return raw.map((m) => {
+      const { baseId, instance } = parseInstanceId(m.agentId)
+      const baseName = agentNames[m.agentId] ?? agentNames[baseId] ?? m.agentId
+      const hasDuplicates = (baseCount.get(baseId) ?? 0) > 1
+      let displayName = baseName
+      if (hasDuplicates) {
+        const seq = baseSeq.get(baseId) ?? 0
+        baseSeq.set(baseId, seq + 1)
+        displayName = `${baseName} #${instance > 1 ? instance : seq + 1}`
+      }
+      return { ...m, displayName }
+    })
+  }, [chat.members, chat.primaryAgentId, chat.teamAgentIds, agentNames])
 
   const agentCount = members.length
 
@@ -234,11 +255,11 @@ export const MissionRow = ({ chat, isSelected, agentNames, onPin, onArchive, onA
 
       {expanded && (
         <div className="flex flex-col">
-          {members.map(({ agentId, isLead, member }) => (
+          {members.map(({ agentId, isLead, member, displayName }) => (
             <AgentRow
               key={agentId}
               agentId={agentId}
-              agentName={agentNames[agentId] ?? agentId}
+              agentName={displayName}
               isLead={isLead}
               chat={chat}
               member={member}

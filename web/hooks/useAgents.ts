@@ -1,6 +1,16 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import type { AgentSummary, AgentPersonality } from '../types/agentConfig'
 import { API_BASE, authFetch } from '@/config/api'
+import { parseInstanceId } from '../../shared/utils'
+
+const instanceFallbackHandler = <T,>(): ProxyHandler<Record<string, T>> => ({
+  get(target, prop, receiver) {
+    if (typeof prop !== 'string') return Reflect.get(target, prop, receiver)
+    if (prop in target) return target[prop]
+    const { baseId } = parseInstanceId(prop)
+    return baseId !== prop ? target[baseId] : undefined
+  },
+})
 
 /**
  * Agent  +
@@ -40,15 +50,22 @@ export const useAgents = () => {
     for (const a of availableAgents) {
       map[a.id] = a.name
     }
-    return map
+    return new Proxy(map, instanceFallbackHandler<string>())
   }, [availableAgents])
+
+  const resolveAgentName = useCallback((id: string): string => {
+    const direct = agentNames[id]
+    if (direct) return direct
+    const { baseId } = parseInstanceId(id)
+    return agentNames[baseId] ?? id
+  }, [agentNames])
 
   const agentPersonalities = useMemo(() => {
     const map: Record<string, AgentPersonality> = {}
     for (const a of availableAgents) {
       if (a.personality) map[a.id] = a.personality
     }
-    return map
+    return new Proxy(map, instanceFallbackHandler<AgentPersonality>())
   }, [availableAgents])
 
   return {
@@ -60,6 +77,7 @@ export const useAgents = () => {
     handleSetSelectedAgentId,
     currentAgentName,
     agentNames,
+    resolveAgentName,
     agentPersonalities,
   }
 }

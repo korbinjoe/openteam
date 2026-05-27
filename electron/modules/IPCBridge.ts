@@ -8,6 +8,7 @@ import { ipcMain, Notification } from 'electron'
 import { WebSocket } from 'ws'
 import type { WindowManager } from './WindowManager'
 import type { TrayManager, TrayStatus } from './TrayManager'
+import type { PowerSaveManager } from './PowerSaveManager'
 import { PORTS } from '../../shared/ports'
 
 export const IPC_CHANNELS = {
@@ -34,10 +35,16 @@ export class IPCBridge {
   private activeMissionChatIds = new Set<string>()
   private pendingRemovals = new Map<string, TerminalRemovalTimer>()
 
+  private powerSaveManager: PowerSaveManager | null = null
+
   constructor(
     private windowManager: WindowManager,
     private trayManager: TrayManager,
   ) {}
+
+  setPowerSaveManager(psm: PowerSaveManager): void {
+    this.powerSaveManager = psm
+  }
 
   setup(): void {
     ipcMain.on(IPC_CHANNELS.OPEN_WORKBENCH, () => {
@@ -260,7 +267,9 @@ export class IPCBridge {
   }
 
   private publishMissionCount(): void {
-    this.trayManager.setMissionCount(this.activeMissionChatIds.size)
+    const count = this.activeMissionChatIds.size
+    this.trayManager.setMissionCount(count)
+    this.powerSaveManager?.setHasActiveMissions(count > 0)
   }
 
   /** Seeds the active-mission set from the server snapshot whenever the

@@ -14,6 +14,9 @@ interface OpenTeamBridge {
   onUpdateError: (callback: (data: unknown) => void) => () => void
   checkForUpdates: () => void
   applyUpdate: () => void
+
+  getPreventSleep: () => Promise<boolean>
+  setPreventSleep: (enabled: boolean) => Promise<boolean>
 }
 
 interface NotchBridge {

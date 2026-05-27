@@ -12,6 +12,7 @@ import { WindowManager } from './modules/WindowManager'
 import { TrayManager } from './modules/TrayManager'
 import { ShortcutManager } from './modules/ShortcutManager'
 import { IPCBridge } from './modules/IPCBridge'
+import { PowerSaveManager } from './modules/PowerSaveManager'
 import { UpdateBridge } from './modules/UpdateBridge'
 import { NotchManager } from './modules/NotchManager'
 import { SplashManager } from './modules/SplashManager'
@@ -101,6 +102,7 @@ const windowManager = new WindowManager()
 const splashManager = new SplashManager()
 const trayManager = new TrayManager(windowManager)
 const shortcutManager = new ShortcutManager(windowManager)
+const powerSaveManager = new PowerSaveManager()
 const ipcBridge = new IPCBridge(windowManager, trayManager)
 const updateBridge = new UpdateBridge(windowManager)
 let notchManager: NotchManager | null = null
@@ -198,6 +200,7 @@ async function bootstrap() {
 
   shortcutManager.register()
 
+  ipcBridge.setPowerSaveManager(powerSaveManager)
   ipcBridge.setup()
   ipcBridge.connectToServer(bootstrapServerPort)
 
@@ -258,6 +261,7 @@ app.on('before-quit', () => {
   notchManager?.destroy()
   shortcutManager.unregisterAll()
   updateBridge.destroy()
+  powerSaveManager.destroy()
   ipcBridge.destroy()
   trayManager.destroy()
 })

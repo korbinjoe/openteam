@@ -1,8 +1,10 @@
+import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Check } from 'lucide-react'
 import { Switch } from '@/components/ui/switch'
 import { cn } from '@/lib/utils'
 import { useTheme, COLOR_THEMES, type ColorTheme } from '../../contexts/ThemeContext'
+import { isElectron } from '../../utils/env'
 import UpdateSettings from './UpdateSettings'
 import PreflightStatus from './PreflightStatus'
 
@@ -75,6 +77,17 @@ const SUPPORTED_LANGUAGES = ['en', 'zh', 'ja', 'ko', 'es', 'fr', 'de', 'pt'] as 
 const GeneralSettings = () => {
   const { t, i18n } = useTranslation(['settings', 'common'])
   const { theme, toggleTheme } = useTheme()
+  const [preventSleep, setPreventSleep] = useState(false)
+
+  useEffect(() => {
+    if (!isElectron) return
+    window.openteamBridge?.getPreventSleep().then(setPreventSleep).catch(() => {})
+  }, [])
+
+  const handlePreventSleepChange = (checked: boolean) => {
+    setPreventSleep(checked)
+    window.openteamBridge?.setPreventSleep(checked).catch(() => {})
+  }
 
   const handleLanguageChange = (lng: string) => {
     i18n.changeLanguage(lng)
@@ -119,6 +132,25 @@ const GeneralSettings = () => {
         <div className="h-px bg-border-subtle" />
         <ColorThemePicker />
       </div>
+
+      {isElectron && (
+        <>
+          <Section title={t('settings:system', { defaultValue: 'System' })} />
+          <div className="flex flex-col gap-3 mb-1">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-[13px] text-text-primary">{t('settings:preventSleep')}</div>
+                <div className="mt-0.5 text-xs text-text-secondary">{t('settings:preventSleepDesc')}</div>
+              </div>
+              <Switch
+                checked={preventSleep}
+                onCheckedChange={handlePreventSleepChange}
+                aria-label={t('settings:preventSleepToggle')}
+              />
+            </div>
+          </div>
+        </>
+      )}
 
       <Section title={t('settings:featureToggles', { defaultValue: 'Status' })} />
       <PreflightStatus />

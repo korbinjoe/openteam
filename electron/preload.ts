@@ -33,4 +33,7 @@ contextBridge.exposeInMainWorld('openteamBridge', {
   applyUpdate: () => {
     ipcRenderer.send('update:apply-now')
   },
+
+  getPreventSleep: () => ipcRenderer.invoke('power-save:get-enabled') as Promise<boolean>,
+  setPreventSleep: (enabled: boolean) => ipcRenderer.invoke('power-save:set-enabled', enabled) as Promise<boolean>,
 })

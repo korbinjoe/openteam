@@ -857,6 +857,8 @@ const FileTree = ({ roots, onFileSelect, selectedFile, changeMap, dirAggregate, 
     ? t('fileTree.dirCount', { count: roots.length })
     : (roots[0]?.name || roots[0]?.path.split('/').pop() || '')
 
+  const treeContainerRef = useRef<HTMLDivElement>(null)
+
   const handleToggleSearch = useCallback(() => {
     setSearchMode(prev => {
       if (!prev) setTimeout(() => searchInputRef.current?.focus(), 0)
@@ -911,6 +913,59 @@ const FileTree = ({ roots, onFileSelect, selectedFile, changeMap, dirAggregate, 
     if (node.isExpanded) return
     await handleToggle(rootPath, dirPath)
   }, [rootsState, handleToggle])
+
+  const getActiveDirectory = useCallback((): string => {
+    if (!selectedFile) return primaryRoot
+    for (const root of roots) {
+      if (!selectedFile.startsWith(root.path)) continue
+      const state = rootsState[root.path]
+      if (!state) continue
+      const findNode = (nodes: TreeNode[]): TreeNode | undefined => {
+        for (const n of nodes) {
+          if (n.path === selectedFile) return n
+          if (n.children) { const found = findNode(n.children); if (found) return found }
+        }
+        return undefined
+      }
+      const node = findNode(state.nodes)
+      if (node?.type === 'directory') return node.path
+      if (node?.type === 'file') return node.path.slice(0, node.path.length - node.name.length - 1)
+    }
+    return primaryRoot
+  }, [selectedFile, primaryRoot, roots, rootsState])
+
+  const handleToolbarNewFile = useCallback(async () => {
+    const dir = getActiveDirectory()
+    const root = roots.find(r => dir.startsWith(r.path))
+    if (root && dir !== root.path) await ensureDirExpanded(root.path, dir)
+    actions.handleNewFile(dir)
+  }, [getActiveDirectory, roots, ensureDirExpanded, actions])
+
+  const handleToolbarNewFolder = useCallback(async () => {
+    const dir = getActiveDirectory()
+    const root = roots.find(r => dir.startsWith(r.path))
+    if (root && dir !== root.path) await ensureDirExpanded(root.path, dir)
+    actions.handleNewFolder(dir)
+  }, [getActiveDirectory, roots, ensureDirExpanded, actions])
+
+  useEffect(() => {
+    const container = treeContainerRef.current
+    if (!container) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const mod = e.metaKey || e.ctrlKey
+      if (!mod || e.key.toLowerCase() !== 'n') return
+      if (!container.contains(document.activeElement) && document.activeElement !== container) return
+      e.preventDefault()
+      e.stopPropagation()
+      if (e.shiftKey) {
+        handleToolbarNewFolder()
+      } else {
+        handleToolbarNewFile()
+      }
+    }
+    container.addEventListener('keydown', handleKeyDown)
+    return () => container.removeEventListener('keydown', handleKeyDown)
+  }, [handleToolbarNewFile, handleToolbarNewFolder])
 
   const handleMenuAction = useCallback(async (action: string) => {
     if (!contextMenu) return
@@ -973,7 +1028,7 @@ const FileTree = ({ roots, onFileSelect, selectedFile, changeMap, dirAggregate, 
   }, [roots])
 
   return (
-    <div className="h-full flex flex-col text-text-primary bg-bg-primary">
+    <div ref={treeContainerRef} tabIndex={-1} className="h-full flex flex-col text-text-primary bg-bg-primary outline-none">
       {searchMode ? (
         <>
           <div className="flex items-center justify-between px-2 py-1.5 border-b border-border-subtle shrink-0">
@@ -1014,6 +1069,12 @@ const FileTree = ({ roots, onFileSelect, selectedFile, changeMap, dirAggregate, 
             )}
             <button onClick={handleToggleSearch} className="p-0.5 rounded text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors" title={t('fileTree.searchFiles')}>
               <Search size={12} />
+            </button>
+            <button onClick={handleToolbarNewFile} className="p-0.5 rounded text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors" title={t('fileTree.newFile')}>
+              <FilePlus size={12} />
+            </button>
+            <button onClick={handleToolbarNewFolder} className="p-0.5 rounded text-text-muted hover:text-text-primary hover:bg-bg-hover transition-colors" title={t('fileTree.newFolder')}>
+              <FolderPlus size={12} />
             </button>
             <button
               onClick={() => { setShowIgnored(prev => !prev) }}

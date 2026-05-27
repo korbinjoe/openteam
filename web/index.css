@@ -338,6 +338,9 @@ html, body, #root {
 ::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 4px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-hover); }
 
+.scrollbar-none { scrollbar-width: none; -ms-overflow-style: none; }
+.scrollbar-none::-webkit-scrollbar { display: none; }
+
 .xterm { height: 100%; }
 .xterm .xterm-viewport { overflow-y: scroll; cursor: default; position: absolute; inset: 0; }
 

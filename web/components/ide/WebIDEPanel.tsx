@@ -295,70 +295,73 @@ const WebIDEPanel = ({ chatId, roots, gitStatus, multiGitStatus, onMultiOptimist
     >
       {/* Top tab bar */}
       <div
-        className="flex items-center h-9 bg-bg-secondary border-b border-border shrink-0 px-2 gap-1"
+        className="flex items-center h-9 bg-bg-secondary border-b border-border shrink-0 pr-1"
         style={isFullScreen && isMacElectron ? { paddingLeft: 76 } : undefined}
       >
-        <button onClick={() => setViewTab('files')} className={tabClass(viewTab === 'files')}>
-          <Files size={13} />
-          <span>File</span>
-        </button>
-        {chatId && (
-          <button onClick={() => setViewTab('whiteboard')} className={tabClass(viewTab === 'whiteboard')}>
-            <ClipboardList size={13} />
-            <span>War room</span>
+        <div className="flex-1 min-w-0 overflow-x-auto flex items-center pl-2 gap-1 scrollbar-none">
+          <button onClick={() => setViewTab('files')} className={tabClass(viewTab === 'files')}>
+            <Files size={13} className="shrink-0" />
+            <span className="whitespace-nowrap">File</span>
           </button>
-        )}
-        <button onClick={() => setViewTab('browser')} className={tabClass(viewTab === 'browser')}>
-          <Globe size={13} />
-          <span>{t('browser.label')}</span>
-        </button>
-        <button onClick={() => setViewTab('changes')} className={tabClass(viewTab === 'changes')}>
-          <GitBranch size={13} />
-          <span>Changes</span>
-          {changesCount > 0 && (
-            <span className={cn(
-              'ml-0.5 px-1 py-px rounded-full text-[10px] font-medium leading-none',
-              viewTab === 'changes'
-                ? 'bg-bg-tertiary text-text-primary'
-                : 'bg-bg-tertiary text-text-secondary',
-            )}>
-              {changesCount}
-            </span>
-          )}
-        </button>
-        <span className="flex-1" />
-        <div
-          className="flex items-center gap-0.5 mr-1"
-          role="group"
-          aria-label={t('ide.fontSize.label', { defaultValue: 'Font size' })}
-        >
-          {(['S', 'M', 'L'] as const).map(size => (
-            <button
-              key={size}
-              type="button"
-              onClick={() => setFontSize(size)}
-              title={t('ide.fontSize.label', { defaultValue: 'Font size' }) + ` ${size}`}
-              aria-pressed={fontSize === size}
-              className={cn(
-                'flex items-center justify-center w-6 h-6 text-[11px] rounded transition-colors',
-                fontSize === size
-                  ? 'bg-bg-tertiary text-text-primary'
-                  : 'text-text-muted hover:text-text-primary hover:bg-bg-hover',
-              )}
-            >
-              {size}
+          {chatId && (
+            <button onClick={() => setViewTab('whiteboard')} className={tabClass(viewTab === 'whiteboard')}>
+              <ClipboardList size={13} className="shrink-0" />
+              <span className="whitespace-nowrap">War room</span>
             </button>
-          ))}
+          )}
+          <button onClick={() => setViewTab('browser')} className={tabClass(viewTab === 'browser')}>
+            <Globe size={13} className="shrink-0" />
+            <span className="whitespace-nowrap">{t('browser.label')}</span>
+          </button>
+          <button onClick={() => setViewTab('changes')} className={tabClass(viewTab === 'changes')}>
+            <GitBranch size={13} className="shrink-0" />
+            <span className="whitespace-nowrap">Changes</span>
+            {changesCount > 0 && (
+              <span className={cn(
+                'ml-0.5 px-1 py-px rounded-full text-[10px] font-medium leading-none shrink-0',
+                viewTab === 'changes'
+                  ? 'bg-bg-tertiary text-text-primary'
+                  : 'bg-bg-tertiary text-text-secondary',
+              )}>
+                {changesCount}
+              </span>
+            )}
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={() => setIsFullScreen(s => !s)}
-          title={t('ide.fullscreen.toggleTooltip', { defaultValue: isFullScreen ? 'Exit fullscreen (⌘⇧F)' : 'Fullscreen IDE (⌘⇧F)' })}
-          aria-label={isFullScreen ? 'Exit fullscreen' : 'Enter fullscreen'}
-          className="flex items-center justify-center w-7 h-7 text-text-muted hover:text-text-primary hover:bg-bg-hover rounded transition-colors"
-        >
-          {isFullScreen ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
-        </button>
+        <div className="shrink-0 flex items-center gap-0.5 pl-1">
+          <div
+            className="flex items-center gap-0.5 mr-1"
+            role="group"
+            aria-label={t('ide.fontSize.label', { defaultValue: 'Font size' })}
+          >
+            {(['S', 'M', 'L'] as const).map(size => (
+              <button
+                key={size}
+                type="button"
+                onClick={() => setFontSize(size)}
+                title={t('ide.fontSize.label', { defaultValue: 'Font size' }) + ` ${size}`}
+                aria-pressed={fontSize === size}
+                className={cn(
+                  'flex items-center justify-center w-6 h-6 text-[11px] rounded transition-colors',
+                  fontSize === size
+                    ? 'bg-bg-tertiary text-text-primary'
+                    : 'text-text-muted hover:text-text-primary hover:bg-bg-hover',
+                )}
+              >
+                {size}
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsFullScreen(s => !s)}
+            title={t('ide.fullscreen.toggleTooltip', { defaultValue: isFullScreen ? 'Exit fullscreen (⌘⇧F)' : 'Fullscreen IDE (⌘⇧F)' })}
+            aria-label={isFullScreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+            className="flex items-center justify-center w-7 h-7 text-text-muted hover:text-text-primary hover:bg-bg-hover rounded transition-colors"
+          >
+            {isFullScreen ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
+          </button>
+        </div>
       </div>
 
       {/* Content area */}

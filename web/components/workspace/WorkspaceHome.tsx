@@ -51,40 +51,27 @@ const WorkspaceHome = () => {
 
   return (
     <div className="flex-1 overflow-y-auto">
-      <div className="max-w-[760px] mx-auto px-16 py-10">
+      <div className="max-w-[760px] mx-auto px-16 py-14">
         {/* Header */}
-        <div className="mb-9">
-          {!hasActivity && <div className="text-[13px] font-medium text-text-muted mb-1">{getGreeting()}</div>}
-          {hasActivity ? (
-            <div className="flex items-center gap-5">
-              <h2 className="text-[20px] font-extrabold text-text-emphasis tracking-[-0.3px] mr-auto">
-                Welcome back
-              </h2>
-              <div className="flex items-center gap-5">
-                {running.length > 0 && <StatBadge color="bg-accent-brand" count={running.length} label="running" />}
-                {awaitingReview.length > 0 && <StatBadge color="bg-accent-yellow" count={awaitingReview.length} label="to review" />}
-                {failedChats.length > 0 && <StatBadge color="bg-accent-red" count={failedChats.length} label="failed" />}
-                {completedChats.length > 0 && <StatBadge color="bg-accent-green/50" count={completedChats.length} label="done" />}
-              </div>
-            </div>
-          ) : (
-            <>
-              <h1 className="text-[26px] font-extrabold text-text-emphasis tracking-tight leading-[1.2] mb-2">
-                What should your team work on?
-              </h1>
-              <p className="text-[13px] text-text-muted leading-relaxed max-w-[400px] mb-5">
-                Describe a task, assign agents, walk away.
-                They'll ship code, open PRs, and ping you when it's done.
-              </p>
-              <button
-                onClick={() => openNewMission()}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-accent-brand rounded-md text-[12px] font-bold text-white hover:bg-accent-brand-light transition-colors"
-              >
-                New Mission
-                <kbd className="text-[9px] font-semibold px-1.5 py-0.5 bg-white/15 rounded">⌘N</kbd>
-              </button>
-            </>
-          )}
+        <div className="mb-14">
+          <div className="text-[15px] font-medium text-text-muted mb-1.5">{getGreeting()}</div>
+          <h1 className="text-[32px] font-extrabold text-text-emphasis tracking-[-0.5px] leading-[1.15] mb-2.5">
+            What should your team<br />work on?
+          </h1>
+          <p className="text-[14px] text-text-muted leading-relaxed max-w-[440px] mb-8">
+            Describe a task, assign agents, walk away.
+            They'll ship code, open PRs, and ping you when it's done.
+          </p>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => openNewMission()}
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-accent-brand rounded-md text-[13px] font-bold text-white hover:bg-accent-brand-light transition-colors"
+            >
+              New Mission
+              <kbd className="text-[10px] font-semibold px-1.5 py-0.5 bg-white/15 rounded">⌘N</kbd>
+            </button>
+            <span className="text-[11px] text-text-muted">or describe a task below</span>
+          </div>
         </div>
 
         {/* Activity feed */}
@@ -142,13 +129,6 @@ const WorkspaceHome = () => {
               />
             )}
 
-            <button
-              onClick={() => openNewMission()}
-              className="w-full mt-3 py-2.5 px-3.5 border border-dashed border-border-subtle rounded-md text-[11px] font-semibold text-text-muted hover:border-accent-brand hover:text-text-secondary transition-colors flex items-center gap-2"
-            >
-              + Dispatch another mission
-              <kbd className="text-[9px] px-1 py-px bg-bg-hover border border-border-subtle rounded">⌘N</kbd>
-            </button>
           </div>
         )}
 
@@ -165,11 +145,11 @@ const WorkspaceHome = () => {
               {availableAgents.map((agent) => (
                 <div
                   key={agent.id}
-                  className="flex items-center gap-[6px] pl-1.5 pr-2.5 py-1 bg-bg-secondary border border-border-subtle rounded-full text-[10px] font-semibold text-text-secondary hover:border-border hover:bg-bg-hover transition-colors"
+                  className="flex items-center gap-[7px] pl-2 pr-3 py-1.5 bg-bg-secondary border border-border-subtle rounded-full text-[11px] font-semibold text-text-secondary hover:border-border hover:bg-bg-hover transition-colors"
                 >
-                  <AgentAvatar name={agent.name} agentId={agent.id} size="xs" />
+                  <AgentAvatar name={agent.name} agentId={agent.id} size="sm" />
                   <span>{agent.name.split(' ')[0]}</span>
-                  <span className="w-1 h-1 rounded-full bg-accent-green opacity-80" />
+                  <span className="w-[5px] h-[5px] rounded-full bg-accent-green opacity-80" />
                 </div>
               ))}
             </div>
@@ -260,14 +240,6 @@ const FeedSection = ({ label, count, children }: { label: string; count?: number
       )}
     </div>
     {children}
-  </div>
-)
-
-const StatBadge = ({ color, count, label }: { color: string; count: number; label: string }) => (
-  <div className="flex items-center gap-[5px] text-[11px] text-text-secondary font-semibold">
-    <span className={cn('w-1.5 h-1.5 rounded-full', color)} />
-    <span className="font-extrabold text-text-primary">{count}</span>
-    {label}
   </div>
 )
 

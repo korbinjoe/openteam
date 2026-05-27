@@ -16,7 +16,7 @@ const defaultIdeCollapsedFor = (mode: LayoutMode): boolean => mode === 'single'
 // User-resizable panel width bounds
 export const SIDEBAR_WIDTH_MIN = 200
 export const SIDEBAR_WIDTH_MAX = 360
-export const SIDEBAR_WIDTH_DEFAULT = 240
+export const SIDEBAR_WIDTH_DEFAULT = 260
 
 export const IDE_WIDTH_MIN = 280
 export const IDE_WIDTH_MAX = 640

@@ -21,6 +21,7 @@ interface AgentAvatarProps {
   active?: boolean
   animationState?: AvatarAnimationState
   version?: number
+  vibrant?: boolean
 }
 
 const SIZE_MAP: Record<AgentAvatarSize, { px: number; cls: string; text: string }> = {
@@ -44,6 +45,11 @@ const ANIMATION_CLASS_MAP: Record<AvatarAnimationState, string> = {
 // Muted, restrained palette — replaces the loud marble gradient fallback.
 // Hue chosen by name hash, saturation/lightness fixed for consistency.
 const MONOGRAM_HUES = [210, 250, 280, 320, 0, 25, 45, 90, 160, 190]
+
+const VIBRANT_PALETTE = [
+  '#6366f1', '#3b82f6', '#8b5cf6', '#ec4899', '#10b981',
+  '#f59e0b', '#ef4444', '#06b6d4', '#a855f7', '#64748b',
+]
 
 const hashName = (s: string): number => {
   let h = 0
@@ -71,6 +77,7 @@ const AgentAvatar = ({
   active = false,
   animationState,
   version,
+  vibrant = true,
 }: AgentAvatarProps) => {
   const sizeConfig = SIZE_MAP[size]
   const colors = useMemo(() => avatarColors ?? DEFAULT_COLORS, [avatarColors])
@@ -91,9 +98,12 @@ const AgentAvatar = ({
     : (active ? 'animate-breathe' : '')
 
   const monogramKey = agentId || name
-  const hue = MONOGRAM_HUES[hashName(monogramKey) % MONOGRAM_HUES.length]
-  const monogramBg = `hsl(${hue} 30% 92%)`
-  const monogramFg = `hsl(${hue} 55% 32%)`
+  const hash = hashName(monogramKey)
+  const hue = MONOGRAM_HUES[hash % MONOGRAM_HUES.length]
+  const monogramBg = vibrant
+    ? VIBRANT_PALETTE[hash % VIBRANT_PALETTE.length]
+    : `hsl(${hue} 30% 92%)`
+  const monogramFg = vibrant ? '#fff' : `hsl(${hue} 55% 32%)`
 
   return (
     <div

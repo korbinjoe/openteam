@@ -287,13 +287,14 @@ export const createExpertResumeHandler = (deps: ExpertResumeDeps) => {
     // so the `cli-init` event in ExpertEventWiring doesn't fire — meaning our
     // command merge there is bypassed. Scan plugins + project commands here and
     // push to every agent we resume.
-    const commandsPromise = (async (resumeCwd: string) => {
+    const resumeCwd = sessions[0]?.[1]?.cwd || process.cwd()
+    const commandsPromise = (async () => {
       const [pluginCmds, projectCmds] = await Promise.all([
         scanPluginSlashCommands(),
         scanProjectSlashCommands(resumeCwd),
       ])
       return [...pluginCmds, ...projectCmds]
-    })(chat?.worktreeSessions?.[0]?.worktreePath || process.cwd()).catch((err) => {
+    })().catch((err) => {
       log.warn('Commands scan failed during resume', {
         chatId,
         error: err instanceof Error ? err.message : String(err),

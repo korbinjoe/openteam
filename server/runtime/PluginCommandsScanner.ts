@@ -139,7 +139,7 @@ export const scanProjectSlashCommands = async (cwd: string): Promise<string[]> =
       } else if (entry.isDirectory()) {
         const subFiles = await listFilesWithExt(join(commandsDir, entry.name), '.md')
         for (const file of subFiles) {
-          results.add(`${entry.name}/${file.replace(/\.md$/, '')}`)
+          results.add(`${entry.name}:${file.replace(/\.md$/, '')}`)
         }
       }
     }

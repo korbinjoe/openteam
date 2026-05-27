@@ -51,7 +51,11 @@ export const EmptyState = ({ connected, hasSession, reconnecting = false }: { co
     }}>
       {connected && hasSession ? (
         <>
-          <AgentAvatar name="OpenTeam" size="xl" />
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 352 352" width={64} height={64}>
+            <rect width="352" height="352" rx="56" fill="#5a8fca" />
+            <rect x="75" y="92" width="202" height="48" rx="24" fill="white" />
+            <rect x="150" y="92" width="52" height="192" rx="26" fill="white" />
+          </svg>
           <div style={{
             fontSize: 22, fontWeight: 800, letterSpacing: '0.04em',
             color: 'rgb(var(--text-emphasis))',

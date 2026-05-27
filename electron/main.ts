@@ -10,7 +10,6 @@ import { fileURLToPath } from 'url'
 import { createRequire } from 'module'
 import { WindowManager } from './modules/WindowManager'
 import { TrayManager } from './modules/TrayManager'
-import { TrayPanelManager } from './modules/TrayPanelManager'
 import { ShortcutManager } from './modules/ShortcutManager'
 import { IPCBridge } from './modules/IPCBridge'
 import { UpdateBridge } from './modules/UpdateBridge'
@@ -24,6 +23,13 @@ const isDev = !app.isPackaged
 let isQuitting = false
 let bootstrapServerPort = PORTS.DEV_SERVER
 
+if (!isDev) {
+  const gotLock = app.requestSingleInstanceLock()
+  if (!gotLock) {
+    app.quit()
+  }
+}
+
 /**  server  Electron fire-and-forget */
 const sendElectronTelemetry = (category: string, event: string, properties?: Record<string, unknown>): void => {
   if (!bootstrapServerPort) return
@@ -35,7 +41,6 @@ const sendElectronTelemetry = (category: string, event: string, properties?: Rec
 }
 const preloadPath = join(dirname(fileURLToPath(import.meta.url)), 'preload.cjs')
 const notchPreloadPath = join(dirname(fileURLToPath(import.meta.url)), 'notch-preload.cjs')
-const trayPreloadPath = join(dirname(fileURLToPath(import.meta.url)), 'tray-preload.cjs')
 
 /**
  * 
@@ -92,8 +97,7 @@ const resolveServerBundle = (): string => {
 }
 
 const windowManager = new WindowManager()
-const trayPanelManager = new TrayPanelManager(windowManager, isDev, trayPreloadPath)
-const trayManager = new TrayManager(windowManager, trayPanelManager)
+const trayManager = new TrayManager(windowManager)
 const shortcutManager = new ShortcutManager(windowManager)
 const ipcBridge = new IPCBridge(windowManager, trayManager)
 const updateBridge = new UpdateBridge(windowManager)
@@ -179,8 +183,7 @@ async function bootstrap() {
 
   windowManager.createMainWindow(bootstrapServerPort, isDev, preloadPath)
 
-  trayPanelManager.setServerPort(bootstrapServerPort)
-  trayPanelManager.setup()
+  trayManager.setServerPort(bootstrapServerPort)
   trayManager.create()
 
   shortcutManager.register()
@@ -207,6 +210,12 @@ async function bootstrap() {
       mainWindow.hide()
     })
   }
+}
+
+if (!isDev) {
+  app.on('second-instance', () => {
+    windowManager.focusMain()
+  })
 }
 
 app.whenReady().then(bootstrap).catch((err) => {
@@ -239,6 +248,5 @@ app.on('before-quit', () => {
   shortcutManager.unregisterAll()
   updateBridge.destroy()
   ipcBridge.destroy()
-  trayPanelManager.destroy()
   trayManager.destroy()
 })

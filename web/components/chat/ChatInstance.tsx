@@ -18,6 +18,7 @@ import ChatPaneToolbarRow from './ChatPaneToolbarRow'
 import ChatViewModeToggle from './ChatViewModeToggle'
 import TerminalPanel, { type TerminalPanelHandle } from '../terminal/TerminalPanel'
 import { useChatViewMode } from '../../hooks/useChatViewMode'
+import { parseInstanceId } from '../../../shared/utils'
 import InputArea, { type InputAreaHandle } from './input/InputArea'
 import QueuedMessagesBar from './input/QueuedMessagesBar'
 import AgentSwitcherModal from './modals/AgentSwitcherModal'
@@ -111,7 +112,13 @@ const ChatInstance = ({ chatId, workspaceId, isActive, isNewChat = false, initAg
 
   const lockedAgent = useMemo(() => {
     if (!lockedAgentId) return null
-    return availableAgents.find((a) => a.id === lockedAgentId || a.name === lockedAgentId) ?? null
+    const direct = availableAgents.find((a) => a.id === lockedAgentId || a.name === lockedAgentId)
+    if (direct) return direct
+    const { baseId, instance } = parseInstanceId(lockedAgentId)
+    if (instance <= 1) return null
+    const base = availableAgents.find((a) => a.id === baseId)
+    if (!base) return null
+    return { ...base, id: lockedAgentId }
   }, [lockedAgentId, availableAgents])
   const singleAgentMode = !!lockedAgent
   const inputAgents = useMemo(
@@ -426,7 +433,13 @@ const ChatInstance = ({ chatId, workspaceId, isActive, isNewChat = false, initAg
     setTargetAgentId(agentId)
   }, [])
 
-  const currentAgent = availableAgents.find((a) => a.name === targetAgentId || a.id === targetAgentId)
+  const currentAgent = useMemo(() => {
+    if (!targetAgentId) return undefined
+    const direct = availableAgents.find((a) => a.name === targetAgentId || a.id === targetAgentId)
+    if (direct) return direct
+    const { baseId } = parseInstanceId(targetAgentId)
+    return baseId !== targetAgentId ? availableAgents.find((a) => a.id === baseId) : undefined
+  }, [availableAgents, targetAgentId])
   const availableModels = useMemo(
     () => getModelsForProvider(currentAgent?.provider),
     [currentAgent?.provider],

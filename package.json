@@ -77,7 +77,6 @@
     "mac": {
       "target": "dmg",
       "category": "public.app-category.developer-tools",
-      "identity": null,
       "icon": "electron/assets/icon.icns"
     },
     "win": {

@@ -18,6 +18,7 @@ import { MAILBOX_ROOT } from '../../config/paths'
 import { wrapTaskEnvelope, createAgentMessage, type TaskEnvelope } from '../../../shared/agent-message-types'
 import { TERMINAL_PHASES, type ExpertEvent } from '../../../shared/expert-event-types'
 import { parseAgentId } from '../../ws/ExpertSessionStore'
+import { expandSlashCommand } from '../../runtime/SlashCommandResolver'
 import { createLogger } from '../../lib/logger'
 
 const log = createLogger('ExpertRoutes')
@@ -98,11 +99,14 @@ export const createExpertRoutes = (deps: ExpertRouteDeps): Router => {
       }
     }
 
+    const cwd = req.body.cwd || process.cwd()
+    const expandedTask = await expandSlashCommand(taskDescription, cwd)
+
     const resolvedTask = `[Task ID: ${envelope.taskId}]
 [Execution Plan: ~/.openteam/tasks/${envelope.taskId}/plan.md]
 ${envelope.priority ? `[Priority: ${envelope.priority}]` : ''}
 
-${taskDescription}`
+${expandedTask}`
 
     const agentDef = agentRegistry.get(agentId)
     if (!agentDef) {

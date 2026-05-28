@@ -277,10 +277,28 @@ const TimelineThinkingRow = ({ entry }: { entry: TimelineEntry }) => {
   )
 }
 
+const ExternalLink = ({ href, children, ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement>) => (
+  <a
+    {...props}
+    href={href}
+    onClick={(e) => {
+      if (href) {
+        e.preventDefault()
+        e.stopPropagation()
+        window.open(href, '_blank')
+      }
+    }}
+  >
+    {children}
+  </a>
+)
+
+const markdownComponents = { a: ExternalLink }
+
 const TimelineTextBlock = ({ entry }: { entry: TimelineEntry }) => (
   <div style={{ padding: '6px 12px', margin: '6px 4px 6px 17px', background: 'rgb(var(--bg-hover-subtle) / var(--bg-hover-subtle-alpha))', borderRadius: 6, overflow: 'hidden' }}>
     <div className="chat-markdown" style={{ fontSize: 12, lineHeight: 1.7 }}>
-      <ReactMarkdown remarkPlugins={[remarkGfm]}>{entry.textContent || ''}</ReactMarkdown>
+      <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>{entry.textContent || ''}</ReactMarkdown>
     </div>
   </div>
 )

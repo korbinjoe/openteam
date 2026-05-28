@@ -91,10 +91,28 @@ const ImagePreview = ({ filePath }: { filePath: string }) => (
   </div>
 )
 
+const ExternalLink = ({ href, children, ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement>) => (
+  <a
+    {...props}
+    href={href}
+    onClick={(e) => {
+      if (href) {
+        e.preventDefault()
+        e.stopPropagation()
+        window.open(href, '_blank')
+      }
+    }}
+  >
+    {children}
+  </a>
+)
+
+const mdComponents = { a: ExternalLink }
+
 const MarkdownPreview = ({ content, fontSizePx }: { content: string; fontSizePx: number }) => (
   <div className="h-full overflow-auto bg-bg-primary p-4">
     <div className="md-preview max-w-[760px] mx-auto" style={{ fontSize: `${fontSizePx}px` }}>
-      <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
+      <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>{content}</ReactMarkdown>
     </div>
   </div>
 )

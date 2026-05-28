@@ -135,6 +135,9 @@ const buildTimeline = (messages: Message[]): TimelineEntry[] => {
   for (const msg of messages) {
     if (msg.type === 'toolUse' && msg.toolUse) {
       const idx = entries.length
+      if (msg.toolUse.toolName === 'AskUserQuestion') {
+        console.debug('[buildTimeline] AskUserQuestion toolUse', { msgId: msg.id, toolId: msg.toolUse.toolId })
+      }
       entries.push({
         id: msg.id,
         type: 'tool',
@@ -149,6 +152,9 @@ const buildTimeline = (messages: Message[]): TimelineEntry[] => {
       const idx = msg.toolResult.toolUseId ? pendingToolUses.get(msg.toolResult.toolUseId) : undefined
       if (idx !== undefined) {
         const entry = entries[idx]
+        if (entry.toolName === 'AskUserQuestion') {
+          console.debug('[buildTimeline] AskUserQuestion matched toolResult', { toolUseId: msg.toolResult.toolUseId, resultContent: msg.toolResult.content?.slice(0, 50) })
+        }
         const resultContent = msg.toolResult.content || ''
         const imagePaths = extractGeneratedImages(resultContent)
         entry.toolResultContent = (imagePaths.length > 0 ? stripImageMarkers(resultContent) : resultContent) || undefined
@@ -344,11 +350,15 @@ const renderTimelineItem = (item: TimelineEntry | ToolGroup | ExpertProgressGrou
   switch (entry.type) {
     case 'tool': {
       if (entry.toolName === 'AskUserQuestion' && entry.toolInput) {
+        const answered = !!entry.hasToolResult
+        if (answered) {
+          console.warn('[AskUserQuestion] Card disabled — hasToolResult=true', { entryId: entry.id, toolInput: entry.toolInput?.slice(0, 80) })
+        }
         return (
           <AskUserQuestionCard
             key={entry.id}
             toolInput={entry.toolInput}
-            answered={!!entry.hasToolResult}
+            answered={answered}
             onSubmit={onAnswerQuestion}
           />
         )

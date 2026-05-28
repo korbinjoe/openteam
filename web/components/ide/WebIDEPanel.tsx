@@ -279,7 +279,7 @@ const WebIDEPanel = ({ chatId, roots, gitStatus, multiGitStatus, onMultiOptimist
   const dirAggregate = useMemo(() => buildDirAggregate(diffEntries), [diffEntries])
 
   const tabClass = (active: boolean) => cn(
-    'relative flex items-center gap-1.5 px-2 h-9 text-xs transition-colors',
+    'relative flex items-center gap-1.5 px-2 h-9 text-xs whitespace-nowrap shrink-0 transition-colors',
     active
       ? 'text-text-primary after:absolute after:left-2 after:right-2 after:-bottom-px after:h-px after:bg-accent-brand'
       : 'text-text-muted hover:text-text-secondary',

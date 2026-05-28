@@ -71,10 +71,6 @@ const UnifiedFrame = ({
   ideCollapsed: boolean
 }) => {
   const splitChatWidth = useSplitChatWidth()
-  // Mission overview is the coordination view — IDE is part of the experience,
-  // not a peripheral toggle. Force-expand it here so the user sees files /
-  // changes / terminal next to the group chat.
-  const effectiveIdeCollapsed = viewMode === 'mission-overview' ? false : ideCollapsed
   const isTaskView = viewMode === 'mission-overview'
 
   return (
@@ -83,12 +79,12 @@ const UnifiedFrame = ({
       <ChatColumn
         key="chat"
         layoutMode={layoutMode}
-        ideCollapsed={effectiveIdeCollapsed}
+        ideCollapsed={ideCollapsed}
         splitChatWidth={splitChatWidth}
       >
         <ChatPane />
       </ChatColumn>
-      <IdeRegion key="ide" mode={layoutMode} collapsed={effectiveIdeCollapsed} />
+      <IdeRegion key="ide" mode={layoutMode} collapsed={ideCollapsed} />
     </div>
   )
 }

@@ -239,6 +239,7 @@ export const useChatActions = ({
     const phase = currentMergedActivity?.phase
     const isWorking = !!phase && WORKING_PHASES.has(phase)
     if (isWorking) return
+    if (phase === 'waiting_confirmation') return
     flushNext()
   }, [currentMergedActivity?.phase, queuedMessages.length, flushNext])
 

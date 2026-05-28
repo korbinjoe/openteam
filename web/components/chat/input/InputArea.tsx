@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useCallback, forwardRef, useImperativeHandle, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { ArrowUp, Square, X, ImageIcon, ChevronDown, Users, Plus } from 'lucide-react'
+import { ArrowUp, Square, X, ImageIcon, ChevronDown, Users } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 import SlashCommandMenu from './SlashCommandMenu'
@@ -683,30 +683,13 @@ const InputArea = forwardRef<InputAreaHandle, Props>(({
           <span className="flex-1 min-w-[4px]" />
 
           {isWorking ? (
-            <>
-              <button
-                onClick={handleSend} disabled={!canSubmit}
-                title={canSubmit ? t('input.queueTooltip') : t('input.queueDisabled')}
-                className={cn(
-                  'h-7 min-w-[28px] px-1.5 rounded-sm border-none flex items-center justify-center gap-1 transition-all shrink-0',
-                  canSubmit
-                    ? 'bg-bg-hover text-text-primary cursor-pointer hover:bg-bg-hover-muted border border-border-subtle'
-                    : 'bg-bg-hover-muted text-text-muted cursor-default',
-                )}
-              >
-                <Plus size={12} strokeWidth={2.5} />
-                {queueSize > 0 && (
-                  <span className="text-[10px] font-mono tabular-nums leading-none">{queueSize}</span>
-                )}
-              </button>
-              <button
-                onClick={() => { onInterrupt(); sendAESEvent('chat', 'agent_stopped') }}
-                title="Stop"
-                className="w-7 h-7 rounded-sm bg-accent-brand text-white cursor-pointer flex items-center justify-center transition-colors shrink-0 hover:bg-accent-brand/80"
-              >
-                <Square size={10} fill="currentColor" />
-              </button>
-            </>
+            <button
+              onClick={() => { onInterrupt(); sendAESEvent('chat', 'agent_stopped') }}
+              title="Stop"
+              className="w-7 h-7 rounded-sm bg-accent-brand text-white cursor-pointer flex items-center justify-center transition-colors shrink-0 hover:bg-accent-brand/80"
+            >
+              <Square size={10} fill="currentColor" />
+            </button>
           ) : (
             <button
               onClick={handleSend} disabled={!canSubmit}

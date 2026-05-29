@@ -103,7 +103,7 @@ export const createExpertDirectInput = (deps: ExpertDirectInputDeps) => {
           return
         }
 
-        const promptText = existing.provider === 'claude'
+        const promptText = existing.provider !== 'codex'
           ? await expandSlashCommand(cleanMessage, existing.cwd)
           : cleanMessage
         log.info('Sending message via ACP', { agentId, chatId, sessionId: existing.sessionId, messageLen: promptText.length, imageCount: images?.length ?? 0, expanded: promptText !== cleanMessage })

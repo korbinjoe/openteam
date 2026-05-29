@@ -165,15 +165,19 @@ export const createExpertLifecycle = (deps: ExpertLifecycleDeps) => {
       const attached = ensureAttachedRunning(ws, chatId, agentId, connectionId)
       if (attached) {
         if (task?.trim()) {
+          const rawTask = task.trim()
+          const expandedAttachedTask = attached.provider !== 'codex'
+            ? await expandSlashCommand(rawTask, attached.cwd)
+            : rawTask
           if (!attached.cliSessionId && attached.provider !== 'codex') {
             store.enqueuePendingTask(key, {
-              task: task.trim(),
+              task: expandedAttachedTask,
               images: payload.images,
               enqueuedAt: Date.now(),
               connectionId,
             })
           } else {
-            attached.acpClient.write(task.trim(), payload.images)
+            attached.acpClient.write(expandedAttachedTask, payload.images)
           }
         }
         return

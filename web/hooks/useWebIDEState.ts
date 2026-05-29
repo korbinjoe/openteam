@@ -28,8 +28,8 @@ export const useWebIDEState = (worktreePath?: string) => {
   }, [])
 
   const openFile = useCallback(async (filePath: string, line?: number, keyword?: string) => {
-    if (line) setPendingLine(line)
-    if (keyword) setPendingKeyword(keyword)
+    setPendingLine(line ?? null)
+    setPendingKeyword(keyword ?? null)
     if (tabsRef.current.some(t => t.path === filePath)) {
       setActiveTabPath(filePath)
       return

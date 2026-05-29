@@ -110,7 +110,9 @@ export class WSRouter {
       return
     }
     if (type === 'expert:user-input') {
-      this.expertHandler.handleUserInput(ws, payload, connectionId)
+      this.expertHandler.handleUserInput(ws, payload, connectionId).catch((err) => {
+        log.error('expert:user-input error', { error: err instanceof Error ? err.message : String(err) })
+      })
       return
     }
 

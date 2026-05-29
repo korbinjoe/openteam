@@ -28,6 +28,7 @@ import { createExpertLifecycle } from './ExpertLifecycle'
 import { createExpertResumeHandler } from './ExpertResumeHandler'
 import type { MailboxManager } from '../mailbox/MailboxManager'
 import type { WhiteboardManager } from '../whiteboard/WhiteboardManager'
+import { expandSlashCommand } from '../runtime/SlashCommandResolver'
 import { createLogger } from '../lib/logger'
 import { trackEvent } from '../lib/eventTracker'
 
@@ -360,7 +361,7 @@ export class ExpertHandler {
   /**
    * sidebar  { chatId, text }  chat  waiting_input  agent fallback  running agent
    */
-  handleUserInput(ws: WebSocket, payload: { chatId: string; text: string }, connectionId: string): void {
+  async handleUserInput(ws: WebSocket, payload: { chatId: string; text: string }, connectionId: string): Promise<void> {
     const { chatId, text } = payload || ({} as typeof payload)
     if (!chatId || typeof text !== 'string' || text.length === 0) {
       ws.send(JSON.stringify({
@@ -385,8 +386,11 @@ export class ExpertHandler {
       }))
       return
     }
-    agent.acpClient.write(text)
-    log.debug('expert:user-input forwarded', { chatId, connectionId, sessionId: agent.sessionId, len: text.length })
+    const expandedText = agent.provider !== 'codex'
+      ? await expandSlashCommand(text, agent.cwd)
+      : text
+    agent.acpClient.write(expandedText)
+    log.debug('expert:user-input forwarded', { chatId, connectionId, sessionId: agent.sessionId, len: expandedText.length, expanded: expandedText !== text })
   }
 
   /**

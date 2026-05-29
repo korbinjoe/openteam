@@ -177,7 +177,7 @@ export const expandSlashCommand = async (text: string, cwd: string): Promise<str
       const body = stripFrontmatter(raw).trim()
       if (!body) return text
       const expanded = applyArguments(body, rawArgs)
-      log.debug('Expanded flat slash command', { name: rawName, file: flatFile, argsLen: rawArgs.length })
+      log.info('Expanded flat slash command', { name: rawName, file: flatFile, argsLen: rawArgs.length })
       const marker = encodeSlashMarker({
         cmd: `/${rawName}`,
         args: rawArgs.trim(),
@@ -196,14 +196,14 @@ export const expandSlashCommand = async (text: string, cwd: string): Promise<str
   try {
     const file = await resolveCommandFile(cwd, segments)
     if (!file) {
-      log.debug('No command file found for slash command', { name: rawName, cwd, projectRoot: _projectRoot })
+      log.warn('No command file found for slash command — passing through raw', { name: rawName, cwd, projectRoot: _projectRoot, segments })
       return text
     }
     const raw = await readFile(file, 'utf-8')
     const body = stripFrontmatter(raw).trim()
     if (!body) return text
     const expanded = applyArguments(body, rawArgs)
-    log.debug('Expanded slash command', { name: rawName, file, argsLen: rawArgs.length })
+    log.info('Expanded slash command', { name: rawName, file, argsLen: rawArgs.length })
     const marker = encodeSlashMarker({
       cmd: `/${rawName}`,
       args: rawArgs.trim(),

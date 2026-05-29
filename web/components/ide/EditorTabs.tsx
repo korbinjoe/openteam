@@ -8,8 +8,7 @@ import { KeyMod, KeyCode } from 'monaco-editor'
 import type { EditorTab } from '@/hooks/useWebIDEState'
 import type { ChangeStatus } from '@/lib/changeTree'
 import { API_BASE } from '@/config/api'
-import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
+import MarkdownPreview from './MarkdownPreview'
 import { useTranslation } from 'react-i18next'
 
 interface EditorContextMenuState {
@@ -88,32 +87,6 @@ const ImagePreview = ({ filePath }: { filePath: string }) => (
       className="max-w-full max-h-full object-contain"
       draggable={false}
     />
-  </div>
-)
-
-const ExternalLink = ({ href, children, ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement>) => (
-  <a
-    {...props}
-    href={href}
-    onClick={(e) => {
-      if (href) {
-        e.preventDefault()
-        e.stopPropagation()
-        window.open(href, '_blank')
-      }
-    }}
-  >
-    {children}
-  </a>
-)
-
-const mdComponents = { a: ExternalLink }
-
-const MarkdownPreview = ({ content, fontSizePx }: { content: string; fontSizePx: number }) => (
-  <div className="h-full overflow-auto bg-bg-primary p-4">
-    <div className="md-preview max-w-[760px] mx-auto" style={{ fontSize: `${fontSizePx}px` }}>
-      <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>{content}</ReactMarkdown>
-    </div>
   </div>
 )
 
@@ -258,6 +231,7 @@ const EditorTabs = ({
   }, [activeTabPath])
 
   const [mdPreviewMode, setMdPreviewMode] = useState<Record<string, boolean>>({})
+  const [mdHighlightKeyword, setMdHighlightKeyword] = useState<Record<string, string>>({})
 
   const { activeRelativePath, isActiveChanged, isActiveStaged } = useMemo(() => {
     if (!activeTab || !worktreePath || !changeMap) {
@@ -360,6 +334,16 @@ const EditorTabs = ({
     onPendingLineHandled?.()
   }, [pendingLine, activeTab?.isLoading, activeTabPath, pendingKeyword, applyKeywordHighlight])
 
+  // Markdown preview has no Monaco editor, so capture the search keyword here and
+  // hand the pending state back so it isn't reapplied on later mounts.
+  useEffect(() => {
+    if (!pendingKeyword || !activeTab || activeTab.isLoading) return
+    if (activeTab.previewType !== 'markdown') return
+    if (!(mdPreviewMode[activeTab.path] ?? true)) return
+    setMdHighlightKeyword(prev => ({ ...prev, [activeTab.path]: pendingKeyword }))
+    onPendingLineHandled?.()
+  }, [pendingKeyword, activeTab?.path, activeTab?.previewType, activeTab?.isLoading, mdPreviewMode, onPendingLineHandled])
+
   if (tabs.length === 0) {
     return (
       <div className="h-full flex items-center justify-center text-text-muted text-sm select-none">
@@ -457,7 +441,7 @@ const EditorTabs = ({
           ) : activeTab?.previewType === 'binary' ? (
             <BinaryPlaceholder name={activeTab.name} />
           ) : activeTab?.previewType === 'markdown' && (mdPreviewMode[activeTab.path] ?? true) ? (
-            <MarkdownPreview content={activeTab.content} fontSizePx={fontSizePx} />
+            <MarkdownPreview content={activeTab.content} fontSizePx={fontSizePx} highlightKeyword={mdHighlightKeyword[activeTab.path]} />
           ) : activeTab && isActiveChanged && worktreePath && baseBranch && activeRelativePath ? (
             <Suspense fallback={
               <div className="h-full flex items-center justify-center">

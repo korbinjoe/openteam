@@ -520,11 +520,15 @@ html, body, #root {
   margin: 12px 0;
 }
 
-/* ─── Monaco Search Highlight ─────────────────────────── */
+/* ─── Search Highlight (Monaco + Markdown preview) ─────── */
 .search-highlight-match {
   background-color: rgba(245, 158, 11, 0.35);
   border: 1px solid rgba(245, 158, 11, 0.6);
   border-radius: 2px;
+}
+mark.search-highlight-match {
+  color: inherit;
+  padding: 0 1px;
 }
 
 /* ─── React Flow Theme ─────────────────────────────────── */

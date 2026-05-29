@@ -36,7 +36,7 @@ export const flushPendingTasks = (deps: FlushDeps): void => {
   log.info('Flushing pending tasks', { agentId, chatId, count: drained.length })
 
   const entry = store.get(key)
-  const shouldExpand = entry?.provider === 'claude'
+  const shouldExpand = entry?.provider !== 'codex'
   const cwd = entry?.cwd ?? ''
 
   for (const queued of drained) {

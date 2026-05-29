@@ -43,7 +43,7 @@ const MessageToolbar = ({
       <FilterChip
         active={filterAgentId === null}
         onClick={() => onFilterAgentChange(null)}
-        label={t('filter.all')}
+        label={t('agents:filter.all')}
       />
       {agentIds.map((agentId) => {
         const personality = agentPersonalities?.[agentId]

@@ -4,7 +4,6 @@ import { useWorkspaceChats } from '../../hooks/useWorkspaceChats'
 import ChatPane from './ChatPane'
 import IDEPanel from './IDEPanel'
 import QuadAgentTile from './QuadAgentTile'
-import MissionInfoSidebar from './MissionInfoSidebar'
 import ResizeHandle from './ResizeHandle'
 import { Plus } from './icons'
 
@@ -46,7 +45,7 @@ const useSplitChatWidth = (): string => {
 }
 
 const WorkspaceContent = () => {
-  const { viewMode, layoutMode, ideCollapsed, activeChatId } = useWorkspace()
+  const { layoutMode, ideCollapsed, activeChatId } = useWorkspace()
 
   if (!activeChatId) {
     return <ChatPane />
@@ -56,26 +55,21 @@ const WorkspaceContent = () => {
     return <QuadFrame ideCollapsed={ideCollapsed} />
   }
 
-  return <UnifiedFrame viewMode={viewMode} layoutMode={layoutMode} ideCollapsed={ideCollapsed} />
+  return <UnifiedFrame layoutMode={layoutMode} ideCollapsed={ideCollapsed} />
 }
 
-/** Stable frame for single/split layouts. MissionInfoSidebar is the only thing
- *  that mounts/unmounts on viewMode toggle — ChatPane and IdeRegion stay put. */
+/** Stable frame for single/split layouts. ChatPane and IdeRegion stay put. */
 const UnifiedFrame = ({
-  viewMode,
   layoutMode,
   ideCollapsed,
 }: {
-  viewMode: 'agent' | 'mission-overview'
   layoutMode: 'single' | 'split'
   ideCollapsed: boolean
 }) => {
   const splitChatWidth = useSplitChatWidth()
-  const isTaskView = viewMode === 'mission-overview'
 
   return (
     <div className="flex-1 flex min-h-0 overflow-hidden">
-      {isTaskView && <MissionInfoSidebar key="taskinfo" />}
       <ChatColumn
         key="chat"
         layoutMode={layoutMode}

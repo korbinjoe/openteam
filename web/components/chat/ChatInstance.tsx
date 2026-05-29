@@ -10,7 +10,7 @@ import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import type { AgentActivity } from '../../types/chat'
+import type { AgentActivity, QueuedMessage } from '../../types/chat'
 import { groupMessages } from './messages/MessageGroup'
 import ChatHeader from './ChatHeader'
 import ChatBody from './ChatBody'
@@ -386,7 +386,7 @@ const ChatInstance = ({ chatId, workspaceId, isActive, isNewChat = false, initAg
   }, [availableAgents, targetAgentId, chatId, currentWorkingDirectory, wsRepositories, wsClient, dirPicker, addAgentMessage, uid, handleScrollToBottom])
 
   const {
-    queuedMessages,
+    queuedMessages: allQueuedMessages,
     handleSend, handleAnswerQuestion, handleInterrupt,
     removeQueuedMessage, clearQueue, popLastQueued,
   } = useChatActions({
@@ -398,6 +398,28 @@ const ChatInstance = ({ chatId, workspaceId, isActive, isNewChat = false, initAg
     setExpertActivities, setTargetAgentId, setLoading, chatTitle, setChatTitle,
     openDirPicker: dirPicker.openDirPicker,
   })
+
+  // In single-agent mode, only show queue items targeted at the locked agent
+  const queuedMessages = useMemo(() => {
+    if (!singleAgentMode || !lockedAgentKey) return allQueuedMessages
+    return allQueuedMessages.filter((m) => m.targetAgentId === lockedAgentKey)
+  }, [allQueuedMessages, singleAgentMode, lockedAgentKey])
+
+  const handleClearQueue = useCallback(() => {
+    if (!singleAgentMode || !lockedAgentKey) {
+      clearQueue()
+      return
+    }
+    for (const m of queuedMessages) removeQueuedMessage(m.id)
+  }, [singleAgentMode, lockedAgentKey, queuedMessages, clearQueue, removeQueuedMessage])
+
+  const handlePopLastQueued = useCallback((): QueuedMessage | null => {
+    if (!singleAgentMode || !lockedAgentKey) return popLastQueued()
+    if (queuedMessages.length === 0) return null
+    const last = queuedMessages[queuedMessages.length - 1]
+    removeQueuedMessage(last.id)
+    return last
+  }, [singleAgentMode, lockedAgentKey, queuedMessages, popLastQueued, removeQueuedMessage])
 
   const handleResizeMouseDown = (e: React.MouseEvent) => {
     e.preventDefault()
@@ -521,7 +543,11 @@ const ChatInstance = ({ chatId, workspaceId, isActive, isNewChat = false, initAg
               {t('chat:chatViewMode.queuePreservedNotice', { count: queuedMessages.length })}
             </div>
           )}
-          <GlobalHeartbeatBar expertActivities={expertActivities} agentNames={agentNames} agentPersonalities={agentPersonalities}
+          <GlobalHeartbeatBar
+            expertActivities={singleAgentMode && lockedAgentKey
+              ? (expertActivities[lockedAgentKey] ? { [lockedAgentKey]: expertActivities[lockedAgentKey] } : {})
+              : expertActivities}
+            agentNames={agentNames} agentPersonalities={agentPersonalities}
             onInterrupt={handleInterrupt}
             onAgentClick={(agentId) => { setTargetAgentId(agentId); inputAreaRef.current?.focus() }} />
           {primaryGitStatus && (
@@ -529,7 +555,7 @@ const ChatInstance = ({ chatId, workspaceId, isActive, isNewChat = false, initAg
           )}
           {viewMode === 'message' && (
             <>
-              <QueuedMessagesBar queue={queuedMessages} onRemove={removeQueuedMessage} onClear={clearQueue} />
+              <QueuedMessagesBar queue={queuedMessages} onRemove={removeQueuedMessage} onClear={handleClearQueue} />
               <InputArea ref={inputAreaRef} value={input} onChange={setInput} onSend={handleSend}
                 onInterrupt={handleInterrupt}
                 disabled={!canSend} activity={activeMergedActivity} slashCommands={currentSlashCommands}
@@ -538,7 +564,7 @@ const ChatInstance = ({ chatId, workspaceId, isActive, isNewChat = false, initAg
                 onTargetChange={(agent) => setTargetAgentId(agent.id ?? agent.name)}
                 cwd={currentWorkingDirectory}
                 queueSize={queuedMessages.length}
-                onRecallLastQueued={popLastQueued}
+                onRecallLastQueued={handlePopLastQueued}
                 onOpenAgentSwitcher={singleAgentMode ? undefined : () => setAgentSwitcherOpen(true)}
                 singleAgentMode={singleAgentMode}
                 lockedAgentName={lockedAgent?.name}

@@ -11,7 +11,7 @@ vi.mock('os', async () => {
 })
 
 // Import AFTER the mock so the module captures the fake homedir.
-const { expandSlashCommand } = await import('../runtime/SlashCommandResolver')
+const { expandSlashCommand, setProjectRoot } = await import('../runtime/SlashCommandResolver')
 
 const PROJECT_CWD = join(FAKE_HOME, 'project')
 
@@ -188,5 +188,14 @@ describe('expandSlashCommand', () => {
     )
     const out = await expandSlashCommand('/my-helper', PROJECT_CWD)
     expect(stripMarker(out).trim()).toBe('User helper body.')
+  })
+
+  it('falls back to projectRoot when cwd does not contain the command', async () => {
+    setProjectRoot(PROJECT_CWD)
+    const otherCwd = join(FAKE_HOME, 'other-project')
+    await mkdir(otherCwd, { recursive: true })
+    const out = await expandSlashCommand('/openspec:proposal', otherCwd)
+    expect(out).toContain('Project body here.')
+    setProjectRoot('')
   })
 })

@@ -57,6 +57,7 @@ import { createLogger, getLogDir } from './lib/logger'
 import { ensureAvatarDir } from './lib/avatarStorage'
 import { initEventTracker, trackEvent } from './lib/eventTracker'
 
+import { setProjectRoot } from './runtime/SlashCommandResolver'
 import { healStaleChatStatuses, watchAiAssetsDev } from './startup/StartupHealers'
 import { runAsyncBoot, getExternalDirWatcher, type AsyncBootResult } from './startup/AsyncBoot'
 import { setupRoutes } from './startup/routeSetup'
@@ -70,6 +71,7 @@ const __dirname = dirname(__filename)
 const parentDirName = basename(dirname(__dirname))
 const isBundled = parentDirName === 'dist'
 const PROJECT_ROOT = isBundled ? join(__dirname, '..', '..') : join(__dirname, '..')
+setProjectRoot(PROJECT_ROOT)
 
 log.info('Path debug info', {
   __filename, __dirname, parentDirName, isBundled, PROJECT_ROOT,

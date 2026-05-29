@@ -17,6 +17,7 @@ const defaultIdeCollapsedFor = (mode: LayoutMode): boolean => mode === 'single'
 export const SIDEBAR_WIDTH_MIN = 200
 export const SIDEBAR_WIDTH_MAX = 360
 export const SIDEBAR_WIDTH_DEFAULT = 260
+const sidebarMaxWidth = () => Math.max(SIDEBAR_WIDTH_MIN, Math.floor(window.innerWidth / 2))
 
 export const IDE_WIDTH_MIN = 280
 export const IDE_WIDTH_MAX = 640
@@ -172,7 +173,7 @@ const reducer = (state: WorkspaceState, action: Action): WorkspaceState => {
       return { ...state, ideCollapsed: !state.ideCollapsed }
 
     case 'SET_SIDEBAR_WIDTH':
-      return { ...state, sidebarWidth: clamp(action.width, SIDEBAR_WIDTH_MIN, SIDEBAR_WIDTH_MAX) }
+      return { ...state, sidebarWidth: clamp(action.width, SIDEBAR_WIDTH_MIN, sidebarMaxWidth()) }
 
     case 'SET_IDE_PANEL_WIDTH':
       return { ...state, idePanelWidth: clamp(action.width, IDE_WIDTH_MIN, IDE_WIDTH_MAX) }
@@ -258,7 +259,7 @@ export const WorkspaceProvider = ({
     if (!VALID_IDE_TABS.includes(merged.activeIdeTab)) {
       merged.activeIdeTab = 'IDE'
     }
-    merged.sidebarWidth = clamp(merged.sidebarWidth ?? SIDEBAR_WIDTH_DEFAULT, SIDEBAR_WIDTH_MIN, SIDEBAR_WIDTH_MAX)
+    merged.sidebarWidth = clamp(merged.sidebarWidth ?? SIDEBAR_WIDTH_DEFAULT, SIDEBAR_WIDTH_MIN, sidebarMaxWidth())
     merged.idePanelWidth = clamp(merged.idePanelWidth ?? IDE_WIDTH_DEFAULT, IDE_WIDTH_MIN, IDE_WIDTH_MAX)
     return merged
   })

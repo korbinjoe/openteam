@@ -302,9 +302,12 @@ export const createExpertLifecycle = (deps: ExpertLifecycleDeps) => {
       })
 
       const onDemandActive = isWhiteboardOnDemandEnabled()
-      const wrappedTask = task && briefing && !onDemandActive
-        ? briefing.maybeWrapTask(task, { chatId, agentId, agentName: agent.name, agentTags: agent.tags })
+      const expandedTask = task && provider !== 'codex'
+        ? await expandSlashCommand(task, cwd)
         : task
+      const wrappedTask = expandedTask && briefing && !onDemandActive
+        ? briefing.maybeWrapTask(expandedTask, { chatId, agentId, agentName: agent.name, agentTags: agent.tags })
+        : expandedTask
 
       const spawnArgs = compiled.args.slice()
       if (provider === 'codex' && wrappedTask) {
@@ -362,9 +365,8 @@ export const createExpertLifecycle = (deps: ExpertLifecycleDeps) => {
           }
           log.debug('Codex task passed as CLI arg', { task: wrappedTask.substring(0, 50), briefingInjected })
         } else {
-          const promptText = await expandSlashCommand(wrappedTask, cwd)
-          log.info('Sending task via ACP prompt', { agentId, task: task.substring(0, 50), briefingInjected, imageCount: initialImages?.length ?? 0, expanded: promptText !== wrappedTask })
-          acpClient.prompt(sessionId, promptText, initialImages).catch(err => {
+          log.info('Sending task via ACP prompt', { agentId, task: task.substring(0, 50), briefingInjected, imageCount: initialImages?.length ?? 0, expanded: wrappedTask !== task })
+          acpClient.prompt(sessionId, wrappedTask, initialImages).catch(err => {
             const errorMsg = err instanceof Error ? err.message : String(err)
             log.warn('ACP initial prompt failed', { agentId, error: errorMsg })
             sendTo(connectionId, {

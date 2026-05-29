@@ -162,7 +162,13 @@ export const useChatActions = ({
     return popped
   }, [])
 
-  const isWorkingNow = !!currentMergedActivity && WORKING_PHASES.has(currentMergedActivity.phase)
+  const isAnyWorking = !!currentMergedActivity && WORKING_PHASES.has(currentMergedActivity.phase)
+
+  const isTargetAgentWorking = (agentId: string | null): boolean => {
+    if (!agentId) return isAnyWorking
+    const activity = expertActivities[agentId]
+    return !!activity && WORKING_PHASES.has(activity.phase)
+  }
 
   const handleSend = (mentions: MentionInfo[] = [], images: PendingImage[] = []) => {
     const text = input.trim()
@@ -173,7 +179,7 @@ export const useChatActions = ({
       return
     }
 
-    if (isWorkingNow) {
+    if (isTargetAgentWorking(targetAgentId)) {
       const queued: QueuedMessage = {
         id: uid('queue'), text, mentions, images, targetAgentId, enqueuedAt: Date.now(),
       }
@@ -229,22 +235,39 @@ export const useChatActions = ({
     clearQueue()
   }, [stopAllExperts, setLoading, setExpertActivities, clearQueue, lockedAgentId])
 
-  // Flush the queue head whenever the agent is not actively working. Queue
-  // items can only be added while a working phase is active (handleSend gates
-  // on isWorkingNow), so this stays idempotent: dispatchMessage immediately
-  // sets the next phase back to `initializing` (a working phase), guarding
-  // against double-flushing within the same idle window.
+  // Determine if the queue head's target agent is idle and ready to receive.
+  const canFlushHead = useCallback((): boolean => {
+    const head = queuedMessagesRef.current[0]
+    if (!head) return false
+    const headAgentId = head.targetAgentId ?? head.mentions?.[0]?.id
+    const headActivity = headAgentId ? expertActivities[headAgentId] : currentMergedActivity
+    const phase = headActivity?.phase
+    if (phase && WORKING_PHASES.has(phase)) return false
+    if (phase === 'waiting_confirmation') return false
+    return true
+  }, [expertActivities, currentMergedActivity])
+
+  // Flush the queue head whenever its *target agent* is idle. Per-agent gating
+  // prevents cross-agent interference: Agent A finishing does not flush a
+  // message queued for still-busy Agent B, and vice versa.
   useEffect(() => {
     if (queuedMessages.length === 0) return
-    const phase = currentMergedActivity?.phase
-    const isWorking = !!phase && WORKING_PHASES.has(phase)
-    if (isWorking) return
-    if (phase === 'waiting_confirmation') return
-    flushNext()
-  }, [currentMergedActivity?.phase, queuedMessages.length, flushNext])
+    if (canFlushHead()) flushNext()
+  }, [expertActivities, currentMergedActivity?.phase, queuedMessages.length, flushNext, canFlushHead])
+
+  // Polling fallback: if the event-driven flush above misses a state transition
+  // (e.g., due to batched updates or a reconnect gap), this interval catches it.
+  useEffect(() => {
+    if (queuedMessages.length === 0) return
+    const id = setInterval(() => {
+      if (queuedMessagesRef.current.length === 0) return
+      if (canFlushHead()) flushNext()
+    }, 2000)
+    return () => clearInterval(id)
+  }, [queuedMessages.length, canFlushHead, flushNext])
 
   return {
-    queuedMessages, isWorkingNow,
+    queuedMessages, isWorkingNow: isAnyWorking,
     handleSend, handleAnswerQuestion, handleInterrupt,
     removeQueuedMessage, clearQueue, popLastQueued, dispatchMessage,
   }

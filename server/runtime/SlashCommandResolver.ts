@@ -26,6 +26,12 @@ const log = createLogger('SlashCommandResolver')
 const CLAUDE_HOME = join(homedir(), '.claude')
 const INSTALLED_PLUGINS_PATH = join(CLAUDE_HOME, 'plugins', 'installed_plugins.json')
 
+let _projectRoot: string | undefined
+
+export const setProjectRoot = (root: string): void => {
+  _projectRoot = root
+}
+
 interface InstalledPluginEntry {
   installPath: string
 }
@@ -110,6 +116,10 @@ const pluginCandidates = async (segments: string[]): Promise<string[]> => {
 const resolveCommandFile = async (cwd: string, segments: string[]): Promise<string | null> => {
   const projectHit = firstExisting(projectCandidates(cwd, segments))
   if (projectHit) return projectHit
+  if (_projectRoot && _projectRoot !== cwd) {
+    const rootHit = firstExisting(projectCandidates(_projectRoot, segments))
+    if (rootHit) return rootHit
+  }
   const userHit = firstExisting(userCandidates(segments))
   if (userHit) return userHit
   const pluginHit = firstExisting(await pluginCandidates(segments))
@@ -153,10 +163,14 @@ export const expandSlashCommand = async (text: string, cwd: string): Promise<str
   // custom command file first. If not found, assume it's a CLI built-in
   // (e.g. /clear, /help) and pass through unchanged.
   if (segments.length === 1) {
-    const flatFile = firstExisting([
+    const flatCandidates = [
       join(cwd, '.claude', 'commands', `${segments[0]}.md`),
-      join(CLAUDE_HOME, 'commands', `${segments[0]}.md`),
-    ])
+    ]
+    if (_projectRoot && _projectRoot !== cwd) {
+      flatCandidates.push(join(_projectRoot, '.claude', 'commands', `${segments[0]}.md`))
+    }
+    flatCandidates.push(join(CLAUDE_HOME, 'commands', `${segments[0]}.md`))
+    const flatFile = firstExisting(flatCandidates)
     if (!flatFile) return text
     try {
       const raw = await readFile(flatFile, 'utf-8')
@@ -181,7 +195,10 @@ export const expandSlashCommand = async (text: string, cwd: string): Promise<str
 
   try {
     const file = await resolveCommandFile(cwd, segments)
-    if (!file) return text
+    if (!file) {
+      log.debug('No command file found for slash command', { name: rawName, cwd, projectRoot: _projectRoot })
+      return text
+    }
     const raw = await readFile(file, 'utf-8')
     const body = stripFrontmatter(raw).trim()
     if (!body) return text

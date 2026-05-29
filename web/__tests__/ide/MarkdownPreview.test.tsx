@@ -24,6 +24,15 @@ describe('MarkdownPreview search highlight', () => {
     expect(marks[0].textContent).toBe('foo')
   })
 
+  it('marks the first match as the active match', () => {
+    const { container } = render(
+      <MarkdownPreview content="Hello World, hello again" fontSizePx={14} highlightKeyword="hello" />,
+    )
+    const active = container.querySelectorAll('mark.search-highlight-active')
+    expect(active.length).toBe(1)
+    expect(active[0].textContent).toBe('Hello')
+  })
+
   it('renders no marks when keyword is absent', () => {
     const { container } = render(
       <MarkdownPreview content="nothing to see" fontSizePx={14} />,

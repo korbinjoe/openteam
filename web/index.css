@@ -530,6 +530,13 @@ mark.search-highlight-match {
   color: inherit;
   padding: 0 1px;
 }
+.search-highlight-active {
+  background-color: rgba(245, 158, 11, 0.85);
+  border-color: rgb(245, 158, 11);
+}
+mark.search-highlight-active {
+  color: #1a1a1a;
+}
 
 /* ─── React Flow Theme ─────────────────────────────────── */
 .team-canvas .react-flow__background { background: rgb(var(--bg-primary)); }

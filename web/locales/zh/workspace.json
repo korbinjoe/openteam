@@ -266,6 +266,10 @@
     "source": "源码",
     "cut": "剪切",
     "addToChat": "加入当前会话",
+    "findPlaceholder": "在文档中查找",
+    "findPrev": "上一个匹配",
+    "findNext": "下一个匹配",
+    "findClose": "关闭",
     "fullscreen": {
       "toggleTooltip": "切换 IDE 全屏 (⌘⇧F)",
       "exitTooltip": "退出全屏 (⌘⇧F 或 Esc)"

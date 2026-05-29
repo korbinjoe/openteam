@@ -266,6 +266,10 @@
     "source": "Source",
     "cut": "Cut",
     "addToChat": "Add to current chat",
+    "findPlaceholder": "Find in document",
+    "findPrev": "Previous match",
+    "findNext": "Next match",
+    "findClose": "Close",
     "fullscreen": {
       "toggleTooltip": "Toggle IDE fullscreen (⌘⇧F)",
       "exitTooltip": "Exit fullscreen (⌘⇧F or Esc)"

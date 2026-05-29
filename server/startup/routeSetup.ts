@@ -29,6 +29,7 @@ import { createTrayRoutes } from '../routes/system/trayRoutes'
 import geminiRoutes from '../routes/system/geminiRoutes'
 import fileRoutes from '../routes/workspace/fileRoutes'
 
+import { getModels, getDefaultModel } from '../config/modelConfig'
 import { PreflightChecker, type PreflightResult } from '../services/PreflightChecker'
 import { getDatabase } from '../stores'
 import { errorResponder } from '../middleware/errorResponder'
@@ -107,6 +108,10 @@ export const setupRoutes = (app: Express, d: RouteDeps) => {
       timestamp: Date.now(),
       lastWsMessageAt: getLastWsMessageAt(),
     })
+  })
+
+  app.get('/api/config/models', (_req, res) => {
+    res.json({ models: getModels(), defaultModel: getDefaultModel() })
   })
 
   app.get('/api/env-check', (_req, res) => res.json(d.getEnvCheckResult() ?? { npmAvailable: true }))

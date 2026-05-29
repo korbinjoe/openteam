@@ -138,7 +138,13 @@ const WorkspaceLayoutInner = () => {
 
   useEffect(() => {
     if (!ideCollapsed) return
-    const handleOpenFile = () => { toggleIde() }
+    const handleOpenFile = (e: Event) => {
+      toggleIde()
+      const detail = (e as CustomEvent).detail
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('ide:open-file', { detail }))
+      }, 0)
+    }
     window.addEventListener('ide:open-file', handleOpenFile)
     return () => window.removeEventListener('ide:open-file', handleOpenFile)
   }, [ideCollapsed, toggleIde])

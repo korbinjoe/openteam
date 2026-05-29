@@ -20,6 +20,7 @@ const WorkspaceLayoutInner = () => {
     activeChatId,
     selectedAgentId,
     panelCollapsed,
+    ideCollapsed,
     commandPaletteOpen,
     addAgentOpen,
     newMissionOpen,
@@ -134,6 +135,13 @@ const WorkspaceLayoutInner = () => {
     workspaceId,
     navigate,
   ])
+
+  useEffect(() => {
+    if (!ideCollapsed) return
+    const handleOpenFile = () => { toggleIde() }
+    window.addEventListener('ide:open-file', handleOpenFile)
+    return () => window.removeEventListener('ide:open-file', handleOpenFile)
+  }, [ideCollapsed, toggleIde])
 
   return (
     <div className="flex h-screen bg-bg-primary overflow-hidden">

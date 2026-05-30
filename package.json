@@ -30,7 +30,7 @@
     "build:electron:main": "esbuild electron/main.ts --bundle --platform=node --outfile=dist/electron/main.js --external:electron --external:ws --external:fsevents --format=esm && esbuild electron/preload.ts --bundle --platform=node --outfile=dist/electron/preload.cjs --external:electron --format=cjs && esbuild electron/notch-preload.ts --bundle --platform=node --outfile=dist/electron/notch-preload.cjs --external:electron --format=cjs",
     "build:server": "esbuild server/index.ts --bundle --platform=node --outfile=dist/server/index.js --format=esm --external:electron --external:better-sqlite3 --external:node-pty --external:ws --external:fsevents --banner:js=\"import { createRequire } from 'module'; const require = createRequire(import.meta.url);\"",
     "build:electron:server": "npm run build:server",
-    "dev:electron:server": "esbuild server/index.ts --bundle --platform=node --outfile=dist/server/dev.mjs --format=esm --packages=external && node dist/server/dev.mjs",
+    "dev:electron:server": "esbuild server/index.ts --bundle --platform=node --outfile=dist/server/dev.mjs --format=esm --packages=external && OPENTEAM_DEV=1 node dist/server/dev.mjs",
     "build:notch-addon": "cd electron/native && npx node-gyp rebuild --runtime=electron --target=$(npx electron --version | tr -d 'v') --arch=$(node -p \"process.arch\") --dist-url=https://electronjs.org/headers",
     "dev:electron": "npm run build:electron:main && concurrently \"npm run dev:ui\" \"npm run dev:electron:server\" \"wait-on http://localhost:13000 http://localhost:13001/api/agents && electron .\"",
     "rebuild:native": "npx node-gyp rebuild --directory=node_modules/node-pty && npx node-gyp rebuild --directory=node_modules/better-sqlite3",

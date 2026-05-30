@@ -14,7 +14,7 @@ import { OPENTEAM_HOME } from '../config/paths'
 
 const OPENTEAM_DIR = OPENTEAM_HOME
 
-const IS_DEV = fileURLToPath(import.meta.url).endsWith('.ts')
+const IS_DEV = process.env.OPENTEAM_DEV === '1' || fileURLToPath(import.meta.url).endsWith('.ts')
 const SUFFIX = IS_DEV ? '.dev' : ''
 const PORT_FILE = join(OPENTEAM_DIR, `daemon${SUFFIX}.port`)
 const PID_FILE = join(OPENTEAM_DIR, `daemon${SUFFIX}.pid`)

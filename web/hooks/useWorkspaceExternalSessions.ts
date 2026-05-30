@@ -46,6 +46,7 @@ export const useWorkspaceExternalSessions = (
   const [loading, setLoading] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
   const inFlightRef = useRef<boolean>(false)
+  const loadedWsRef = useRef<string | null>(null)
 
   const fetchPage = useCallback(async (resetCursor: boolean): Promise<void> => {
     if (!workspaceId || !enabled) return
@@ -75,21 +76,20 @@ export const useWorkspaceExternalSessions = (
     }
   }, [workspaceId, enabled, cursor])
 
-  // Initial / re-enable load: reset and fetch page 1 with a fresh local fetch
-  // that ignores the stale cursor in closure.
+  // Fetch on enable or workspaceId change. When only `enabled` toggles back on
+  // for the same workspace, skip the loading flash and silently refresh in the
+  // background — cached rows stay visible until the response arrives.
   useEffect(() => {
-    if (!enabled || !workspaceId) {
+    if (!enabled || !workspaceId) return
+    const wsChanged = workspaceId !== loadedWsRef.current
+    if (wsChanged) {
       setSessions([])
       setCursor(null)
       setHasMore(true)
-      return
     }
     void (async () => {
-      setSessions([])
-      setCursor(null)
-      setHasMore(true)
       inFlightRef.current = true
-      setLoading(true)
+      if (wsChanged) setLoading(true)
       try {
         const url = `${API_BASE}/api/workspaces/${encodeURIComponent(workspaceId)}/external-sessions?limit=${PAGE_SIZE}`
         const res = await authFetch(url)
@@ -98,6 +98,7 @@ export const useWorkspaceExternalSessions = (
         setSessions(body.sessions)
         setCursor(body.nextCursor)
         setHasMore(body.hasMore)
+        loadedWsRef.current = workspaceId
       } catch (e) {
         setError(e instanceof Error ? e.message : String(e))
       } finally {

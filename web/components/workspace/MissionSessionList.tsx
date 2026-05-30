@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 // Sidebar pagination: every group shows this many items first; "Load more"
 // grows the visible slice in the same step. When the slice catches up to the
@@ -71,13 +71,16 @@ const MissionSessionList = ({ query = '' }: MissionSessionListProps) => {
     setWsExpanded((prev) => ({ ...prev, [wsId]: !(prev[wsId] ?? defaultExpanded(wsId)) }))
   }, [defaultExpanded])
 
-  // Selecting a mission collapses every other workspace: drop manual overrides
-  // so only the active workspace stays open via defaultExpanded. Users can
-  // still re-expand others to browse — the reset only fires when the selection
-  // changes, not on every render.
+  // Reset manual overrides only when the user switches to a different workspace.
+  // Switching missions within the same workspace should not collapse/re-expand
+  // groups, avoiding cascading re-renders and external-session refetches.
+  const prevActiveWsRef = useRef<string | null>(activeWorkspaceId)
   useEffect(() => {
-    setWsExpanded({})
-  }, [activeChatId])
+    if (activeWorkspaceId && activeWorkspaceId !== prevActiveWsRef.current) {
+      prevActiveWsRef.current = activeWorkspaceId
+      setWsExpanded({})
+    }
+  }, [activeWorkspaceId])
 
   const toggleExtDir = useCallback((cwd: string) => {
     setExtDirExpanded((prev) => ({ ...prev, [cwd]: !prev[cwd] }))
@@ -173,18 +176,20 @@ const MissionSessionList = ({ query = '' }: MissionSessionListProps) => {
 
       {!isSearching && visibleUnmatched.length > 0 && (
         <UnmatchedDirsSection
-          dirs={visibleUnmatched}
+          dirs={visibleUnmatched.filter((d) => !hiddenIds.has(d.cwd))}
           expandedMap={extDirExpanded}
           onToggle={toggleExtDir}
           onPin={togglePin}
           onArchive={toggleArchive}
           onAddAgent={openAddAgent}
+          onHide={toggleHide}
         />
       )}
 
-      {!isSearching && hiddenWorkspaces.length > 0 && (
+      {!isSearching && (hiddenWorkspaces.length > 0 || visibleUnmatched.some((d) => hiddenIds.has(d.cwd))) && (
         <HiddenWorkspacesSection
           workspaces={hiddenWorkspaces}
+          hiddenDirs={visibleUnmatched.filter((d) => hiddenIds.has(d.cwd))}
           onUnhide={toggleHide}
         />
       )}
@@ -586,13 +591,14 @@ const basename = (p: string): string => {
 // Unmatched-cwd group: a peer to WorkspaceGroup for cwds that don't fall under
 // any workspace's repositories. Same row shape inside, but the rows are
 // guaranteed external (no native chats exist without a workspace).
-const UnmatchedDirsSection = ({ dirs, expandedMap, onToggle, onPin, onArchive, onAddAgent }: {
+const UnmatchedDirsSection = ({ dirs, expandedMap, onToggle, onPin, onArchive, onAddAgent, onHide }: {
   dirs: UnmatchedExternalDir[]
   expandedMap: Record<string, boolean>
   onToggle: (cwd: string) => void
   onPin: (chatId: string) => void
   onArchive: (chatId: string) => void
   onAddAgent: (chatId: string) => void
+  onHide: (cwd: string) => void
 }) => (
   <div className="mt-2 border-t border-border/40 pt-2">
     {dirs.map((d) => (
@@ -605,12 +611,13 @@ const UnmatchedDirsSection = ({ dirs, expandedMap, onToggle, onPin, onArchive, o
         onPin={onPin}
         onArchive={onArchive}
         onAddAgent={onAddAgent}
+        onHide={() => onHide(d.cwd)}
       />
     ))}
   </div>
 )
 
-const ExternalCwdGroup = ({ cwd, count, expanded, onToggle, onPin, onArchive, onAddAgent }: {
+const ExternalCwdGroup = ({ cwd, count, expanded, onToggle, onPin, onArchive, onAddAgent, onHide }: {
   cwd: string
   count: number
   expanded: boolean
@@ -618,6 +625,7 @@ const ExternalCwdGroup = ({ cwd, count, expanded, onToggle, onPin, onArchive, on
   onPin: (chatId: string) => void
   onArchive: (chatId: string) => void
   onAddAgent: (chatId: string) => void
+  onHide: () => void
 }) => {
   const { sessions, hasMore, loading, loadMore, error } = useExternalCwdSessions(cwd, expanded)
   const [hiddenIds, setHiddenIds] = useState<Set<string>>(() => new Set())
@@ -639,18 +647,35 @@ const ExternalCwdGroup = ({ cwd, count, expanded, onToggle, onPin, onArchive, on
 
   return (
     <div>
-      <button
-        onClick={onToggle}
-        className="w-full flex items-center gap-1.5 px-2 py-1 hover:bg-bg-hover/50 rounded-sm transition-colors"
-        aria-expanded={expanded}
-        title={cwd}
-      >
-        <span className="text-text-muted -ml-px">
-          {expanded ? <ChevronDown size={9} /> : <ChevronRight size={9} />}
+      <div className="group relative flex items-center rounded-sm transition-colors hover:bg-bg-hover/50">
+        <button
+          onClick={onToggle}
+          className="flex-1 min-w-0 flex items-center gap-1.5 px-2 py-1"
+          aria-expanded={expanded}
+          title={cwd}
+        >
+          <span className="text-text-muted -ml-px">
+            {expanded ? <ChevronDown size={9} /> : <ChevronRight size={9} />}
+          </span>
+          <span className="text-[11px] font-medium text-text-secondary truncate">{basename(cwd)}</span>
+          <span className="ml-auto font-mono text-[10px] text-text-muted tabular-nums transition-opacity duration-100 group-hover:opacity-0">{count}</span>
+        </button>
+        <span className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-100 bg-bg-secondary/95 backdrop-blur-sm rounded px-0.5">
+          <span
+            role="button"
+            tabIndex={-1}
+            onClick={(e) => { e.stopPropagation(); onHide() }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); e.preventDefault(); onHide() }
+            }}
+            title={`Hide ${basename(cwd)}`}
+            aria-label={`Hide ${basename(cwd)}`}
+            className="w-5 h-5 rounded flex items-center justify-center text-text-muted hover:text-text-primary hover:bg-bg-hover cursor-pointer"
+          >
+            <EyeOff size={11} />
+          </span>
         </span>
-        <span className="text-[11px] font-medium text-text-secondary truncate">{basename(cwd)}</span>
-        <span className="ml-auto font-mono text-[10px] text-text-muted tabular-nums">{count}</span>
-      </button>
+      </div>
       {expanded && (
         <div className="flex flex-col gap-0.5">
           {loading && visible.length === 0 && (
@@ -690,11 +715,13 @@ const ExternalCwdGroup = ({ cwd, count, expanded, onToggle, onPin, onArchive, on
 }
 
 // ── Hidden workspaces ─────────────────────────────────────────────────────
-const HiddenWorkspacesSection = ({ workspaces, onUnhide }: {
+const HiddenWorkspacesSection = ({ workspaces, hiddenDirs = [], onUnhide }: {
   workspaces: Array<{ ws: { id: string; name: string }; wsChats: Chat[] }>
-  onUnhide: (wsId: string) => void
+  hiddenDirs?: UnmatchedExternalDir[]
+  onUnhide: (key: string) => void
 }) => {
   const [open, setOpen] = useState(false)
+  const totalCount = workspaces.length + hiddenDirs.length
 
   return (
     <div className="mt-2 border-t border-border/40 pt-2">
@@ -708,7 +735,7 @@ const HiddenWorkspacesSection = ({ workspaces, onUnhide }: {
         </span>
         <EyeOff size={10} className="text-text-muted" />
         <span className="text-[10px] uppercase tracking-wide text-text-muted">Hidden</span>
-        <span className="ml-auto font-mono text-[10px] text-text-muted tabular-nums">{workspaces.length}</span>
+        <span className="ml-auto font-mono text-[10px] text-text-muted tabular-nums">{totalCount}</span>
       </button>
       {open && (
         <div className="flex flex-col gap-0.5 ml-2">
@@ -727,6 +754,27 @@ const HiddenWorkspacesSection = ({ workspaces, onUnhide }: {
                 }}
                 title={`Show ${ws.name}`}
                 aria-label={`Show ${ws.name}`}
+                className="w-5 h-5 rounded flex items-center justify-center text-text-muted hover:text-text-primary hover:bg-bg-hover cursor-pointer opacity-0 group-hover/hidden:opacity-100 transition-opacity"
+              >
+                <Eye size={11} />
+              </span>
+            </div>
+          ))}
+          {hiddenDirs.map((d) => (
+            <div
+              key={d.cwd}
+              className="group/hidden flex items-center gap-1.5 px-2 py-1 rounded-sm hover:bg-bg-hover/50 transition-colors"
+            >
+              <span className="text-[11px] text-text-muted truncate flex-1">{basename(d.cwd)}</span>
+              <span
+                role="button"
+                tabIndex={-1}
+                onClick={() => onUnhide(d.cwd)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onUnhide(d.cwd) }
+                }}
+                title={`Show ${basename(d.cwd)}`}
+                aria-label={`Show ${basename(d.cwd)}`}
                 className="w-5 h-5 rounded flex items-center justify-center text-text-muted hover:text-text-primary hover:bg-bg-hover cursor-pointer opacity-0 group-hover/hidden:opacity-100 transition-opacity"
               >
                 <Eye size={11} />

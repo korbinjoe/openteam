@@ -76,10 +76,16 @@ export const useExternalCwds = (): UseExternalCwdsResult => {
     const handler = () => { void refresh() }
     wsClient.on('external-dirs:ready', handler)
     wsClient.on('external-dirs:changed', handler)
+    wsClient.on('reconnected', handler)
+
+    const handleVisibility = () => { if (!document.hidden) void refresh() }
+    document.addEventListener('visibilitychange', handleVisibility)
 
     return () => {
       wsClient.off('external-dirs:ready', handler)
       wsClient.off('external-dirs:changed', handler)
+      wsClient.off('reconnected', handler)
+      document.removeEventListener('visibilitychange', handleVisibility)
     }
   }, [refresh])
 

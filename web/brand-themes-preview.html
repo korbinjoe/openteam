@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OpenTeam Brand Themes — Extended Palette</title>
+<style>
+  :root { color-scheme: dark; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: #0a0a10;
+    color: #e2e4f0;
+    min-height: 100vh;
+    padding: 40px 24px 80px;
+  }
+
+  .header {
+    max-width: 960px;
+    margin: 0 auto 48px;
+    text-align: center;
+  }
+  .header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    margin-bottom: 8px;
+  }
+  .header p {
+    font-size: 14px;
+    color: #949cac;
+    line-height: 1.6;
+  }
+
+  .mode-toggle {
+    display: flex;
+    justify-content: center;
+    gap: 4px;
+    margin-bottom: 40px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 10px;
+    padding: 4px;
+    width: fit-content;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .mode-toggle button {
+    padding: 8px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    background: transparent;
+    color: #949cac;
+    transition: all 0.2s;
+  }
+  .mode-toggle button.active {
+    background: rgba(255,255,255,0.1);
+    color: #e2e4f0;
+  }
+
+  .section-label {
+    max-width: 960px;
+    margin: 0 auto 20px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: #5a6478;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: rgba(255,255,255,0.06);
+  }
+
+  .grid {
+    max-width: 960px;
+    margin: 0 auto 48px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+  }
+
+  .card {
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 14px;
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  .card:hover {
+    background: rgba(255,255,255,0.04);
+    border-color: rgba(255,255,255,0.1);
+    transform: translateY(-2px);
+  }
+  .card.selected {
+    border-color: var(--preview-brand);
+    box-shadow: 0 0 0 1px var(--preview-brand), 0 4px 24px rgba(0,0,0,0.3);
+  }
+
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 16px;
+  }
+  .card-title {
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -0.2px;
+  }
+  .card-subtitle {
+    font-size: 12px;
+    color: #5a6478;
+    margin-top: 2px;
+  }
+  .card-tag {
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 6px;
+    background: rgba(255,255,255,0.06);
+    color: #949cac;
+    white-space: nowrap;
+  }
+  .card-tag.new {
+    background: rgba(52,211,153,0.12);
+    color: #34d399;
+  }
+
+  .swatches {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 14px;
+  }
+  .swatch {
+    flex: 1;
+    height: 40px;
+    border-radius: 8px;
+    position: relative;
+    transition: transform 0.15s;
+  }
+  .swatch:hover {
+    transform: scale(1.05);
+    z-index: 1;
+  }
+  .swatch-main { border-radius: 8px 2px 2px 8px; }
+  .swatch-light { border-radius: 2px; }
+  .swatch-deep { border-radius: 2px 8px 8px 2px; }
+
+  .preview-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .preview-btn {
+    flex: 1;
+    padding: 7px 0;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 500;
+    border: none;
+    cursor: pointer;
+    transition: opacity 0.15s;
+    color: white;
+  }
+  .preview-btn:hover { opacity: 0.85; }
+  .preview-btn-outline {
+    background: transparent;
+    border: 1px solid;
+    color: inherit;
+  }
+  .preview-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    animation: pulse-soft 2s ease-in-out infinite;
+  }
+  @keyframes pulse-soft {
+    0%,100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.85); }
+  }
+
+  .hex-row {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 10px;
+    font-size: 10px;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    color: #5a6478;
+  }
+
+  /* ─── Preview Panel ─── */
+  .preview-panel {
+    max-width: 960px;
+    margin: 0 auto;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 16px;
+    padding: 32px;
+    display: none;
+  }
+  .preview-panel.visible { display: block; }
+  .preview-panel h3 {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 20px;
+  }
+
+  .preview-ui {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 16px;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.06);
+    height: 320px;
+  }
+  .preview-sidebar {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .preview-sidebar-item {
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #949cac;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .preview-sidebar-item:hover { background: rgba(255,255,255,0.04); }
+  .preview-sidebar-item.active {
+    color: white;
+  }
+  .preview-main {
+    padding: 24px;
+    border-left: 1px solid rgba(255,255,255,0.06);
+  }
+  .preview-main h4 { font-size: 14px; margin-bottom: 16px; }
+  .preview-agent-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    margin-bottom: 6px;
+    transition: background 0.15s;
+  }
+  .preview-agent-row:hover { background: rgba(255,255,255,0.03); }
+  .preview-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+  }
+  .preview-agent-name {
+    font-size: 12px;
+    font-weight: 500;
+    flex: 1;
+  }
+  .preview-agent-status {
+    font-size: 11px;
+    color: #5a6478;
+  }
+  .preview-status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+  }
+
+  /* ─── CSS Variables for preview ─── */
+  .css-output {
+    max-width: 960px;
+    margin: 32px auto 0;
+    background: rgba(0,0,0,0.4);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px;
+    padding: 20px;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 12px;
+    line-height: 1.8;
+    color: #949cac;
+    white-space: pre-wrap;
+    display: none;
+    position: relative;
+  }
+  .css-output.visible { display: block; }
+  .css-output .comment { color: #5a6478; }
+  .css-output .prop { color: #82b0de; }
+  .css-output .val { color: #34d399; }
+  .copy-btn {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.04);
+    color: #949cac;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .copy-btn:hover { background: rgba(255,255,255,0.08); color: #e2e4f0; }
+
+  /* ─── Light mode ─── */
+  body.light {
+    background: #fafafc;
+    color: #1e1e2e;
+  }
+  body.light .card {
+    background: #fff;
+    border-color: #e2e2ec;
+  }
+  body.light .card:hover {
+    background: #fafafc;
+    border-color: #d0d0dc;
+  }
+  body.light .card-subtitle,
+  body.light .hex-row { color: #78788c; }
+  body.light .card-tag { background: #f0f0f6; color: #78788c; }
+  body.light .card-tag.new { background: rgba(22,163,74,0.1); color: #16a34a; }
+  body.light .section-label { color: #78788c; }
+  body.light .section-label::after { background: #e2e2ec; }
+  body.light .header p { color: #52526c; }
+  body.light .mode-toggle { background: #f0f0f6; }
+  body.light .mode-toggle button { color: #78788c; }
+  body.light .mode-toggle button.active { background: #fff; color: #1e1e2e; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+  body.light .preview-panel,
+  body.light .preview-ui { background: #fff; border-color: #e2e2ec; }
+  body.light .preview-sidebar-item { color: #52526c; }
+  body.light .preview-sidebar-item:hover { background: #f4f4f8; }
+  body.light .preview-main { border-color: #e2e2ec; }
+  body.light .preview-agent-row:hover { background: #f8f8fc; }
+  body.light .preview-agent-status { color: #78788c; }
+  body.light .css-output { background: #f4f4f8; border-color: #e2e2ec; color: #52526c; }
+  body.light .css-output .comment { color: #a0a0b0; }
+  body.light .css-output .prop { color: #3464a0; }
+  body.light .css-output .val { color: #16a34a; }
+  body.light .copy-btn { border-color: #e2e2ec; background: #fff; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>OpenTeam Brand Themes</h1>
+  <p>Existing palette (A–J) + 12 new themes inspired by Radix, Tailwind v4, and Color Hunt trends.<br>
+    Click any card to preview in context. All colors tuned for dark-mode-first with light-mode counterparts.</p>
+</div>
+
+<div class="mode-toggle">
+  <button class="active" onclick="setMode('dark')">Dark</button>
+  <button onclick="setMode('light')">Light</button>
+</div>
+
+<div id="existing-label" class="section-label">Existing Themes · A–J</div>
+<div class="grid" id="existing-grid"></div>
+
+<div class="section-label">New Themes · K–V</div>
+<div class="grid" id="new-grid"></div>
+
+<div class="preview-panel" id="preview-panel">
+  <h3 id="preview-title">Theme Preview</h3>
+  <div class="preview-ui" id="preview-ui">
+    <div class="preview-sidebar" id="preview-sidebar"></div>
+    <div class="preview-main" id="preview-main"></div>
+  </div>
+</div>
+
+<div class="css-output" id="css-output">
+  <button class="copy-btn" onclick="copyCSS()">Copy CSS</button>
+</div>
+
+<script>
+const themes = {
+  // ─── Existing (A–J) ───
+  jiqing:   { name: 'Jiqing',  en: 'Clear Sky After Rain', tag: 'existing', dark: [90,143,202],  darkL: [130,176,222], darkD: [62,114,172],  light: [52,100,152],  lightL: [90,143,202],  lightD: [38,78,128] },
+  yanzhi:   { name: 'Yanzhi',  en: 'Rouge Red',            tag: 'existing', dark: [196,90,108],  darkL: [222,138,151], darkD: [168,62,82],   light: [156,52,72],   lightL: [196,90,108],  lightD: [128,36,56] },
+  xiangye:  { name: 'Xiangye', en: 'Golden Leaf',          tag: 'existing', dark: [232,190,76],  darkL: [242,214,132], darkD: [208,162,48],  light: [184,142,28],  lightL: [208,162,48],  lightD: [152,116,16] },
+  qingci:   { name: 'Qingci',  en: 'Celadon Green',        tag: 'existing', dark: [116,192,168], darkL: [156,216,196], darkD: [82,164,138],  light: [58,138,112],  lightL: [82,164,138],  lightD: [42,112,88] },
+  zhusha:   { name: 'Zhusha',  en: 'Cinnabar Red',         tag: 'existing', dark: [226,88,62],   darkL: [240,132,108], darkD: [196,66,42],   light: [176,56,34],   lightL: [196,66,42],   lightD: [148,42,24] },
+  ouhe:     { name: 'Ouhe',    en: 'Lotus Purple',         tag: 'existing', dark: [178,148,206], darkL: [204,182,226], darkD: [148,114,184], light: [118,82,158],  lightL: [148,114,184], lightD: [96,62,136] },
+  shiqing:  { name: 'Shiqing', en: 'Mineral Blue',         tag: 'existing', dark: [68,148,178],  darkL: [108,180,204], darkD: [42,120,152],  light: [32,102,132],  lightL: [42,120,152],  lightD: [22,82,110] },
+  qiuxiang: { name: 'Qiuxiang',en: 'Autumn Olive',         tag: 'existing', dark: [186,166,62],  darkL: [212,196,108], darkD: [156,138,36],  light: [132,114,22],  lightL: [156,138,36],  lightD: [108,92,12] },
+  yanxia:   { name: 'Yanxia',  en: 'Sunset Mist',          tag: 'existing', dark: [222,126,158], darkL: [238,168,192], darkD: [198,96,130],  light: [172,68,104],  lightL: [198,96,130],  lightD: [142,48,82] },
+  yaqing:   { name: 'Yaqing',  en: 'Crow Teal',            tag: 'existing', dark: [108,142,148], darkL: [148,178,184], darkD: [78,112,120],  light: [58,88,96],    lightL: [78,112,120],  lightD: [42,68,76] },
+
+  // ─── New Themes (K–V) ───
+  // K. Daimao — indigo/black ink (trending: deep tech, AI products)
+  daimao:   { name: 'Daimao',  en: 'Indigo Ink',           tag: 'new', dark: [100,110,196],  darkL: [140,148,222], darkD: [68,76,168],   light: [60,68,148],   lightL: [100,110,196], lightD: [42,48,128] },
+  // L. Qingtong — bronze green (trending: earth tones, warm premium)
+  qingtong: { name: 'Qingtong',en: 'Bronze Green',         tag: 'new', dark: [142,168,108],  darkL: [178,198,148], darkD: [108,138,76],  light: [82,118,58],   lightL: [108,138,76],  lightD: [62,96,42] },
+  // M. Mudan — peony pink (trending: vibrant warm accent)
+  mudan:    { name: 'Mudan',   en: 'Peony Pink',           tag: 'new', dark: [218,108,142],  darkL: [236,152,178], darkD: [192,76,112],  light: [168,52,88],   lightL: [192,76,112],  lightD: [138,36,68] },
+  // N. Xuanye — obsidian night (trending: monochrome luxury, near-black brands)
+  xuanye:   { name: 'Xuanye',  en: 'Obsidian Night',       tag: 'new', dark: [148,152,172],  darkL: [182,186,202], darkD: [118,122,148], light: [82,86,108],   lightL: [118,122,148], lightD: [62,66,88] },
+  // O. Canglan — ocean blue (trending: Radix Cyan, deep ocean)
+  canglan:  { name: 'Canglan', en: 'Ocean Blue',           tag: 'new', dark: [52,148,218],   darkL: [96,178,236],  darkD: [28,118,192],  light: [18,98,168],   lightL: [28,118,192],  lightD: [12,78,142] },
+  // P. Tanxiang — sandalwood (trending: warm neutrals, bronze/gold craft)
+  tanxiang: { name: 'Tanxiang',en: 'Sandalwood',           tag: 'new', dark: [198,162,118],  darkL: [222,192,156], darkD: [172,132,88],  light: [148,108,62],  lightL: [172,132,88],  lightD: [122,86,42] },
+  // Q. Diancui — kingfisher blue (trending: saturated teal, jewel tones)
+  diancui:  { name: 'Diancui', en: 'Kingfisher Blue',      tag: 'new', dark: [32,182,172],   darkL: [82,212,202],  darkD: [12,152,142],  light: [8,128,118],   lightL: [12,152,142],  lightD: [4,102,96] },
+  // R. Yuhong — rain red-orange (trending: vibrant coral, energetic)
+  yuhong:   { name: 'Yuhong',  en: 'Rain Red',             tag: 'new', dark: [236,108,88],   darkL: [246,148,132], darkD: [212,82,62],   light: [188,56,38],   lightL: [212,82,62],   lightD: [162,38,22] },
+  // S. Ziying — violet jade (trending: purple/violet in AI/dev tools)
+  ziying:   { name: 'Ziying',  en: 'Violet Jade',          tag: 'new', dark: [148,108,218],  darkL: [182,148,238], darkD: [118,76,192],  light: [96,56,168],   lightL: [118,76,192],  lightD: [76,38,142] },
+  // T. Liulu — amber green (trending: lime/chartreuse, nature-tech fusion)
+  liulu:    { name: 'Liulu',   en: 'Amber Green',          tag: 'new', dark: [168,208,72],   darkL: [196,226,118], darkD: [138,182,42],  light: [108,148,22],  lightL: [138,182,42],  lightD: [82,118,8] },
+  // U. Chibai — cinnabar white (trending: warm white, blush rose gold)
+  chibai:   { name: 'Chibai',  en: 'Cinnabar White',       tag: 'new', dark: [212,168,158],  darkL: [232,196,188], darkD: [188,138,128], light: [162,108,96],  lightL: [188,138,128], lightD: [136,82,72] },
+  // V. Tianshuibi — celestial jade (trending: aquamarine, serene futurism)
+  tianshuibi:{ name:'Tianshuibi',en:'Celestial Jade',      tag: 'new', dark: [88,198,208],   darkL: [132,222,228], darkD: [58,168,178],  light: [32,138,148],  lightL: [58,168,178],  lightD: [18,112,122] },
+}
+
+let currentMode = 'dark'
+let selectedTheme = null
+
+function rgb(arr) { return `rgb(${arr[0]},${arr[1]},${arr[2]})` }
+function hex(arr) { return '#' + arr.map(v => v.toString(16).padStart(2,'0')).join('') }
+
+function getColors(theme) {
+  const t = themes[theme]
+  if (currentMode === 'dark') return { brand: t.dark, light: t.darkL, deep: t.darkD }
+  return { brand: t.light, light: t.lightL, deep: t.lightD }
+}
+
+function renderCard(key, container) {
+  const t = themes[key]
+  const c = getColors(key)
+  const card = document.createElement('div')
+  card.className = 'card'
+  card.dataset.theme = key
+  card.style.setProperty('--preview-brand', rgb(c.brand))
+
+  card.innerHTML = `
+    <div class="card-header">
+      <div>
+        <div class="card-title">${t.name}</div>
+        <div class="card-subtitle">${t.en}</div>
+      </div>
+      <span class="card-tag ${t.tag === 'new' ? 'new' : ''}">${t.tag === 'new' ? 'NEW' : String.fromCharCode(65 + Object.keys(themes).indexOf(key))}</span>
+    </div>
+    <div class="swatches">
+      <div class="swatch swatch-deep" style="background:${rgb(c.deep)}"></div>
+      <div class="swatch swatch-main" style="background:${rgb(c.brand)}"></div>
+      <div class="swatch swatch-light" style="background:${rgb(c.light)}"></div>
+    </div>
+    <div class="preview-row">
+      <div class="preview-dot" style="background:${rgb(c.brand)}"></div>
+      <button class="preview-btn" style="background:${rgb(c.brand)}">Primary</button>
+      <button class="preview-btn preview-btn-outline" style="border-color:${rgb(c.brand)};color:${rgb(c.brand)}">Outline</button>
+    </div>
+    <div class="hex-row">
+      <span>deep ${hex(c.deep)}</span>
+      <span>brand ${hex(c.brand)}</span>
+      <span>light ${hex(c.light)}</span>
+    </div>
+  `
+
+  card.addEventListener('click', () => selectTheme(key))
+  container.appendChild(card)
+}
+
+function renderAll() {
+  const existingGrid = document.getElementById('existing-grid')
+  const newGrid = document.getElementById('new-grid')
+  existingGrid.innerHTML = ''
+  newGrid.innerHTML = ''
+
+  Object.keys(themes).forEach(key => {
+    if (themes[key].tag === 'existing') renderCard(key, existingGrid)
+    else renderCard(key, newGrid)
+  })
+
+  if (selectedTheme) selectTheme(selectedTheme)
+}
+
+function selectTheme(key) {
+  selectedTheme = key
+  document.querySelectorAll('.card').forEach(c => c.classList.remove('selected'))
+  const card = document.querySelector(`.card[data-theme="${key}"]`)
+  if (card) {
+    card.classList.add('selected')
+    card.style.setProperty('--preview-brand', rgb(getColors(key).brand))
+  }
+
+  renderPreview(key)
+  renderCSS(key)
+}
+
+function renderPreview(key) {
+  const panel = document.getElementById('preview-panel')
+  const title = document.getElementById('preview-title')
+  const sidebar = document.getElementById('preview-sidebar')
+  const main = document.getElementById('preview-main')
+  const t = themes[key]
+  const c = getColors(key)
+
+  panel.classList.add('visible')
+  title.textContent = `Preview — ${t.name} (${t.en})`
+
+  const bgPrimary = currentMode === 'dark' ? '#0a0a10' : '#fafafc'
+  const bgSecondary = currentMode === 'dark' ? '#101018' : '#f4f4f8'
+  const textPrimary = currentMode === 'dark' ? '#e2e4f0' : '#1e1e2e'
+  const textSecondary = currentMode === 'dark' ? '#949cac' : '#52526c'
+  const borderColor = currentMode === 'dark' ? 'rgba(255,255,255,0.06)' : '#e2e2ec'
+
+  document.getElementById('preview-ui').style.background = bgPrimary
+  document.getElementById('preview-ui').style.borderColor = borderColor
+
+  sidebar.style.background = bgSecondary
+  sidebar.style.color = textSecondary
+  sidebar.innerHTML = `
+    <div class="preview-sidebar-item active" style="background:rgba(${c.brand.join(',')},0.12);color:${rgb(c.brand)}">
+      <span style="font-size:14px">◉</span> Mission Alpha
+    </div>
+    <div class="preview-sidebar-item">
+      <span style="font-size:14px">○</span> Design Sprint
+    </div>
+    <div class="preview-sidebar-item">
+      <span style="font-size:14px">○</span> Backend API
+    </div>
+    <div class="preview-sidebar-item" style="margin-top:auto;font-size:11px;color:${rgb(c.brand)}">
+      + New Mission
+    </div>
+  `
+
+  main.style.color = textPrimary
+  main.style.borderColor = borderColor
+  const agents = [
+    { emoji: '⚒️', name: 'Fullstack Engineer', status: 'running', statusColor: rgb(c.brand) },
+    { emoji: '🛡️', name: 'Security Auditor', status: 'waiting', statusColor: currentMode === 'dark' ? '#fbbf24' : '#ca8a04' },
+    { emoji: '🎨', name: 'UI Designer', status: 'done', statusColor: currentMode === 'dark' ? 'rgba(52,211,153,0.4)' : 'rgba(22,163,74,0.4)' },
+    { emoji: '🔍', name: 'Code Reviewer', status: 'idle', statusColor: currentMode === 'dark' ? '#5a6478' : '#78788c' },
+  ]
+
+  main.innerHTML = `
+    <h4>Active Agents</h4>
+    ${agents.map(a => `
+      <div class="preview-agent-row">
+        <div class="preview-avatar" style="background:rgba(${c.brand.join(',')},0.12)">${a.emoji}</div>
+        <span class="preview-agent-name">${a.name}</span>
+        <span class="preview-agent-status">${a.status}</span>
+        <div class="preview-status-dot" style="background:${a.statusColor}${a.status === 'running' ? ';animation:pulse-soft 2s ease-in-out infinite' : ''}"></div>
+      </div>
+    `).join('')}
+    <div style="margin-top:16px;display:flex;gap:8px">
+      <button style="flex:1;padding:8px;border-radius:8px;border:none;background:${rgb(c.brand)};color:white;font-size:12px;font-weight:500;cursor:pointer">Dispatch Task</button>
+      <button style="flex:1;padding:8px;border-radius:8px;border:1px solid ${borderColor};background:transparent;color:${textSecondary};font-size:12px;cursor:pointer">View All</button>
+    </div>
+  `
+}
+
+function renderCSS(key) {
+  const output = document.getElementById('css-output')
+  const t = themes[key]
+  output.classList.add('visible')
+
+  const cssText = `<span class="comment">/* ${String.fromCharCode(65 + Object.keys(themes).indexOf(key))}. ${t.name} — ${t.en} */</span>
+:root[data-color-theme="<span class="val">${key}</span>"] {
+  <span class="prop">--accent-brand</span>:       <span class="val">${t.dark.join(' ')}</span>;
+  <span class="prop">--accent-brand-light</span>: <span class="val">${t.darkL.join(' ')}</span>;
+  <span class="prop">--accent-brand-deep</span>:  <span class="val">${t.darkD.join(' ')}</span>;
+}
+:root.light[data-color-theme="<span class="val">${key}</span>"] {
+  <span class="prop">--accent-brand</span>:       <span class="val">${t.light.join(' ')}</span>;
+  <span class="prop">--accent-brand-light</span>: <span class="val">${t.lightL.join(' ')}</span>;
+  <span class="prop">--accent-brand-deep</span>:  <span class="val">${t.lightD.join(' ')}</span>;
+}`
+
+  output.innerHTML = `<button class="copy-btn" onclick="copyCSS()">Copy CSS</button>${cssText}`
+}
+
+function copyCSS() {
+  if (!selectedTheme) return
+  const t = themes[selectedTheme]
+  const key = selectedTheme
+  const idx = Object.keys(themes).indexOf(key)
+  const plain = `/* ${String.fromCharCode(65 + idx)}. ${t.name} — ${t.en} */
+:root[data-color-theme="${key}"] {
+  --accent-brand:       ${t.dark.join(' ')};
+  --accent-brand-light: ${t.darkL.join(' ')};
+  --accent-brand-deep:  ${t.darkD.join(' ')};
+}
+:root.light[data-color-theme="${key}"] {
+  --accent-brand:       ${t.light.join(' ')};
+  --accent-brand-light: ${t.lightL.join(' ')};
+  --accent-brand-deep:  ${t.lightD.join(' ')};
+}`
+  navigator.clipboard.writeText(plain)
+  const btn = document.querySelector('.copy-btn')
+  btn.textContent = 'Copied!'
+  setTimeout(() => btn.textContent = 'Copy CSS', 1500)
+}
+
+function setMode(mode) {
+  currentMode = mode
+  document.body.className = mode === 'light' ? 'light' : ''
+  document.querySelectorAll('.mode-toggle button').forEach(b => b.classList.remove('active'))
+  event.target.classList.add('active')
+  renderAll()
+}
+
+renderAll()
+</script>
+</body>
+</html>

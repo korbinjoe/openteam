@@ -17,7 +17,7 @@ export interface Workspace {
   createdAt: string
 }
 
-export type ChatMemberStatus = 'running' | 'waiting' | 'error' | 'idle' | 'done'
+export type ChatMemberStatus = 'running' | 'waiting' | 'waiting_input' | 'error' | 'idle' | 'done'
 
 export type ChatMemberRole = 'lead' | 'worker'
 
@@ -56,6 +56,9 @@ export interface Chat {
   archivedAt?: number | null
   /** User pinned to top of sidebar (ms since epoch). */
   pinnedAt?: number | null
+  /** Agent's last message text when in a waiting state — shown as subtitle on
+   *  the Mission row so the user knows what needs attention. */
+  waitingReason?: string
   createdAt: string
   lastMessageAt: string
 }

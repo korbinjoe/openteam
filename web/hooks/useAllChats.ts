@@ -70,11 +70,17 @@ export const useAllChats = (): V2AllChatsResult => {
       setChats((prev) => prev.map((c) => {
         if (c.id !== chatId) return c
         const next = { ...c } as Chat & { missionStatus?: string }
-        if (phase === 'completed') { next.status = 'stopped'; next.missionStatus = 'success' }
-        else if (phase === 'error') { next.status = 'stopped'; next.missionStatus = 'error' }
-        else if (phase === 'waiting_input') { next.status = 'idle'; next.missionStatus = 'waiting_input' }
-        else if (phase === 'waiting_confirmation') { next.status = 'idle'; next.missionStatus = 'waiting_confirm' }
-        else if (ACTIVE_PHASES.has(phase)) { next.status = 'running'; next.missionStatus = 'running' }
+        if (phase === 'completed') { next.status = 'stopped'; next.missionStatus = 'success'; next.waitingReason = undefined }
+        else if (phase === 'error') { next.status = 'stopped'; next.missionStatus = 'error'; next.waitingReason = undefined }
+        else if (phase === 'waiting_input') {
+          next.status = 'idle'; next.missionStatus = 'waiting_input'
+          next.waitingReason = payload.latestMessage?.text
+        }
+        else if (phase === 'waiting_confirmation') {
+          next.status = 'idle'; next.missionStatus = 'waiting_confirm'
+          next.waitingReason = payload.latestMessage?.text
+        }
+        else if (ACTIVE_PHASES.has(phase)) { next.status = 'running'; next.missionStatus = 'running'; next.waitingReason = undefined }
         next.members = reconcileMembersFromActivity(c.members, payload)
         return next
       }))

@@ -10,7 +10,7 @@
  *   - Cold: ≤ 200 ms wall, ≤ 100 ms longest event-loop block on 3578-file corpus
  *   - Warm: ≤ 50 ms wall (mtime cursor short-circuits ≥99% files)
  *   - Memory: ≤ 2 MB at rest
- *   - Never reads more than 8 KB from any single jsonl
+ *   - Never reads more than 64 KB from any single jsonl
  */
 
 import { existsSync } from 'fs'
@@ -27,7 +27,7 @@ const log = createLogger('DirectoryEnumerator')
 const CLAUDE_ROOT = join(homedir(), '.claude', 'projects')
 const CODEX_ROOT = join(homedir(), '.codex', 'sessions')
 const CODEX_ROLLOUT_RE = /^rollout-.+-([0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12})\.jsonl$/
-const HEAD_CAP = 8192
+const HEAD_CAP = 65536
 const CODEX_FIRST_LINE_CAP = 4096
 const BATCH_SIZE = 50
 
@@ -166,9 +166,18 @@ export class DirectoryEnumerator {
         }
       }
 
-      const cwd = await extractClaudeCwd(join(projectDir, sampleFile))
+      let cwd = await extractClaudeCwd(join(projectDir, sampleFile))
       if (!cwd) {
-        log.debug('Claude project has no cwd in head', { projectKey })
+        let fallbackTries = 0
+        for (const f of files) {
+          if (f === sampleFile) continue
+          if (++fallbackTries > 3) break
+          cwd = await extractClaudeCwd(join(projectDir, f))
+          if (cwd) break
+        }
+      }
+      if (!cwd) {
+        log.debug('Claude project has no cwd in any file head', { projectKey })
         continue
       }
       scannedFiles += files.length

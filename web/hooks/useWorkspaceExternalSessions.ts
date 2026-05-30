@@ -114,9 +114,16 @@ export const useWorkspaceExternalSessions = (
     const handler = () => { void fetchPage(true) }
     wsClient.on('external-dirs:ready', handler)
     wsClient.on('external-dirs:changed', handler)
+    wsClient.on('reconnected', handler)
+
+    const handleVisibility = () => { if (!document.hidden) void fetchPage(true) }
+    document.addEventListener('visibilitychange', handleVisibility)
+
     return () => {
       wsClient.off('external-dirs:ready', handler)
       wsClient.off('external-dirs:changed', handler)
+      wsClient.off('reconnected', handler)
+      document.removeEventListener('visibilitychange', handleVisibility)
     }
   }, [enabled, workspaceId, fetchPage])
 

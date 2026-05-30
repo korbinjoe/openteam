@@ -23,7 +23,7 @@ import type { CliProvider, ExpertSessionInfo } from '../config/types'
 import { createLogger } from '../lib/logger'
 import { trackEvent } from '../lib/eventTracker'
 import { cwdToClaudeProjectKey } from '../../shared/projectKey'
-import { scanPluginSlashCommands, scanProjectSlashCommands } from '../runtime/PluginCommandsScanner'
+import { scanPluginSlashCommands, scanProjectSlashCommands, scanUserSkills } from '../runtime/PluginCommandsScanner'
 
 const log = createLogger('ExpertResume')
 
@@ -289,11 +289,12 @@ export const createExpertResumeHandler = (deps: ExpertResumeDeps) => {
     // push to every agent we resume.
     const resumeCwd = sessions[0]?.[1]?.cwd || process.cwd()
     const commandsPromise = (async () => {
-      const [pluginCmds, projectCmds] = await Promise.all([
+      const [pluginCmds, projectCmds, userSkills] = await Promise.all([
         scanPluginSlashCommands(),
         scanProjectSlashCommands(resumeCwd),
+        scanUserSkills(),
       ])
-      return [...pluginCmds, ...projectCmds]
+      return [...pluginCmds, ...projectCmds, ...userSkills]
     })().catch((err) => {
       log.warn('Commands scan failed during resume', {
         chatId,

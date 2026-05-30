@@ -35,14 +35,14 @@ const extractServerError = (err: unknown): string | null => {
 const INDENT_AGENT = 'pl-9'      // 36px — every agent row, peer of "Add Agent"
 const INDENT_ADD_AGENT = 'pl-9'  // 36px — peer of agent rows
 
-// running: solid brand dot + outward water-ripple ring (before:) so the motion
-// is visible at 6-7px sizes — opacity-only pulse was nearly invisible.
-// done: green at 40% so completed work recedes; the eye should be drawn to
-// running/waiting/error rows that still want attention.
+// running: solid brand + water-ripple ring.
+// waiting: full yellow (confirmation block). waiting_input: softer yellow (turn idle).
+// done: green at 40% so completed work recedes.
 export const memberStatusDot = (status: ChatMemberStatus | undefined): string => {
   switch (status) {
     case 'running': return 'bg-accent-brand relative before:absolute before:inset-0 before:rounded-full before:bg-accent-brand before:animate-ping-soft'
     case 'waiting': return 'bg-accent-yellow'
+    case 'waiting_input': return 'bg-accent-yellow/60'
     case 'error': return 'bg-accent-red'
     case 'done': return 'bg-accent-green/40'
     default: return 'bg-text-muted'
@@ -50,11 +50,9 @@ export const memberStatusDot = (status: ChatMemberStatus | undefined): string =>
 }
 
 // Mission-level dot rolls up from members[] using the same worst-wins priority
-// the server uses (MemberAggregator.rollupStatus): error > waiting > running >
-// done > idle. This keeps the mission row and the agent rows below it in the
-// same color vocabulary — yellow at chat level only when *some* member is in
-// `waiting` (i.e. waiting_confirmation), never for the between-turn idle.
-const ROLLUP_PRIORITY: ChatMemberStatus[] = ['error', 'waiting', 'running', 'done', 'idle']
+// the server uses (MemberAggregator.rollupStatus):
+// error > waiting > waiting_input > running > done > idle.
+const ROLLUP_PRIORITY: ChatMemberStatus[] = ['error', 'waiting', 'waiting_input', 'running', 'done', 'idle']
 
 export const chatStatusDot = (chat: Chat): string => {
   const members = chat.members ?? []
@@ -67,6 +65,11 @@ export const chatStatusDot = (chat: Chat): string => {
     if (members.some((m) => m.status === status)) return memberStatusDot(status)
   }
   return 'bg-text-muted'
+}
+
+const isWaitingStatus = (chat: Chat): boolean => {
+  const members = chat.members ?? []
+  return members.some((m) => m.status === 'waiting' || m.status === 'waiting_input')
 }
 
 export const ageLabel = (input: number | string | undefined): string => {
@@ -226,7 +229,12 @@ export const MissionRow = ({ chat, isSelected, agentNames, onPin, onArchive, onA
           <ChevronRight size={9} className={cn('transition-transform', expanded && 'rotate-90')} />
         </button>
         <span className={cn('w-[7px] h-[7px] rounded-full flex-shrink-0', chatStatusDot(chat))} />
-        <span className="text-[12px] font-medium text-text-primary flex-1 truncate">{chat.title}</span>
+        <span className="flex-1 min-w-0">
+          <span className="text-[12px] font-medium text-text-primary block truncate">{chat.title}</span>
+          {chat.waitingReason && isWaitingStatus(chat) && (
+            <span className="text-[10px] text-accent-yellow block truncate">{chat.waitingReason}</span>
+          )}
+        </span>
         {badge && (
           <span className="text-[10px] px-1.5 py-px rounded bg-bg-tertiary text-text-muted truncate max-w-[72px] flex-shrink-0">
             {badge}

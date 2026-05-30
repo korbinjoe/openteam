@@ -1,11 +1,13 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useWorkspace, SIDEBAR_WIDTH_DEFAULT } from '../../contexts/WorkspaceContext'
 import { isElectron, isMacElectron } from '../../utils/env'
+import { API_BASE, authFetch } from '@/config/api'
 import MissionSessionList from './MissionSessionList'
 import SidebarFooter, { ResourcesSection } from './SidebarFooter'
 import ResizeHandle from './ResizeHandle'
-import { PanelLeftClose, PanelLeftOpen, Plus, Handshake, Zap, Repeat, FolderGit, Settings, Search } from './icons'
+import { PanelLeftClose, PanelLeftOpen, Plus, Handshake, Zap, Repeat, FolderGit, Settings, Search, RefreshCw } from './icons'
+import { cn } from '../../lib/utils'
 
 interface MissionSidebarProps {
   collapsed: boolean
@@ -17,6 +19,19 @@ const MissionSidebar = ({ collapsed }: MissionSidebarProps) => {
   const [query, setQuery] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
   const searchInputRef = useRef<HTMLInputElement>(null)
+  const [rescanning, setRescanning] = useState(false)
+
+  const handleRescan = useCallback(async () => {
+    if (rescanning) return
+    setRescanning(true)
+    try {
+      await authFetch(`${API_BASE}/api/external-sessions/rescan`, { method: 'POST' })
+    } catch {
+      // WS event will handle refresh even if HTTP response is lost
+    } finally {
+      setRescanning(false)
+    }
+  }, [rescanning])
 
   // Open with "/" anywhere in the app (unless the user is typing in another input).
   useEffect(() => {
@@ -123,6 +138,18 @@ const MissionSidebar = ({ collapsed }: MissionSidebarProps) => {
             </button>
           )}
           <span className="flex-1" />
+          <button
+            onClick={() => void handleRescan()}
+            disabled={rescanning}
+            className={cn(
+              'w-[22px] h-[22px] rounded-md flex items-center justify-center transition-colors text-text-muted hover:bg-bg-hover hover:text-text-secondary',
+              rescanning && 'animate-spin pointer-events-none',
+            )}
+            title="Refresh external sessions"
+            aria-label="Refresh external sessions"
+          >
+            <RefreshCw size={13} />
+          </button>
           <button
             onClick={() => setSearchOpen((v) => !v)}
             className={`w-[22px] h-[22px] rounded-md flex items-center justify-center transition-colors ${searchOpen || query ? 'text-text-primary bg-bg-hover' : 'text-text-muted hover:bg-bg-hover hover:text-text-secondary'}`}

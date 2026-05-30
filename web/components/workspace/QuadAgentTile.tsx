@@ -8,13 +8,14 @@ import { buildMissionUrl } from './urls'
 import { Maximize } from './icons'
 import type { Chat, ChatMember } from './types'
 
-type AgentStatus = 'running' | 'waiting' | 'error' | 'done' | 'idle'
+type AgentStatus = 'running' | 'waiting' | 'waiting_input' | 'error' | 'done' | 'idle'
 
 const memberStatus = (s: ChatMember['status']): AgentStatus => (s === 'idle' ? 'idle' : s)
 
 const dotColor = (s: AgentStatus): string => {
   if (s === 'error') return 'bg-accent-red'
   if (s === 'waiting') return 'bg-accent-yellow'
+  if (s === 'waiting_input') return 'bg-accent-yellow/60'
   if (s === 'running') return 'bg-accent-brand'
   return 'bg-text-muted'
 }
@@ -22,6 +23,7 @@ const dotColor = (s: AgentStatus): string => {
 const stripeColor = (s: AgentStatus): string | null => {
   if (s === 'error') return 'bg-accent-red'
   if (s === 'waiting') return 'bg-accent-yellow'
+  if (s === 'waiting_input') return 'bg-accent-yellow/60'
   return null
 }
 

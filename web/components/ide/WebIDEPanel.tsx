@@ -148,13 +148,13 @@ const WebIDEPanel = ({ chatId, roots, gitStatus, multiGitStatus, onMultiOptimist
 
   useEffect(() => {
     const handleOpenFile = (e: Event) => {
-      const { filePath } = (e as CustomEvent).detail as { filePath: string }
-      if (filePath) {
-        openFile(filePath)
-        setViewTab('files')
-        setRevealPath(filePath)
-        setRevealCounter(c => c + 1)
-      }
+      const { filePath, line } = (e as CustomEvent).detail as { filePath: string; line?: number }
+      if (!filePath) return
+      const resolved = filePath.startsWith('/') ? filePath : primaryRoot ? `${primaryRoot}/${filePath}` : filePath
+      openFile(resolved, line)
+      setViewTab('files')
+      setRevealPath(resolved)
+      setRevealCounter(c => c + 1)
     }
     window.addEventListener('ide:open-file', handleOpenFile)
     return () => window.removeEventListener('ide:open-file', handleOpenFile)

@@ -51,10 +51,10 @@
   --radius-md:        10px;
   --radius-lg:        14px;
 
-  /* Default brand = Jiqing */
-  --accent-brand:       90 143 202;
-  --accent-brand-light: 130 176 222;
-  --accent-brand-deep:  62 114 172;
+  /* Default brand = Diancui */
+  --accent-brand:       32 182 172;
+  --accent-brand-light: 82 212 202;
+  --accent-brand-deep:  12 152 142;
 }
 
 :root.light {
@@ -216,6 +216,42 @@
   --accent-brand:       58 88 96;
   --accent-brand-light: 78 112 120;
   --accent-brand-deep:  42 68 76;
+}
+
+/* K. Diancui — kingfisher blue */
+:root[data-color-theme="diancui"] {
+  --accent-brand:       32 182 172;
+  --accent-brand-light: 82 212 202;
+  --accent-brand-deep:  12 152 142;
+}
+:root.light[data-color-theme="diancui"] {
+  --accent-brand:       8 128 118;
+  --accent-brand-light: 12 152 142;
+  --accent-brand-deep:  4 102 96;
+}
+
+/* L. Tanxiang — sandalwood */
+:root[data-color-theme="tanxiang"] {
+  --accent-brand:       198 162 118;
+  --accent-brand-light: 222 192 156;
+  --accent-brand-deep:  172 132 88;
+}
+:root.light[data-color-theme="tanxiang"] {
+  --accent-brand:       148 108 62;
+  --accent-brand-light: 172 132 88;
+  --accent-brand-deep:  122 86 42;
+}
+
+/* M. Qingtong — bronze green */
+:root[data-color-theme="qingtong"] {
+  --accent-brand:       142 168 108;
+  --accent-brand-light: 178 198 148;
+  --accent-brand-deep:  108 138 76;
+}
+:root.light[data-color-theme="qingtong"] {
+  --accent-brand:       82 118 58;
+  --accent-brand-light: 108 138 76;
+  --accent-brand-deep:  62 96 42;
 }
 
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -403,6 +439,29 @@ html, body, #root {
 .chat-markdown a               { color: rgb(var(--accent-brand-light)); text-decoration: none; }
 .chat-markdown a:hover         { text-decoration: underline; }
 .chat-markdown strong          { color: rgb(var(--text-emphasis)); font-weight: 600; }
+
+/* ─── Clickable file path links in chat messages ─────────── */
+.file-path-link {
+  cursor: pointer;
+  border-radius: 3px;
+  transition: background 0.1s, color 0.1s;
+}
+.file-path-link:hover {
+  background: rgb(var(--accent-brand) / 0.1);
+  color: rgb(var(--accent-brand-light));
+}
+.file-path-code {
+  background: rgb(var(--accent-brand) / 0.08);
+  color: rgb(var(--accent-brand-light));
+  border: none;
+  padding: 2px 6px;
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  font-size: 12px;
+  border-radius: 4px;
+}
+.file-path-code:hover {
+  background: rgb(var(--accent-brand) / 0.16);
+}
 
 /* ─── Markdown File Preview (WebIDE) ─────────────────────── */
 .md-preview {

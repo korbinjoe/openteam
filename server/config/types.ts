@@ -119,7 +119,7 @@ export interface ExpertSessionInfo {
   taskCompleted?: boolean
 }
 
-export type ChatMemberStatus = 'running' | 'waiting' | 'error' | 'idle' | 'done'
+export type ChatMemberStatus = 'running' | 'waiting' | 'waiting_input' | 'error' | 'idle' | 'done'
 
 export type ChatMemberRole = 'lead' | 'worker'
 

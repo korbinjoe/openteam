@@ -17,6 +17,7 @@ import type { ChatStore } from '../../stores/ChatStore'
 import type { Workspace, CliProvider } from '../../config/types'
 import { getDatabase } from '../../stores/Database'
 import { SessionPager } from '../../services/scanner/SessionPager'
+import { DirectoryEnumerator } from '../../services/scanner/DirectoryEnumerator'
 import { createLogger } from '../../lib/logger'
 
 const log = createLogger('externalSessionRoutes')
@@ -24,6 +25,7 @@ const log = createLogger('externalSessionRoutes')
 interface ExternalSessionRouteDeps {
   workspaceStore: WorkspaceStore
   chatStore: ChatStore
+  broadcast?: (msg: Record<string, unknown>) => void
 }
 
 interface DirRow {
@@ -42,6 +44,7 @@ interface AdoptedRow {
 export const createExternalSessionRoutes = ({
   workspaceStore,
   chatStore,
+  broadcast,
 }: ExternalSessionRouteDeps): Router => {
   const router = Router()
   const pager = new SessionPager()
@@ -304,6 +307,27 @@ export const createExternalSessionRoutes = ({
       res.status(500).json({
         error: err instanceof Error ? err.message : 'Adopt failed',
       })
+    }
+  })
+
+  let rescanInFlight = false
+  router.post('/api/external-sessions/rescan', async (_req, res) => {
+    if (rescanInFlight) {
+      return res.json({ skipped: true, reason: 'rescan already in progress' })
+    }
+    rescanInFlight = true
+    try {
+      const result = await new DirectoryEnumerator().enumerate()
+      broadcast?.({
+        type: 'external-dirs:changed',
+        payload: { providers: ['claude', 'codex'], dirCount: result.dirCount, durationMs: result.durationMs },
+      })
+      res.json(result)
+    } catch (err) {
+      log.warn('manual rescan failed', { error: err instanceof Error ? err.message : String(err) })
+      res.status(500).json({ error: 'Rescan failed' })
+    } finally {
+      rescanInFlight = false
     }
   })
 

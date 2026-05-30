@@ -24,6 +24,7 @@ import {
   type TimelineEntry, type ToolGroup, type ExpertProgressGroup,
   getExpertAction, getReadableToolLabel, groupConsecutiveTools,
 } from './timelineHelpers'
+import { InlineCode, MarkdownP, MarkdownLi, MarkdownTd } from './filePathLinks'
 
 const IMAGE_EXTENSIONS = new Set([
   '.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.bmp', '.ico',
@@ -293,7 +294,13 @@ const ExternalLink = ({ href, children, ...props }: React.AnchorHTMLAttributes<H
   </a>
 )
 
-const markdownComponents = { a: ExternalLink }
+const markdownComponents = {
+  a: ExternalLink,
+  code: InlineCode,
+  p: MarkdownP,
+  li: MarkdownLi,
+  td: MarkdownTd,
+}
 
 const TimelineTextBlock = ({ entry }: { entry: TimelineEntry }) => (
   <div style={{ padding: '6px 12px', margin: '6px 4px 6px 17px', background: 'rgb(var(--bg-hover-subtle) / var(--bg-hover-subtle-alpha))', borderRadius: 6, overflow: 'hidden' }}>

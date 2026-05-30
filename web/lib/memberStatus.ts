@@ -8,9 +8,9 @@
  * frozen at its initial-fetch value and the sidebar status dot misreports
  * whenever an agent transitions between turns.
  *
- * Note `waiting_input` → `idle`: the post-turn idle phase the CLI sits in
- * between messages is not a real block, so yellow stays reserved for true
- * `waiting_confirmation` (AskUserQuestion / ExitPlanMode).
+ * `waiting_input` → `waiting_input`: agent finished its turn, awaiting user's
+ * next message. `waiting_confirmation` → `waiting`: true block needing user
+ * action (AskUserQuestion / ExitPlanMode).
  */
 
 import type { ChatMember, ChatMemberStatus } from '@/components/workspace/types'
@@ -21,7 +21,7 @@ export const PHASE_TO_MEMBER_STATUS: Record<string, ChatMemberStatus> = {
   responding: 'running',
   tool_running: 'running',
   initializing: 'running',
-  waiting_input: 'idle',
+  waiting_input: 'waiting_input',
   waiting_confirmation: 'waiting',
   error: 'error',
   completed: 'done',
@@ -70,7 +70,7 @@ export const reconcileMembersFromActivity = (
       const next = phaseToMemberStatus(live)
       return next && next !== m.status ? { ...m, status: next } : m
     }
-    if (isTerminal && (m.status === 'running' || m.status === 'waiting')) {
+    if (isTerminal && (m.status === 'running' || m.status === 'waiting' || m.status === 'waiting_input')) {
       return { ...m, status: terminalStatus }
     }
     return m

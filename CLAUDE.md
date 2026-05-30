@@ -72,7 +72,8 @@ across the app. Reuse these tokens — do not invent new mappings.
 | Color | Token | Meaning |
 |-------|-------|---------|
 | Blue (rippling) | `bg-accent-brand` + `before:animate-ping-soft` water-ripple | `running` — agent actively executing |
-| Yellow | `bg-accent-yellow` | `waiting` — waiting for user input/confirm (`waiting_input` / `waiting_confirm`) |
+| Yellow | `bg-accent-yellow` | `waiting` — blocked on user confirmation (`waiting_confirmation`) |
+| Yellow (soft) | `bg-accent-yellow/60` | `waiting_input` — agent finished turn, awaiting user's next message |
 | Red | `bg-accent-red` | `error` — execution failed |
 | Green (muted) | `bg-accent-green/40` | `done` — completed successfully (deliberately recessive — done state should not compete for attention) |
 | Gray | `bg-text-muted` | `idle` / `stopped` — no active work |

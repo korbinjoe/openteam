@@ -603,6 +603,11 @@ const TerminalPanel = forwardRef<TerminalPanelHandle, TerminalPanelProps>(
                           ? t('terminal.emptyHintLocked', { agent: lockedAgentId })
                           : t('terminal.emptyHint'))}
                   </div>
+                  {inTerminalView && (
+                    <div className="text-xs opacity-50">
+                      {t('chatViewMode.firstTurnHintSub', { shortcut: t('chatViewMode.shortcut') })}
+                    </div>
+                  )}
                 </div>
               </div>
             )}

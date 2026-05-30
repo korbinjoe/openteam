@@ -1,7 +1,7 @@
 import { useWorkspace } from '../../contexts/WorkspaceContext'
 import { cn } from '../../lib/utils'
 
-type AgentStatus = 'running' | 'waiting' | 'error' | 'done'
+type AgentStatus = 'running' | 'waiting' | 'waiting_input' | 'error' | 'done'
 
 interface AgentSessionItemProps {
   agent: {
@@ -19,6 +19,7 @@ interface AgentSessionItemProps {
 const statusDotColor = (s: AgentStatus): string => {
   if (s === 'error') return 'bg-accent-red'
   if (s === 'waiting') return 'bg-accent-yellow'
+  if (s === 'waiting_input') return 'bg-accent-yellow/60'
   if (s === 'running') return 'bg-accent-brand'
   return 'bg-text-muted'
 }

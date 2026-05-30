@@ -152,3 +152,34 @@ export const scanProjectSlashCommands = async (cwd: string): Promise<string[]> =
   log.debug('Scanned project slash commands', { cwd, count: list.length })
   return list
 }
+
+/**
+ * Scan user-level skills from `~/.claude/skills/` and `~/.codex/skills/`.
+ *
+ * Each subdirectory containing a `SKILL.md` is treated as a skill whose
+ * slash-command name equals the directory name. This mirrors what Claude Code
+ * does natively in terminal mode.
+ */
+export const scanUserSkills = async (): Promise<string[]> => {
+  const results = new Set<string>()
+  const home = homedir()
+  const dirs = [
+    join(home, '.claude', 'skills'),
+    join(home, '.codex', 'skills'),
+  ]
+
+  for (const dir of dirs) {
+    if (!existsSync(dir)) continue
+    const entries = await readdir(dir, { withFileTypes: true }).catch(() => [])
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue
+      if (existsSync(join(dir, entry.name, 'SKILL.md'))) {
+        results.add(entry.name)
+      }
+    }
+  }
+
+  const list = Array.from(results).sort()
+  log.debug('Scanned user skills', { count: list.length })
+  return list
+}

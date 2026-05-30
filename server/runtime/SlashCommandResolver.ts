@@ -170,6 +170,8 @@ export const expandSlashCommand = async (text: string, cwd: string): Promise<str
       flatCandidates.push(join(_projectRoot, '.claude', 'commands', `${segments[0]}.md`))
     }
     flatCandidates.push(join(CLAUDE_HOME, 'commands', `${segments[0]}.md`))
+    flatCandidates.push(join(CLAUDE_HOME, 'skills', segments[0], 'SKILL.md'))
+    flatCandidates.push(join(homedir(), '.codex', 'skills', segments[0], 'SKILL.md'))
     const flatFile = firstExisting(flatCandidates)
     if (!flatFile) return text
     try {

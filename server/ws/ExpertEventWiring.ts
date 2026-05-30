@@ -21,7 +21,7 @@ import { ExpertTokenTracker } from './ExpertTokenTracker'
 import { createActivityHandler } from './ExpertActivityHandler'
 import { flushPendingTasks } from './ExpertPendingTaskFlush'
 import { createLogger } from '../lib/logger'
-import { scanPluginSlashCommands, scanProjectSlashCommands } from '../runtime/PluginCommandsScanner'
+import { scanPluginSlashCommands, scanProjectSlashCommands, scanUserSkills } from '../runtime/PluginCommandsScanner'
 
 const log = createLogger('ExpertEventWiring')
 
@@ -165,9 +165,10 @@ export const wireExpertStreamHandlers = (deps: ExpertEventWiringDeps): WiredExpe
     Promise.all([
       scanPluginSlashCommands(),
       scanProjectSlashCommands(cwd),
+      scanUserSkills(),
     ])
-      .then(([pluginCommands, projectCommands]) => {
-        const extra = [...pluginCommands, ...projectCommands]
+      .then(([pluginCommands, projectCommands, userSkills]) => {
+        const extra = [...pluginCommands, ...projectCommands, ...userSkills]
         if (extra.length === 0) return
         const merged = Array.from(new Set([...initData.slashCommands, ...extra])).sort()
         sendCommands(merged)

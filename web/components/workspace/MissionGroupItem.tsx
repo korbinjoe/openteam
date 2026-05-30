@@ -3,7 +3,7 @@ import AgentSessionItem from './AgentSessionItem'
 import { Plus } from './icons'
 import { cn } from '../../lib/utils'
 
-type AgentStatus = 'running' | 'waiting' | 'error' | 'done'
+type AgentStatus = 'running' | 'waiting' | 'waiting_input' | 'error' | 'done'
 
 interface MissionAgent {
   id: string

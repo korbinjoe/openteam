@@ -7,7 +7,7 @@ import { buildMissionOpenUrl } from './MissionSessionRows'
 import { Maximize } from './icons'
 import type { Chat, ChatMember } from '../workspace/types'
 
-type AgentStatus = 'running' | 'waiting' | 'error' | 'done' | 'idle'
+type AgentStatus = 'running' | 'waiting' | 'waiting_input' | 'error' | 'done' | 'idle'
 
 interface MiniAgentPaneProps {
   /** Real chat — when supplied, the pane derives all display from it (chat-quad mode). */
@@ -32,7 +32,8 @@ const memberStatusToAgent = (s: ChatMember['status']): AgentStatus => {
 const missionStatusOf = (chat: Chat): AgentStatus => {
   const missionStatus = (chat as Chat & { missionStatus?: string }).missionStatus
   if (missionStatus === 'error') return 'error'
-  if (missionStatus === 'waiting_input' || missionStatus === 'waiting_confirm') return 'waiting'
+  if (missionStatus === 'waiting_confirm') return 'waiting'
+  if (missionStatus === 'waiting_input') return 'waiting_input'
   if (chat.status === 'running' || missionStatus === 'running') return 'running'
   return 'done'
 }
@@ -40,6 +41,7 @@ const missionStatusOf = (chat: Chat): AgentStatus => {
 const statusDotColor = (s: AgentStatus): string => {
   if (s === 'error') return 'bg-accent-red'
   if (s === 'waiting') return 'bg-accent-yellow'
+  if (s === 'waiting_input') return 'bg-accent-yellow/60'
   if (s === 'running') return 'bg-accent-brand'
   return 'bg-text-muted'
 }

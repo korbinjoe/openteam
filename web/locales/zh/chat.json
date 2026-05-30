@@ -183,8 +183,9 @@
     "tooltipTerminal": "终端视图（{{shortcut}}）",
     "shortcut": "⌘⇧T",
     "queuePreservedNotice": "已保留 {{count}} 条队列消息——切回消息视图发送",
-    "firstTurnHintLocked": "切回消息视图以启动 {{agent}}",
-    "firstTurnHintMulti": "切回消息视图以启动 Agent"
+    "firstTurnHintLocked": "发送首条消息以启动 {{agent}}",
+    "firstTurnHintMulti": "发送首条消息以启动会话",
+    "firstTurnHintSub": "按 {{shortcut}} 切换到消息视图"
   },
   "whiteboard": {
     "goal": "目标",

@@ -155,6 +155,7 @@ export interface ChatActivityPayload {
    *  `expertActivities` above is a legacy alias that the server never populates;
    *  consumers should prefer `agentActivities`. */
   agentActivities?: ExpertActivitySnapshot[]
+  latestMessage?: { role: 'user' | 'agent' | 'assistant'; text: string; at: number }
 }
 /** localStorage  messages/groupActivities */
 export interface HistoryMetadata {

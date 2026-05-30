@@ -183,8 +183,9 @@
     "tooltipTerminal": "Terminal view ({{shortcut}})",
     "shortcut": "⌘⇧T",
     "queuePreservedNotice": "{{count}} queued message(s) preserved — switch to message view to send",
-    "firstTurnHintLocked": "Switch to message view to launch {{agent}}",
-    "firstTurnHintMulti": "Switch to message view to launch an agent"
+    "firstTurnHintLocked": "Send the first message to launch {{agent}}",
+    "firstTurnHintMulti": "Send the first message to start a session",
+    "firstTurnHintSub": "Press {{shortcut}} to switch to message view"
   },
   "whiteboard": {
     "goal": "Goal",

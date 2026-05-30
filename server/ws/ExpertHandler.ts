@@ -33,11 +33,14 @@ import { trackEvent } from '../lib/eventTracker'
 
 const log = createLogger('ExpertHandler')
 
+export type AgentExitedCallback = (chatId: string, agentId: string, exitCode: number, taskCompleted: boolean) => void
+
 export class ExpertHandler {
   private store = new ExpertSessionStore()
   getExpertStore(): ExpertSessionStore { return this.store }
   private resumeInFlight = new Set<string>()
   private resumeRecent = new Map<string, number>()
+  private agentExitedCallbacks: AgentExitedCallback[] = []
 
   /** connectionId → WebSocket  */
   private connectionWsMap = new Map<string, WebSocket>()
@@ -124,6 +127,7 @@ export class ExpertHandler {
       broadcastToChat: this.broadcastToChat,
       globalBroadcast: this.globalBroadcast,
       whiteboardManager: this.whiteboardManager,
+      onAgentExited: (chatId, agentId, exitCode, taskCompleted) => this.notifyAgentExited(chatId, agentId, exitCode, taskCompleted),
     })
 
     this.resumeHandler = createExpertResumeHandler({
@@ -528,6 +532,16 @@ export class ExpertHandler {
     if (!expert) return null
     const ck = compositeKey(expert.connectionId, expert.chatId, agentId)
     return this.store.getActivity(ck) ?? null
+  }
+
+  onAgentExited(cb: AgentExitedCallback): void {
+    this.agentExitedCallbacks.push(cb)
+  }
+
+  notifyAgentExited(chatId: string, agentId: string, exitCode: number, taskCompleted: boolean): void {
+    for (const cb of this.agentExitedCallbacks) {
+      try { cb(chatId, agentId, exitCode, taskCompleted) } catch {}
+    }
   }
 
   private persistExpertSession(agentId: string, cliSessionId: string, cwd: string, connectionId: string, provider?: import('../config/types').CliProvider, chatId?: string): void {

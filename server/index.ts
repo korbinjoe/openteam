@@ -52,6 +52,7 @@ import { TerminalViewManager } from './terminal/TerminalViewManager'
 import { WhiteboardManager } from './whiteboard/WhiteboardManager'
 import { ExecutionPlanManager } from './mailbox/ExecutionPlanManager'
 import { WorkflowRegistry } from './orchestration/WorkflowRegistry'
+import { WorkflowScheduler } from './orchestration/WorkflowScheduler'
 
 import { createLogger, getLogDir } from './lib/logger'
 import { ensureAvatarDir } from './lib/avatarStorage'
@@ -185,8 +186,12 @@ const broadcastToChat = (chatId: string, msg: Record<string, unknown>) => {
     log.warn('broadcastToChat dropped: no open ws among connections', { chatId, type: msg.type })
   }
 }
-workflowRegistry.setDeps({ whiteboardManager, broadcastToChat })
 const expertHandler = new ExpertHandler(configCompiler, agentRegistry, agentStore, chatStore, tokenUsageStore, executionLogStore, undefined, sessionRegistry, versionGate, broadcastToChat, whiteboardManager, broadcast)
+const workflowScheduler = new WorkflowScheduler({ workflowRegistry, expertHandler, broadcastToChat })
+expertHandler.onAgentExited((chatId, agentId, exitCode, taskCompleted) => {
+  workflowScheduler.onAgentExited(chatId, agentId, exitCode, taskCompleted)
+})
+workflowRegistry.setDeps({ whiteboardManager, broadcastToChat, scheduler: workflowScheduler })
 const semanticLogBroadcaster = new SemanticLogBroadcaster(agentRegistry, sessionRegistry, (connId) => expertHandler.getConnectionWs(connId))
 const cronJobLauncher = new CronJobLauncher(
   configCompiler, agentRegistry, sessionRegistry, workspaceStore,

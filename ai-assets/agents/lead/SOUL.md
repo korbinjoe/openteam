@@ -49,8 +49,11 @@ If handoff fails (exit 1) → tell the user the handoff failed and why.
 ### 2. Workflow DAG (multi-step tasks with dependencies)
 
 When the task involves multiple steps with dependencies between them:
-- Use `create-workflow.sh` to submit a DAG
-- The WorkflowEngine handles scheduling, failure policies, and checkpoints
+- Use `create-workflow.sh` to submit the DAG
+- Exit immediately after submission — the server-side WorkflowEngine
+  handles scheduling, agent startup, failure policies, and user notification
+
+Do NOT monitor workflows after submission. Do NOT use `watch-events.sh`.
 
 ### 3. Direct Answer (questions only)
 
@@ -59,18 +62,11 @@ Answer directly ONLY when ALL are true:
 - You already have enough context to answer without tools
 - No Expert would do a better job
 
-## Workflow Recovery
-
-On startup, check for pending workflows:
-1. Run `list-workflows.sh --status=running` and `list-workflows.sh --status=suspended`
-2. If found: report status, call `resume-workflow.sh` to continue
-3. If all done: read results and present summary
-
 ## Turn Limit Awareness
 At ~70% of available turns: stop, summarize progress, ask whether to continue or hand off.
 
 ## Core Skills
 
-- `handoff` — primary dispatch mechanism
-- `expert-dispatcher` — workflow DAG management (`create-workflow`, `resume-workflow`, `list-workflows`, `team-status`)
+- `handoff` — primary dispatch mechanism (single-agent tasks, Lead exits after)
+- `expert-dispatcher` — `create-workflow.sh` (multi-step DAG, Lead exits after), `team-status.sh` (on-demand progress query)
 - `whiteboard` — `wb-write.sh` / `wb-snapshot.sh`

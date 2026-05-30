@@ -4,6 +4,7 @@ import { homedir } from 'os'
 import { WorkflowEngine, loadWorkflowState } from './WorkflowEngine'
 import type { WorkflowDAG, WorkflowResult, WorkflowState } from '../../shared/workflow-types'
 import type { SessionRegistry } from '../terminal/SessionRegistry'
+import type { WorkflowScheduler } from './WorkflowScheduler'
 import { createLogger } from '../lib/logger'
 
 const log = createLogger('WorkflowRegistry')
@@ -13,6 +14,7 @@ const WORKFLOWS_ROOT = join(homedir(), '.openteam', 'workflows')
 interface WorkflowRegistryDeps {
   whiteboardManager?: { appendEntry(chatId: string, entry: Record<string, unknown>): void }
   broadcastToChat?: (chatId: string, msg: Record<string, unknown>) => void
+  scheduler?: WorkflowScheduler
 }
 
 export class WorkflowRegistry {
@@ -33,6 +35,11 @@ export class WorkflowRegistry {
     this.wireCompletionEvents(engine)
     this.engines.set(dag.id, engine)
     log.info('Workflow created', { workflowId: dag.id, chatId: dag.chatId, taskCount: dag.tasks.length })
+
+    if (this.deps.scheduler) {
+      this.deps.scheduler.scheduleWorkflow(engine)
+    }
+
     return engine
   }
 
@@ -150,6 +157,11 @@ export class WorkflowRegistry {
       }
 
       this.engines.set(engine.workflowId, engine)
+
+      if (this.deps.scheduler && engine.hasRunnableTasks()) {
+        this.deps.scheduler.scheduleWorkflow(engine)
+      }
+
       log.info('Recovered workflow on startup', { workflowId: engine.workflowId, status: engine.status })
     }
   }

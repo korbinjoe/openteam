@@ -58,6 +58,7 @@ export interface ExpertLifecycleDeps {
   /**  WS  GlobalTaskContext  chat  chat:permission-request */
   globalBroadcast?: (msg: Record<string, unknown>) => void
   whiteboardManager?: WhiteboardManager
+  onAgentExited?: (chatId: string, agentId: string, exitCode: number, taskCompleted: boolean) => void
 }
 
 export const createExpertLifecycle = (deps: ExpertLifecycleDeps) => {
@@ -65,7 +66,7 @@ export const createExpertLifecycle = (deps: ExpertLifecycleDeps) => {
     configCompiler, agentRegistry, agentStore, chatStore, tokenUsageStore,
     executionLogStore, sessionRegistry, store, versionGate, sendTo,
     persistExpertSession, getConnectionChatId, broadcastToChat, globalBroadcast,
-    whiteboardManager,
+    whiteboardManager, onAgentExited,
   } = deps
 
   const titleService = new ChatTitleService()
@@ -74,7 +75,7 @@ export const createExpertLifecycle = (deps: ExpertLifecycleDeps) => {
   const attacherDeps: ExpertAttacherDeps = { sessionRegistry, chatStore, store, getConnectionChatId, sendTo }
   const { trackParticipant, ensureAttachedRunning } = createExpertAttacher(attacherDeps)
 
-  const exitDeps: ExitHandlerDeps = { sessionRegistry, executionLogStore, store, chatStore, agentStore, sendTo }
+  const exitDeps: ExitHandlerDeps = { sessionRegistry, executionLogStore, store, chatStore, agentStore, sendTo, onExited: onAgentExited }
   const { handleExit } = createExpertExitHandler(exitDeps)
 
   const handleStart = async (

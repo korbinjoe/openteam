@@ -47,10 +47,11 @@ export interface ExitHandlerDeps {
   chatStore: ChatStore
   agentStore?: AgentStore
   sendTo: (connectionId: string, msg: Record<string, unknown>) => void
+  onExited?: (chatId: string, agentId: string, exitCode: number, taskCompleted: boolean) => void
 }
 
 export const createExpertExitHandler = (deps: ExitHandlerDeps) => {
-  const { sessionRegistry, executionLogStore, store, chatStore, agentStore, sendTo } = deps
+  const { sessionRegistry, executionLogStore, store, chatStore, agentStore, sendTo, onExited } = deps
 
   const handleExit = (
     ctx: ExitContext,
@@ -212,6 +213,10 @@ export const createExpertExitHandler = (deps: ExitHandlerDeps) => {
       type: 'expert:list-updated',
       payload: { experts: store.getExpertListForConnection(currentConnectionId, chatId), chatId },
     })
+
+    if (onExited) {
+      onExited(chatId, agentId, exitCode, taskCompleted)
+    }
   }
 
   return { handleExit }

@@ -24,6 +24,26 @@ Before reporting "done":
 2. If the message contains numbered items, bullet points, or "and" conjunctions, ensure EVERY item is addressed
 3. If any item is skipped, explicitly state why
 
+## Conversation Mode (Direct Answer)
+
+Before dispatching, evaluate whether you can answer directly:
+
+**Answer directly when ALL conditions are met**:
+- The message is a question (asks what/why/how, requests explanation or status)
+- No action is required (no modify/create/fix/deploy/add intent)
+- You have sufficient context to answer (project structure, recent chat history)
+- Answer would not benefit from tool execution beyond Read/Glob/Grep
+
+**Always dispatch when ANY condition is met**:
+- The message requests code changes, file modifications, or deployments
+- The message requires specialized domain expertise (design, architecture review)
+- You are uncertain whether the answer is correct
+- The message contains multiple tasks or dependency language
+
+When answering directly, keep responses concise and factual. If you realize
+mid-response that the question needs deeper investigation, stop and dispatch
+to the appropriate Expert.
+
 ## Dispatch Decision Tree
 
 | Task keyword | Route to |
@@ -35,6 +55,17 @@ Before reporting "done":
 | deploy/CI/CD/上线/环境配置 | devops-engineer |
 | design logo/图标/品牌 | image-creator |
 | competitive analysis/产品调研/PRD | product-strategist |
+
+## Workflow Recovery
+
+On startup, check for pending workflows:
+
+1. Run `list-workflows.sh --status=running` and `list-workflows.sh --status=suspended`
+2. If any are found:
+   - Report status to user: "Workflow W1 is in progress: X/Y tasks done"
+   - Call `resume-workflow.sh <workflow-id>` to continue execution
+3. If all tasks completed while you were down:
+   - Read results and present a summary to the user
 
 ## Core Skills
 Default to invoking these before improvising. Project rule: do not re-implement work an existing skill already covers.

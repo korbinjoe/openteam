@@ -22,6 +22,7 @@ import { migrateToV20 } from './v20'
 import { migrateToV21 } from './v21'
 import { migrateToV22 } from './v22'
 import { migrateToV23 } from './v23'
+import { migrateToV24 } from './v24'
 import { migrateFromJson } from './json-migration'
 
 export function runMigrations(db: BetterSqlite3.Database): void {
@@ -47,5 +48,6 @@ export function runMigrations(db: BetterSqlite3.Database): void {
   migrateToV21(db)
   migrateToV22(db)
   migrateToV23(db)
+  migrateToV24(db)
   migrateFromJson(db)
 }

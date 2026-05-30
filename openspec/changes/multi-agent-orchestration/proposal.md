@@ -74,6 +74,10 @@ single-responsibility boundaries.
 | T0 latency overstated for cold chats | T0 warm (~2-5s) vs cold (~10-15s) clearly documented; cold still 2x faster than T2 |
 | Workflow condition string enables code injection | Structured TaskCondition DSL with allowlisted fields replaces free-form JS eval |
 | DAG Engine builds on deprecated Mailbox | Phase reordered: Mailbox Deprecation (Phase 4) before DAG Engine (Phase 5) |
+| DAG task failure kills entire workflow | Per-task failure policy (stop/skip/retry) + partial result aggregation |
+| Expert hangs, DAG stalls forever | Per-task timeout (default 30 min) with SIGTERM → SIGKILL escalation |
+| Lead crashes mid-workflow, tasks orphaned | Server-side engine outlives Lead; checkpoint persisted; new Lead auto-resumes |
+| DAG Expert triggers Handoff, engine loses track | Handoff endpoint updates DAG task assignment; engine tracks replacement agent |
 
 ## Alternatives Considered
 

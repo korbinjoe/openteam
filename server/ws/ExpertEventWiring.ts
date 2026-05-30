@@ -12,7 +12,6 @@ import { FileOperationCollector, type FileOperationEvent } from '../terminal/Fil
 import type { SessionRegistry } from '../terminal/SessionRegistry'
 import type { ChatStore } from '../stores/ChatStore'
 import type { TokenUsageStore } from '../stores/TokenUsageStore'
-import type { MailboxManager } from '../mailbox/MailboxManager'
 import type { ACPClient } from '../acp/ACPClient'
 import { acpUpdateToWSMessage, type BridgeContext } from '../acp/ACPToFrontendBridge'
 import type { ACPSessionUpdateParams } from '../../shared/acp-types'
@@ -32,7 +31,6 @@ export interface ExpertEventWiringDeps {
   store: ExpertSessionStore
   chatStore: ChatStore
   tokenUsageStore: TokenUsageStore
-  mailboxManager?: MailboxManager
   sessionId: string
   key: string
   agentId: string
@@ -58,7 +56,7 @@ export interface WiredExpertHandles {
 export const wireExpertStreamHandlers = (deps: ExpertEventWiringDeps): WiredExpertHandles => {
   const {
     streamManager, acpClient, sessionRegistry, store, chatStore, tokenUsageStore,
-    mailboxManager, sessionId, key, agentId, chatId, agentName, cwd, provider,
+    sessionId, key, agentId, chatId, agentName, cwd, provider,
     persistExpertSession, connectionId, globalBroadcast, onExit,
   } = deps
 
@@ -90,7 +88,7 @@ export const wireExpertStreamHandlers = (deps: ExpertEventWiringDeps): WiredExpe
 
   const handleActivity = createActivityHandler({
     store, sessionRegistry, sessionId, key, agentId, chatId,
-    fileCollector, tokenTracker, mailboxManager,
+    fileCollector, tokenTracker,
   })
 
   const bridgeCtx: BridgeContext = { agentId, sessionId, chatId }

@@ -26,6 +26,7 @@ import { createEventRoutes } from '../routes/system/eventRoutes'
 import { createLogRoutes } from '../routes/system/logRoutes'
 import { createUpdateRoutes } from '../routes/system/updateRoutes'
 import { createTrayRoutes } from '../routes/system/trayRoutes'
+import { createWorkflowRoutes } from '../routes/workflow/workflowRoutes'
 import geminiRoutes from '../routes/system/geminiRoutes'
 import fileRoutes from '../routes/workspace/fileRoutes'
 
@@ -43,7 +44,6 @@ interface RouteDeps {
   skillManager: Parameters<typeof createAgentRoutes>[0]['skillManager']
   senseiPromptPaths: Parameters<typeof createAgentRoutes>[0]['senseiPromptPaths']
   expertHandler: Parameters<typeof createExpertRoutes>[0]['expertHandler']
-  mailboxManager: Parameters<typeof createExpertRoutes>[0]['mailboxManager']
   executionPlanManager: Parameters<typeof createExpertRoutes>[0]['executionPlanManager']
   workspaceStore: Parameters<typeof createWorkspaceApiRoutes>[0]['workspaceStore']
   chatStore: Parameters<typeof createChatRoutes>[0]['chatStore']
@@ -63,6 +63,7 @@ interface RouteDeps {
   bundleStorage: Parameters<typeof createUpdateRoutes>[0]['bundleStorage']
   updateMonitor: Parameters<typeof createUpdateRoutes>[0]['updateMonitor']
   signatureVerifier: Parameters<typeof createUpdateRoutes>[0]['signatureVerifier']
+  workflowRegistry: Parameters<typeof createWorkflowRoutes>[0]['workflowRegistry']
   broadcastToChat: (chatId: string, msg: Record<string, unknown>) => void
   broadcast: (msg: Record<string, unknown>) => void
   projectRoot: string
@@ -135,7 +136,7 @@ export const setupRoutes = (app: Express, d: RouteDeps) => {
   app.use(conversationRoutes)
   app.use(worktreeRoutes)
   app.use(createAgentRoutes({ agentRegistry: d.agentRegistry, agentStore: d.agentStore, skillManager: d.skillManager, senseiPromptPaths: d.senseiPromptPaths }))
-  app.use(createExpertRoutes({ expertHandler: d.expertHandler, agentRegistry: d.agentRegistry, mailboxManager: d.mailboxManager, executionPlanManager: d.executionPlanManager }))
+  app.use(createExpertRoutes({ expertHandler: d.expertHandler, agentRegistry: d.agentRegistry, executionPlanManager: d.executionPlanManager, whiteboardManager: d.whiteboardManager, workflowRegistry: d.workflowRegistry, broadcastToChat: d.broadcastToChat }))
   app.use(createWorkspaceApiRoutes({ workspaceStore: d.workspaceStore, chatStore: d.chatStore, chatService: d.chatService }))
   app.use(createExternalSessionRoutes({ workspaceStore: d.workspaceStore, chatStore: d.chatStore, broadcast: d.broadcast }))
   app.use(createChatRoutes({ chatStore: d.chatStore, chatService: d.chatService, tokenUsageStore: d.tokenUsageStore, sessionRegistry: d.sessionRegistry, broadcast: d.broadcast }))
@@ -151,6 +152,7 @@ export const setupRoutes = (app: Express, d: RouteDeps) => {
   app.use(createLogRoutes())
   app.use(createUpdateRoutes({ updateManager: d.updateManager, bundleStorage: d.bundleStorage, updateMonitor: d.updateMonitor, signatureVerifier: d.signatureVerifier }))
   app.use(createTrayRoutes({ chatStore: d.chatStore, workspaceStore: d.workspaceStore, sessionRegistry: d.sessionRegistry }))
+  app.use(createWorkflowRoutes({ workflowRegistry: d.workflowRegistry }))
   app.use(geminiRoutes)
   app.use(fileRoutes)
 

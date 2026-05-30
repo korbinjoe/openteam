@@ -68,6 +68,9 @@ export class ExecutionLogStore extends SqliteBaseStore<ExecutionLog> {
     chatId: string
     workspaceId: string
     agentId: string
+    executionMode?: 't0' | 't1' | 't2'
+    handoffFrom?: string
+    workflowId?: string
   }): Promise<ExecutionLog> {
     const log: ExecutionLog = {
       id: randomUUID(),
@@ -80,6 +83,9 @@ export class ExecutionLogStore extends SqliteBaseStore<ExecutionLog> {
       cacheCreationTokens: 0,
       toolCalls: 0,
       status: 'running',
+      executionMode: params.executionMode,
+      handoffFrom: params.handoffFrom,
+      workflowId: params.workflowId,
       startedAt: new Date().toISOString(),
     }
     this.insertEntity(log as unknown as ExecutionLog)
@@ -119,6 +125,38 @@ export class ExecutionLogStore extends SqliteBaseStore<ExecutionLog> {
     logger.debug('markSynced', { chatId, rowsAffected: result.changes })
   }
 
+  orchestrationMetrics(workspaceId?: string): {
+    byMode: Record<string, number>
+    handoffCount: number
+    workflowCount: number
+  } {
+    const whereClause = workspaceId ? 'WHERE workspace_id = ?' : ''
+    const params = workspaceId ? [workspaceId] : []
+
+    const modeRows = this.db.prepare(
+      `SELECT execution_mode, COUNT(*) as cnt FROM execution_logs ${whereClause} GROUP BY execution_mode`
+    ).all(...params) as Array<{ execution_mode: string | null; cnt: number }>
+
+    const byMode: Record<string, number> = {}
+    for (const r of modeRows) {
+      byMode[r.execution_mode || 'unset'] = r.cnt
+    }
+
+    const handoffRow = this.db.prepare(
+      `SELECT COUNT(*) as cnt FROM execution_logs ${whereClause ? whereClause + ' AND' : 'WHERE'} handoff_from IS NOT NULL`
+    ).get(...params) as { cnt: number }
+
+    const workflowRow = this.db.prepare(
+      `SELECT COUNT(DISTINCT workflow_id) as cnt FROM execution_logs ${whereClause ? whereClause + ' AND' : 'WHERE'} workflow_id IS NOT NULL`
+    ).get(...params) as { cnt: number }
+
+    return {
+      byMode,
+      handoffCount: handoffRow.cnt,
+      workflowCount: workflowRow.cnt,
+    }
+  }
+
   async cleanup(maxAgeDays = 30): Promise<number> {
     const cutoff = new Date(Date.now() - maxAgeDays * 86400000).toISOString()
     const result = this.db.prepare(
@@ -148,6 +186,9 @@ export class ExecutionLogStore extends SqliteBaseStore<ExecutionLog> {
       toolCalls: row.tool_calls as number,
       duration: row.duration as number | undefined,
       status: row.status as ExecutionLog['status'],
+      executionMode: (row.execution_mode as ExecutionLog['executionMode']) || undefined,
+      handoffFrom: (row.handoff_from as string) || undefined,
+      workflowId: (row.workflow_id as string) || undefined,
       startedAt: row.started_at as string,
       completedAt: row.completed_at as string | undefined,
       syncedAt: (row.synced_at as string) || undefined,
@@ -168,6 +209,9 @@ export class ExecutionLogStore extends SqliteBaseStore<ExecutionLog> {
       tool_calls: entity.toolCalls,
       duration: entity.duration ?? null,
       status: entity.status,
+      execution_mode: entity.executionMode ?? null,
+      handoff_from: entity.handoffFrom ?? null,
+      workflow_id: entity.workflowId ?? null,
       started_at: entity.startedAt,
       completed_at: entity.completedAt ?? null,
       synced_at: entity.syncedAt ?? null,

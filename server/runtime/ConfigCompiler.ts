@@ -612,18 +612,6 @@ export class ConfigCompiler {
 
 ## Task Communication Protocol
 
-### Mailbox
-- Your instance ID: \`${instanceId}\`
-- Current Chat ID: \`${chatId}\`
-- Outbox: append logfmt line to \`~/.openteam/mailbox/${chatId}/${instanceId}→{target}.jsonl\`
-- Inbox: call \`check_inbox\` tool (auto-incremental, no need to read file manually)
-
-### Progress Reporting
-After completing each phase, write a progress message to Dispatcher：
-- File：\`~/.openteam/mailbox/${chatId}/${instanceId}→lead.jsonl\`
-- Format: one logfmt line (key=value space-separated); from/to/chatId/timestamp derived from file path, no need to write
-- Example：\`id={timestamp}-{rand} type=task:progress taskId={taskId} phase=implement core logic status=working justCompleted=Completed data model design\`
-
 ### Execution Plan（plan.md）
 After accepting a task, create an execution plan at \`~/.openteam/tasks/{taskId}/plan.md\` ：
 - After each sub-step, update plan.md to check it off

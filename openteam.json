@@ -43,7 +43,7 @@
         "description": "End-to-end delivery from requirement analysis and technical design to frontend/backend development.",
         "workspace": "./ai-assets/agents/fullstack-product-engineer",
         "role": "expert",
-        "skills": ["frontend-expert", "api-integrator", "playwright-cli", "whiteboard", "dev-server"],
+        "skills": ["frontend-expert", "api-integrator", "playwright-cli", "whiteboard", "dev-server", "handoff"],
         "allowedTools": ["Read", "Write", "Edit", "Glob", "Grep", "Bash"],
         "heartbeat": {
           "every": "30m",
@@ -62,7 +62,8 @@
           "code-reviewer-react",
           "code-reviewer-typescript",
           "code-reviewer-nodejs",
-          "whiteboard"
+          "whiteboard",
+          "handoff"
         ],
         "allowedTools": ["Read", "Glob", "Grep", "Bash", "AskUserQuestion"]
       },
@@ -72,7 +73,7 @@
         "description": "Integrated UI design and implementation expert with professional aesthetic judgment. Handles design decisions, code implementation, browser preview verification, and iterative delivery of high-quality UI through screenshot review.",
         "workspace": "./ai-assets/agents/ui-designer",
         "role": "expert",
-        "skills": ["ui-reviewer", "ui-designer", "dev-server", "playwright-cli", "design-taste-frontend", "whiteboard"]
+        "skills": ["ui-reviewer", "ui-designer", "dev-server", "playwright-cli", "design-taste-frontend", "whiteboard", "handoff"]
       },
       {
         "id": "devops-engineer",
@@ -80,6 +81,7 @@
         "description": "Cloud deployment and CI/CD expert for modern platforms (Vercel, Netlify, GitHub Actions). Handles deployments, preview environments, domain configuration, build pipelines, and infrastructure monitoring.",
         "workspace": "./ai-assets/agents/devops-engineer",
         "role": "expert",
+        "skills": ["handoff"],
         "allowedTools": ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
         "heartbeat": {
           "every": "1h",
@@ -93,7 +95,7 @@
         "description": "Architecture guardian who also implements architectural changes. Reviews layering, module boundaries, dependency governance, data flow, and evolvability. Can write code for architectural refactors with self-verification.",
         "workspace": "./ai-assets/agents/architect",
         "role": "expert",
-        "skills": ["architecture-review", "dev-server", "playwright-cli", "whiteboard"],
+        "skills": ["architecture-review", "dev-server", "playwright-cli", "whiteboard", "handoff"],
         "allowedTools": ["Read", "Write", "Edit", "Glob", "Grep", "Bash"]
       },
       {
@@ -101,7 +103,8 @@
         "name": "Growth Coach",
         "description": "The mentor and brain of the agent team. Creates new agents, drives the evolution system (AgentDNA / EvolutionLog), optimizes prompts, evaluates team performance, and distills best practices.",
         "workspace": "./ai-assets/agents/sensei",
-        "role": "expert"
+        "role": "expert",
+        "skills": ["handoff"]
       },
       {
         "id": "image-creator",
@@ -109,7 +112,7 @@
         "description": "Professional AI artist using Gemini models to generate high-quality images from text descriptions. Excels at understanding complex drawing requirements, optimizing prompts, and producing polished artwork.",
         "workspace": "./ai-assets/agents/image-creator",
         "role": "expert",
-        "skills": ["image-generator"],
+        "skills": ["image-generator", "handoff"],
         "allowedTools": ["Read", "Bash"]
       },
       {
@@ -118,7 +121,7 @@
         "description": "Competitive analysis, product research, and product design up to PRD and low-fidelity wireframes. Hands off implementation to engineering and high-fidelity visual design to ui-designer.",
         "workspace": "./ai-assets/agents/product-strategist",
         "role": "expert",
-        "skills": ["playwright-cli", "whiteboard"],
+        "skills": ["playwright-cli", "whiteboard", "handoff"],
         "allowedTools": ["Read", "Write", "Edit", "Glob", "Grep", "Bash", "WebFetch", "WebSearch", "AskUserQuestion"]
       },
       {
@@ -127,7 +130,7 @@
         "description": "Promotes a given GitHub project on X. Summarises the repo, drafts an engaging tweet (or short thread), and posts it via a persistent browser session. Defaults to draft-then-approve; one post per invocation.",
         "workspace": "./ai-assets/agents/growth-marketer",
         "role": "expert",
-        "skills": ["x-promoter", "playwright-cli", "whiteboard"],
+        "skills": ["x-promoter", "playwright-cli", "whiteboard", "handoff"],
         "allowedTools": ["Read", "Write", "Edit", "Glob", "Grep", "Bash", "WebFetch", "WebSearch", "AskUserQuestion"]
       }
     ]

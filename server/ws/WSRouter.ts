@@ -10,6 +10,7 @@ import type { ChatStore } from '../stores/ChatStore'
 import type { WorkspaceStore } from '../stores/WorkspaceStore'
 import type { DevInspector } from '../dev/DevInspector'
 import type { GitWatchManager } from '../git/GitWatchManager'
+import type { ExecutionModeRouter } from '../orchestration/ExecutionModeRouter'
 import { createLogger } from '../lib/logger'
 import { trackEvent } from '../lib/eventTracker'
 
@@ -25,6 +26,7 @@ export class WSRouter {
   private workspaceStore?: WorkspaceStore
   private devInspector?: DevInspector
   private broadcast?: (msg: Record<string, unknown>) => void
+  private executionModeRouter?: ExecutionModeRouter
 
   constructor(deps: {
     expertHandler: ExpertHandler
@@ -35,6 +37,7 @@ export class WSRouter {
     workspaceStore?: WorkspaceStore
     devInspector?: DevInspector
     broadcast?: (msg: Record<string, unknown>) => void
+    executionModeRouter?: ExecutionModeRouter
   }) {
     this.expertHandler = deps.expertHandler
     this.terminalViewManager = deps.terminalViewManager
@@ -43,6 +46,7 @@ export class WSRouter {
     this.workspaceStore = deps.workspaceStore
     this.devInspector = deps.devInspector
     this.broadcast = deps.broadcast
+    this.executionModeRouter = deps.executionModeRouter
 
     const shellManager = new ShellManager()
     this.shellHandler = new ShellHandler(shellManager)
@@ -56,6 +60,14 @@ export class WSRouter {
     const { type, payload } = message
 
     if (type === 'expert:start') {
+      if (this.executionModeRouter && payload.agentId === 'lead' && payload.task) {
+        const decision = this.executionModeRouter.classify(payload.task)
+        if (decision.tier === 'single-expert' && decision.agentId) {
+          log.info('T1 direct routing', { targetAgent: decision.agentId, confidence: decision.confidence, task: payload.task?.slice(0, 60) })
+          this.expertHandler.handleStart(ws, { ...payload, agentId: decision.agentId, executionMode: 't1' }, connectionId)
+          return
+        }
+      }
       this.expertHandler.handleStart(ws, payload, connectionId)
       return
     }

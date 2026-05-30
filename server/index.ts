@@ -49,9 +49,9 @@ import { SessionRegistry } from './terminal/SessionRegistry'
 import { IdleReaper } from './terminal/IdleReaper'
 import { TerminalViewManager } from './terminal/TerminalViewManager'
 
-import { MailboxManager } from './mailbox/MailboxManager'
 import { WhiteboardManager } from './whiteboard/WhiteboardManager'
 import { ExecutionPlanManager } from './mailbox/ExecutionPlanManager'
+import { WorkflowRegistry } from './orchestration/WorkflowRegistry'
 
 import { createLogger, getLogDir } from './lib/logger'
 import { ensureAvatarDir } from './lib/avatarStorage'
@@ -123,9 +123,9 @@ initEventTracker(eventStore)
 const updateManager = new UpdateManager()
 const bundleStorage = new BundleStorage()
 const versionGate = new VersionGate()
-const mailboxManager = new MailboxManager()
 const whiteboardManager = new WhiteboardManager()
 const executionPlanManager = new ExecutionPlanManager()
+const workflowRegistry = new WorkflowRegistry()
 const chatService = new ChatService({ chatStore, workspaceStore, agentStore })
 
 const hooksConfigManager = new HooksConfigManager()
@@ -185,7 +185,8 @@ const broadcastToChat = (chatId: string, msg: Record<string, unknown>) => {
     log.warn('broadcastToChat dropped: no open ws among connections', { chatId, type: msg.type })
   }
 }
-const expertHandler = new ExpertHandler(configCompiler, agentRegistry, agentStore, chatStore, tokenUsageStore, executionLogStore, undefined, sessionRegistry, versionGate, broadcastToChat, mailboxManager, whiteboardManager, broadcast)
+workflowRegistry.setDeps({ whiteboardManager, broadcastToChat })
+const expertHandler = new ExpertHandler(configCompiler, agentRegistry, agentStore, chatStore, tokenUsageStore, executionLogStore, undefined, sessionRegistry, versionGate, broadcastToChat, whiteboardManager, broadcast)
 const semanticLogBroadcaster = new SemanticLogBroadcaster(agentRegistry, sessionRegistry, (connId) => expertHandler.getConnectionWs(connId))
 const cronJobLauncher = new CronJobLauncher(
   configCompiler, agentRegistry, sessionRegistry, workspaceStore,
@@ -217,19 +218,22 @@ import { GitWatchManager } from './git/GitWatchManager'
 const gitWatchManager = new GitWatchManager()
 
 const terminalViewManager = new TerminalViewManager(sessionRegistry, chatStore)
-const wsRouter = new WSRouter({ expertHandler, gitWatchManager, terminalViewManager, senseiUpgradeService, chatStore, workspaceStore, devInspector, broadcast })
+import { ExecutionModeRouter } from './orchestration/ExecutionModeRouter'
+const executionModeRouter = new ExecutionModeRouter(agentRegistry)
+
+const wsRouter = new WSRouter({ expertHandler, gitWatchManager, terminalViewManager, senseiUpgradeService, chatStore, workspaceStore, devInspector, broadcast, executionModeRouter })
 
 let serverPort = PORTS.DEV_SERVER
 let asyncBootResult: AsyncBootResult | null = null
 
 const { authToken } = setupRoutes(app, {
   agentRegistry, agentStore, skillManager, senseiPromptPaths,
-  expertHandler, mailboxManager, executionPlanManager,
+  expertHandler, executionPlanManager,
   workspaceStore, chatStore, chatService,
   tokenUsageStore, executionLogStore,
   cronJobStore, cronScheduler, nlCronParser,
   notificationStore, memoryStore, growthStore, eventStore,
-  sessionRegistry, whiteboardManager,
+  sessionRegistry, whiteboardManager, workflowRegistry,
   updateManager, bundleStorage, updateMonitor,
   broadcastToChat, broadcast,
   projectRoot: PROJECT_ROOT,
@@ -303,6 +307,10 @@ export async function startServer(port?: number): Promise<number> {
 
         asyncBootResult = runAsyncBoot(broadcast)
 
+        workflowRegistry.reconcileOnStartup(sessionRegistry).catch(err =>
+          log.warn('Workflow reconciliation failed', { error: err instanceof Error ? err.message : String(err) }),
+        )
+
         resolve(actualPort)
       })
       httpServer.on('error', reject)
@@ -330,20 +338,23 @@ process.on('uncaughtException', (err) => {
   process.exit(1)
 })
 
-const gracefulShutdown = (signal: string) => {
+const gracefulShutdown = async (signal: string) => {
   log.info(`${signal} received, shutting down gracefully...`)
   if (IS_DAEMON_FILE_OWNER) removePorts()
   clearInterval(heartbeatTimer)
-  sessionRegistry.killAll()
-  cronScheduler.stop()
-  idleReaper.stop()
-  updateMonitor.stop()
-  void getExternalDirWatcher()?.stop()
   const forceTimer = setTimeout(() => {
     log.warn('Graceful shutdown timed out, forcing exit')
     process.exit(1)
   }, 5000)
   forceTimer.unref()
+  await workflowRegistry.suspendAll().catch(err =>
+    log.warn('Workflow suspend error', { error: err instanceof Error ? err.message : String(err) }),
+  )
+  sessionRegistry.killAll()
+  cronScheduler.stop()
+  idleReaper.stop()
+  updateMonitor.stop()
+  void getExternalDirWatcher()?.stop()
   httpServer.close(() => {
     log.info('Server closed')
     process.exit(0)

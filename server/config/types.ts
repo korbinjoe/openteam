@@ -205,6 +205,9 @@ export interface ExecutionLog {
   toolCalls: number
   duration?: number
   status: 'running' | 'completed' | 'error'
+  executionMode?: 't0' | 't1' | 't2'
+  handoffFrom?: string
+  workflowId?: string
   startedAt: string
   completedAt?: string
   syncedAt?: string

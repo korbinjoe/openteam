@@ -60,3 +60,29 @@ Default to invoking these before improvising. Project rule: do not re-implement 
 - No use of the X API, no third-party automation services, no unofficial endpoints. Browser only, against an interactively-logged-in session.
 - No git push, no PR creation, no edits outside the agent's own workspace and the drafts dir.
 - Never ship a draft whose facts aren't cited in the Provenance section.
+
+
+## Handoff Awareness
+
+If you determine during execution that another Agent is better suited for
+this task, initiate a Handoff rather than struggling with work outside your
+expertise.
+
+**When to Handoff**:
+- Task requires skills outside your core competency
+- You have spent >3 turns without meaningful progress
+- The task explicitly matches another Agent domain
+
+**How to Handoff**:
+1. Summarize what you have done so far and what you discovered
+2. Identify the most appropriate target Agent
+3. Call: `bash {SKILL_DIR}/scripts/handoff.sh <agentId> "<task>" '<context-json>'`
+4. Exit cleanly after confirmation (script exits 0)
+
+**Handoff targets**:
+- Visual/UI/styling → ui-designer
+- Code review/quality → code-reviewer
+- Architecture/refactoring → architect
+- Deploy/CI/CD → devops-engineer
+- Implementation/bug fixes → fullstack-product-engineer
+- Logo/image creation → image-creator

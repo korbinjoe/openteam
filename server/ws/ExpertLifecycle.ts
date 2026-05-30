@@ -27,7 +27,6 @@ import { createExpertDirectInput } from './ExpertDirectInput'
 import { wireExpertStreamHandlers } from './ExpertEventWiring'
 import { flushPendingTasks } from './ExpertPendingTaskFlush'
 import { expandSlashCommand } from '../runtime/SlashCommandResolver'
-import type { MailboxManager } from '../mailbox/MailboxManager'
 import type { WhiteboardManager } from '../whiteboard/WhiteboardManager'
 import { ContextBriefing } from '../whiteboard/ContextBriefing'
 import { isWhiteboardOnDemandEnabled } from '../runtime/featureFlags'
@@ -58,7 +57,6 @@ export interface ExpertLifecycleDeps {
   broadcastToChat: (chatId: string, msg: Record<string, unknown>) => void
   /**  WS  GlobalTaskContext  chat  chat:permission-request */
   globalBroadcast?: (msg: Record<string, unknown>) => void
-  mailboxManager?: MailboxManager
   whiteboardManager?: WhiteboardManager
 }
 
@@ -66,7 +64,7 @@ export const createExpertLifecycle = (deps: ExpertLifecycleDeps) => {
   const {
     configCompiler, agentRegistry, agentStore, chatStore, tokenUsageStore,
     executionLogStore, sessionRegistry, store, versionGate, sendTo,
-    persistExpertSession, getConnectionChatId, broadcastToChat, globalBroadcast, mailboxManager,
+    persistExpertSession, getConnectionChatId, broadcastToChat, globalBroadcast,
     whiteboardManager,
   } = deps
 
@@ -76,16 +74,17 @@ export const createExpertLifecycle = (deps: ExpertLifecycleDeps) => {
   const attacherDeps: ExpertAttacherDeps = { sessionRegistry, chatStore, store, getConnectionChatId, sendTo }
   const { trackParticipant, ensureAttachedRunning } = createExpertAttacher(attacherDeps)
 
-  const exitDeps: ExitHandlerDeps = { sessionRegistry, executionLogStore, store, chatStore, agentStore, sendTo, mailboxManager }
+  const exitDeps: ExitHandlerDeps = { sessionRegistry, executionLogStore, store, chatStore, agentStore, sendTo }
   const { handleExit } = createExpertExitHandler(exitDeps)
 
   const handleStart = async (
     ws: WebSocket,
-    payload: { agentId: string; task?: string; images?: Array<{ data: string; mediaType: string }>; cwd?: string; repositories?: Array<{ path: string }>; resumeSessionId?: string; chatId?: string; cols?: number; rows?: number; previousContext?: { agentName: string; lastMessage?: string; jsonlPath?: string } },
+    payload: { agentId: string; task?: string; images?: Array<{ data: string; mediaType: string }>; cwd?: string; repositories?: Array<{ path: string }>; resumeSessionId?: string; chatId?: string; cols?: number; rows?: number; previousContext?: { agentName: string; lastMessage?: string; jsonlPath?: string }; executionMode?: 't0' | 't1' | 't2' },
     connectionId: string,
   ): Promise<void> => {
     try {
       const { agentId, task } = payload
+      const executionMode = payload.executionMode
       const chatId = payload.chatId
       if (!chatId) {
         log.error('expert:start missing chatId', { connectionId, agentId })
@@ -294,7 +293,7 @@ export const createExpertLifecycle = (deps: ExpertLifecycleDeps) => {
 
       const { fileCollector, tokenTracker } = wireExpertStreamHandlers({
         streamManager, acpClient, sessionRegistry, store, chatStore, tokenUsageStore,
-        mailboxManager, sessionId, key, agentId, chatId, agentName: agent.name, cwd, provider,
+        sessionId, key, agentId, chatId, agentName: agent.name, cwd, provider,
         persistExpertSession, connectionId, globalBroadcast, ws,
         onExit: (exitCode, signal, ctx) => {
           handleExit({
@@ -347,7 +346,7 @@ export const createExpertLifecycle = (deps: ExpertLifecycleDeps) => {
 
       sendTo(connectionId, {
         type: 'expert:started',
-        payload: { agentId, chatId, sessionId, agentName: agent.name, agentIcon: agent.icon, status: 'running', cwd },
+        payload: { agentId, chatId, sessionId, agentName: agent.name, agentIcon: agent.icon, status: 'running', cwd, ...(executionMode && { executionMode }) },
       })
 
       sendTo(connectionId, {
@@ -394,7 +393,8 @@ export const createExpertLifecycle = (deps: ExpertLifecycleDeps) => {
       trackEvent('agent', 'agent.started', { agentId, agentName: agent.name, chatId, connectionId })
 
       const workspaceId = chatStore.get(chatId)?.workspaceId || ''
-      executionLogStore.create({ chatId, workspaceId, agentId }).then((execLog) => {
+      const handoffFrom = payload.previousContext ? (store.getMeta(key, 'handoffFrom') as string | undefined) : undefined
+      executionLogStore.create({ chatId, workspaceId, agentId, executionMode, handoffFrom }).then((execLog) => {
         store.setMeta(key, 'executionLogId', execLog.id)
       }).catch((err) => {
         log.warn('Failed to create execution log', { agentId, error: err instanceof Error ? err.message : String(err) })

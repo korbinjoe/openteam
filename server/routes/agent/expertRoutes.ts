@@ -8,18 +8,20 @@
  */
 
 import { Router } from 'express'
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import type { ExpertHandler } from '../../ws/ExpertHandler'
 import type { AgentRegistry } from '../../config/AgentRegistry'
-import type { MailboxManager } from '../../mailbox/MailboxManager'
 import type { ExecutionPlanManager } from '../../mailbox/ExecutionPlanManager'
-import { MAILBOX_ROOT } from '../../config/paths'
-import { wrapTaskEnvelope, createAgentMessage, type TaskEnvelope } from '../../../shared/agent-message-types'
+import type { WhiteboardManager } from '../../whiteboard/WhiteboardManager'
+import type { WorkflowRegistry } from '../../orchestration/WorkflowRegistry'
+import { wrapTaskEnvelope, type TaskEnvelope } from '../../../shared/agent-message-types'
+import type { HandoffRequest } from '../../../shared/handoff-types'
 import { TERMINAL_PHASES, type ExpertEvent } from '../../../shared/expert-event-types'
 import { parseAgentId } from '../../ws/ExpertSessionStore'
 import { expandSlashCommand } from '../../runtime/SlashCommandResolver'
+import { cwdToClaudeProjectKey } from '../../../shared/projectKey'
 import { createLogger } from '../../lib/logger'
+import { homedir } from 'os'
 
 const log = createLogger('ExpertRoutes')
 
@@ -28,43 +30,15 @@ const API_CONNECTION_ID = '__api__'
 interface ExpertRouteDeps {
   expertHandler: ExpertHandler
   agentRegistry: AgentRegistry
-  mailboxManager?: MailboxManager
   executionPlanManager?: ExecutionPlanManager
+  whiteboardManager?: WhiteboardManager
+  workflowRegistry?: WorkflowRegistry
+  broadcastToChat?: (chatId: string, msg: Record<string, unknown>) => void
 }
 
 export const createExpertRoutes = (deps: ExpertRouteDeps): Router => {
   const router = Router()
-  const { expertHandler, agentRegistry, mailboxManager, executionPlanManager } = deps
-
-  const inboxCursors = new Map<string, Record<string, number>>()
-
-  /** cursor map keychatId + instanceId  chat  */
-  const cursorKey = (chatId: string, instanceId: string) => `${chatId}::${instanceId}`
-
-  const loadInboxCursor = (chatId: string, instanceId: string): Record<string, number> => {
-    const ck = cursorKey(chatId, instanceId)
-    const cached = inboxCursors.get(ck)
-    if (cached) return cached
-    const cursorsDir = join(MAILBOX_ROOT, chatId, '.cursors')
-    const cursorFile = join(cursorsDir, `inbox-${instanceId}.json`)
-    if (existsSync(cursorFile)) {
-      try {
-        const data = JSON.parse(readFileSync(cursorFile, 'utf-8')) as Record<string, number>
-        inboxCursors.set(ck, data)
-        return data
-      } catch { /* corrupt cursor file, start fresh */ }
-    }
-    return {}
-  }
-
-  const saveInboxCursor = (chatId: string, instanceId: string, cursors: Record<string, number>): void => {
-    const cursorsDir = join(MAILBOX_ROOT, chatId, '.cursors')
-    if (!existsSync(cursorsDir)) mkdirSync(cursorsDir, { recursive: true })
-    const cursorFile = join(cursorsDir, `inbox-${instanceId}.json`)
-    try {
-      writeFileSync(cursorFile, JSON.stringify(cursors), 'utf-8')
-    } catch { /* cursor save failure is non-critical */ }
-  }
+  const { expertHandler, agentRegistry, executionPlanManager, whiteboardManager, workflowRegistry, broadcastToChat } = deps
 
   router.post('/api/expert/start', async (req, res) => {
     const { agentId, task, taskEnvelope, instanceSuffix, connectionId, chatId: reqChatId } = req.body as {
@@ -149,22 +123,6 @@ ${expandedTask}`
     }
 
     expertHandler.setRunningMeta(instanceId, 'taskEnvelopeId', envelope.taskId, resolvedConnectionId)
-
-    if (mailboxManager && reqChatId) {
-      try {
-        const dispatcherInstanceId = req.body.dispatcherInstanceId || 'lead'
-        const assignMsg = createAgentMessage('task:assign', {
-          from: dispatcherInstanceId,
-          to: instanceId,
-          chatId: reqChatId,
-          taskId: envelope.taskId,
-          payload: envelope,
-        })
-        mailboxManager.writeMessage(reqChatId, dispatcherInstanceId, instanceId, assignMsg)
-      } catch (err) {
-        log.warn('Failed to write task:assign to mailbox', { taskId: envelope.taskId, error: err instanceof Error ? err.message : String(err) })
-      }
-    }
 
     const running = expertHandler.getRunning(instanceId, resolvedConnectionId)
     res.json({
@@ -266,47 +224,6 @@ ${expandedTask}`
     res.json({ status: 'ok', messages, activity })
   })
 
-  router.get('/api/expert/inbox/:instanceId', (req, res) => {
-    const { instanceId } = req.params
-    const chatId = req.query.chatId as string
-
-    if (!chatId || !mailboxManager) {
-      return res.json({ status: 'ok', messages: [] })
-    }
-
-    const prevCursors = loadInboxCursor(chatId, instanceId)
-    const { messages, cursors: newCursors } = mailboxManager.readInbox(chatId, instanceId, prevCursors)
-    inboxCursors.set(cursorKey(chatId, instanceId), newCursors)
-    saveInboxCursor(chatId, instanceId, newCursors)
-
-    res.json({ status: 'ok', messages })
-  })
-
-  router.get('/api/expert/progress/:agentId', (req, res) => {
-    const { agentId } = req.params
-    const connectionId = (req.query.connectionId as string) || undefined
-
-    if (!mailboxManager) {
-      return res.json({ status: 'ok', messages: [] })
-    }
-
-    const running = expertHandler.getRunning(agentId, connectionId)
-    if (!running) {
-      return res.json({ status: 'not_found', messages: [] })
-    }
-
-    const { messages } = mailboxManager.readOutbox(running.chatId, agentId)
-    const progressMessages = messages.filter(m =>
-      m.type === 'task:progress' ||
-      m.type === 'task:milestone' ||
-      m.type === 'task:completed' ||
-      m.type === 'task:failed' ||
-      m.type === 'task:blocked'
-    )
-
-    res.json({ status: 'ok', messages: progressMessages })
-  })
-
   // FetchTaskResult（result.md）
   router.get('/api/expert/result/:taskId', (req, res) => {
     const { taskId } = req.params
@@ -346,30 +263,12 @@ ${expandedTask}`
       res.write(`data: ${JSON.stringify(event)}\n\n`)
     })
 
-    let unsubMailbox: (() => void) | undefined
-    if (mailboxManager) {
-      unsubMailbox = mailboxManager.onMessage((msgChatId, from, to, msg) => {
-        if (msgChatId !== chatId) return
-        if (msg.type === 'task:input_required') {
-          const event: ExpertEvent = { type: 'task:input_required', from, taskId: msg.taskId || '', summary: (msg.payload as any)?.question || '' }
-          res.write(`data: ${JSON.stringify(event)}\n\n`)
-        } else if (msg.type === 'task:completed') {
-          const event: ExpertEvent = { type: 'task:completed', from, taskId: msg.taskId || '', summary: (msg.payload as any)?.summary || 'done' }
-          res.write(`data: ${JSON.stringify(event)}\n\n`)
-        } else if (msg.type === 'task:failed') {
-          const event: ExpertEvent = { type: 'task:failed', from, taskId: msg.taskId || '', error: (msg.payload as any)?.failureReason || 'unknown' }
-          res.write(`data: ${JSON.stringify(event)}\n\n`)
-        }
-      })
-    }
-
     const heartbeat = setInterval(() => {
       try { res.write(': heartbeat\n\n') } catch {}
     }, 30000)
 
     req.on('close', () => {
       unsubActivity()
-      unsubMailbox?.()
       clearInterval(heartbeat)
     })
   })
@@ -379,6 +278,143 @@ ${expandedTask}`
     const resolvedConnectionId = connectionId || API_CONNECTION_ID
     const clearedCount = expertHandler.clearCompleted(resolvedConnectionId)
     res.json({ success: true, clearedCount })
+  })
+
+  const MAX_HANDOFF_CHAIN_DEPTH = 1
+
+  router.post('/api/expert/handoff', async (req, res) => {
+    const { from, to, chatId, task, context, reason } = req.body as HandoffRequest & { reason?: string }
+
+    if (!from || !to || !chatId || !task) {
+      return res.status(400).json({ status: 'error', reason: 'from, to, chatId, and task are required' })
+    }
+    if (from === to) {
+      return res.status(400).json({ status: 'error', reason: 'Cannot handoff to self' })
+    }
+
+    const targetDef = agentRegistry.get(to)
+    if (!targetDef) {
+      return res.status(404).json({ status: 'error', reason: `Target agent ${to} not found` })
+    }
+
+    const store = expertHandler.getExpertStore()
+    const sourceEntries = store.collectByChatId(chatId)
+    const sourceMatch = sourceEntries.find(({ key }) => parseAgentId(key) === from)
+    if (!sourceMatch) {
+      return res.status(404).json({ status: 'error', reason: `Source agent ${from} not found running in chat ${chatId}` })
+    }
+
+    const sourceEntry = sourceMatch.expert
+    const connectionId = sourceEntry.connectionId
+
+    const dispatchChain: string[] = (store.getMeta(sourceMatch.key, 'dispatchChain') as string[] | undefined) ?? [from]
+    if (dispatchChain.length > MAX_HANDOFF_CHAIN_DEPTH) {
+      return res.status(400).json({ status: 'error', reason: `Handoff chain depth exceeded (max ${MAX_HANDOFF_CHAIN_DEPTH})` })
+    }
+
+    const ws = expertHandler.getConnectionWs(connectionId)
+    if (!ws) {
+      return res.status(500).json({ status: 'error', reason: 'No WebSocket connection for source agent' })
+    }
+
+    try {
+      if (whiteboardManager) {
+        whiteboardManager.appendEntry(chatId, {
+          type: 'handoff',
+          by: from,
+          summary: `Handoff ${from} → ${to}: ${(reason || task).slice(0, 60)}`,
+          refs: { files: context?.relevantFiles },
+          tags: ['handoff', from, to],
+        })
+      }
+
+      const previousContext = {
+        agentName: sourceEntry.agentName,
+        lastMessage: context?.workDoneSoFar,
+        jsonlPath: sourceEntry.cliSessionId
+          ? join(homedir(), '.claude', 'projects',
+              cwdToClaudeProjectKey(sourceEntry.cwd),
+              `${sourceEntry.cliSessionId}.jsonl`)
+          : undefined,
+      }
+
+      const handoffTask = [
+        `[Handoff from ${from}]`,
+        context?.originalUserMessage ? `[Original request: ${context.originalUserMessage}]` : '',
+        context?.workDoneSoFar ? `[Work done so far: ${context.workDoneSoFar}]` : '',
+        context?.keyFindings?.length ? `[Key findings: ${context.keyFindings.join('; ')}]` : '',
+        '',
+        task,
+      ].filter(Boolean).join('\n')
+
+      await expertHandler.handleStart(ws, {
+        agentId: to,
+        task: handoffTask,
+        chatId,
+        cwd: sourceEntry.cwd,
+        previousContext,
+      }, connectionId)
+
+      const targetEntry = store.findRunning(to, connectionId, chatId)
+      if (targetEntry) {
+        const targetKey = `${connectionId}::${chatId}::${to}`
+        store.setMeta(targetKey, 'dispatchChain', [...dispatchChain, to])
+        store.setMeta(targetKey, 'handoffFrom', from)
+      }
+
+      if (workflowRegistry) {
+        const wfEngine = workflowRegistry.findByAgent(from)
+        if (wfEngine) {
+          const wfTask = wfEngine.findTaskByCurrentAgent(from)
+          if (wfTask) {
+            wfEngine.reassignTask(wfTask.taskId, to)
+          }
+        }
+      }
+
+      if (broadcastToChat) {
+        broadcastToChat(chatId, {
+          type: 'expert:handoff',
+          payload: {
+            chatId,
+            sourceAgentId: from,
+            targetAgentId: to,
+            reason: reason || task.slice(0, 100),
+            sourceSessionId: sourceEntry.sessionId,
+          },
+        })
+      }
+
+      log.info('Handoff successful', { from, to, chatId, connectionId })
+
+      res.json({
+        status: 'ok',
+        targetSessionId: targetEntry?.sessionId,
+      })
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err)
+      log.error('Handoff failed', { from, to, chatId, error: errorMsg })
+
+      if (whiteboardManager) {
+        try {
+          whiteboardManager.appendEntry(chatId, {
+            type: 'handoff',
+            by: from,
+            summary: `Handoff failed ${from} → ${to}: ${errorMsg.slice(0, 50)}`,
+            tags: ['handoff', 'failed', from, to],
+          })
+        } catch {}
+      }
+
+      if (broadcastToChat) {
+        broadcastToChat(chatId, {
+          type: 'expert:handoff-failed',
+          payload: { chatId, sourceAgentId: from, targetAgentId: to, error: errorMsg },
+        })
+      }
+
+      res.status(500).json({ status: 'error', reason: errorMsg })
+    }
   })
 
   return router

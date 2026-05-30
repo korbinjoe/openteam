@@ -2,8 +2,7 @@
 name: expert-dispatcher
 description: >
   Agent dispatch tool. Used by Lead Agent to start, communicate with, and stop Expert Agents.
-  All Agents use check-inbox to check their mailbox, providing unified awareness of expert status (progress, completion, awaiting input).
-  Supports Monitor push mode, reducing ~80% communication token consumption.
+  Uses SSE event stream for push notifications and team-status for on-demand progress queries.
 allowed-tools: Bash,Monitor
 ---
 
@@ -27,9 +26,7 @@ When calling all dispatcher scripts, **you must use Bash's `description` paramet
 | Script | description example |
 |--------|-------------------|
 | `team-status.sh` | `Check team status` |
-| `check-inbox.sh` | `Check expert inbox` |
 | `watch-events.sh` | `Start expert event stream` |
-| `watch-inbox.sh` | `Start inbox monitor (fallback)` |
 | `start-expert.sh` | `Start expert code-reviewer` |
 | `send-to-expert.sh` | `Send reply to code-reviewer` |
 | `list-experts.sh` | `List running experts` |
@@ -75,33 +72,6 @@ Monitor tool parameters:
 **Advantage**: Server-side push, three-layer pipeline, only pushes terminal events (completed/failed/input_required), no idle spinning.
 
 **Use case**: Start Monitor immediately after launching experts, then just wait for notifications. Stop Monitor with TaskStop after all experts complete.
-
-### Inbox Monitoring (Fallback — File Watch Mode)
-
-Fall back to file watching when SSE is unavailable:
-
-```
-Monitor tool parameters:
-  command: "bash {SKILL_DIR}/scripts/watch-inbox.sh"
-  description: "Expert inbox monitor"
-  persistent: true
-```
-
-### Check Inbox (Last Resort — Pull Mode)
-
-```bash
-bash {SKILL_DIR}/scripts/check-inbox.sh
-```
-
-**Use case**: Fallback when Monitor is unavailable, or for manually confirming latest status at critical decision points.
-
-| Message Type | Meaning | Handling |
-|-------------|---------|----------|
-| `task:input_required` | Expert asked a question via AskUserQuestion, awaiting confirmation | Follow "awaiting input loop" |
-| `task:completed` | Expert task completed | Get results, verify |
-| `task:failed` | Expert task failed | Analyze cause, decide retry or escalate |
-
-> **Note**: Progress info is no longer pushed via inbox. Use `team-status.sh` for on-demand queries (served from server memory, more efficient).
 
 ### Send Message to Expert
 
@@ -158,15 +128,14 @@ When multiple subtasks have no dependencies, start them in parallel:
 If Monitor tool is unavailable (e.g., tool restrictions), degrade to polling mode:
 
 1. After starting experts, periodically call `team-status.sh` to check global status
-2. Call `check-inbox.sh` at critical decision points to check for control signals
-3. Handle `task:input_required` promptly when received
+2. Handle experts in `waiting_input` or `waiting_confirmation` phase promptly
 
 ## Autonomous Handling Protocol for Expert Awaiting Input
 
-When receiving a `task:input_required` message (Monitor notification or check-inbox return), **this is Lead's autonomous decision point, not a human intervention point**.
+When receiving a `task:input_required` event (from Monitor SSE stream or team-status query), **this is Lead's autonomous decision point, not a human intervention point**.
 You must immediately execute the following steps — do not stop and wait for the user:
 
-1. **Read intent**: Check the `question` field in the message, understand what the expert is asking
+1. **Read intent**: Check the `question`/`summary` field in the event, understand what the expert is asking
 2. **Decision path** (choose one — stopping to wait for user is NOT allowed):
    - **Can answer autonomously** (confirmation-type, directional, and task context is sufficient) → give answer directly, go to step 3
    - **Cannot answer autonomously** (requires user decision, e.g., which PR to choose, confirm scope) →
@@ -175,17 +144,62 @@ You must immediately execute the following steps — do not stop and wait for th
    ```bash
    bash {SKILL_DIR}/scripts/send-to-expert.sh <agentId> "<your answer>"
    ```
-4. **Continue waiting**: Wait for Monitor's next notification (or manually check-inbox)
+4. **Continue waiting**: Wait for Monitor's next notification (or call team-status)
 
 > **Absolutely forbidden**: Receiving `task:input_required` and taking no action, only showing the message to user then stopping.
 > Must complete the full loop: read intent → decide (autonomous or ask user) → send-to-expert → continue monitoring.
 
 ## Usage Standards
 
-1. **Monitor immediately after start**: After calling `start-expert.sh`, immediately start Monitor to watch inbox
-2. **Use team-status for progress**: Call `team-status.sh` when you need expert progress, served from memory, more efficient than inbox
+1. **Monitor immediately after start**: After calling `start-expert.sh`, immediately start Monitor (watch-events.sh) for push notifications
+2. **Use team-status for progress**: Call `team-status.sh` when you need expert progress, served from server memory
 3. **Result verification**: After expert completes, check output against acceptance criteria
-4. **Monitor pushes control signals**, team-status queries progress — complementary, don't use check-inbox to poll progress
+4. **Monitor pushes terminal events**, team-status queries progress — use both as complementary tools
+
+## Workflow DAG Commands
+
+For complex multi-step tasks with dependencies, use the workflow DAG engine instead of manually sequencing experts.
+
+### Create Workflow
+
+```bash
+bash {SKILL_DIR}/scripts/create-workflow.sh '<dag-json>'
+```
+
+The DAG JSON defines tasks with dependencies:
+```json
+{
+  "tasks": [
+    { "taskId": "t1", "agentId": "fullstack-product-engineer", "description": "Implement feature", "dependsOn": [], "onFailure": "stop" },
+    { "taskId": "t2", "agentId": "code-reviewer", "description": "Review implementation", "dependsOn": ["t1"], "onFailure": "stop" }
+  ]
+}
+```
+
+Task fields:
+- `taskId`: unique identifier within the workflow
+- `agentId`: which expert agent to run this task
+- `description`: task description sent to the agent
+- `dependsOn`: array of taskIds that must complete first
+- `onFailure`: `stop` (halt DAG), `skip` (continue others), `retry` (re-run up to maxRetries)
+- `maxRetries`: number of retry attempts (default 1, only for `retry` policy)
+- `timeoutMinutes`: per-task timeout (default 30)
+
+### List Workflows
+
+```bash
+bash {SKILL_DIR}/scripts/list-workflows.sh [status]
+```
+
+Filter by status: `running`, `suspended`, `completed`, `stopped`
+
+### Resume Workflow
+
+```bash
+bash {SKILL_DIR}/scripts/resume-workflow.sh <workflow-id>
+```
+
+Resume a suspended or stopped workflow from its last checkpoint.
 
 ## Message Protocol
 

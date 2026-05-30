@@ -406,6 +406,336 @@ bash {SKILL_DIR}/scripts/resume-workflow.sh <workflow-id>
 
 The engine skips completed tasks and continues from the last incomplete step.
 
+#### 4.3 Workflow Resilience
+
+The DAG Engine must guarantee that complex tasks either run to completion or
+fail visibly — never silently stall or lose partial results. This section
+addresses five failure modes that the basic engine loop does not cover.
+
+##### 4.3.1 Task Failure Handling and Retry
+
+A single task failure should not unconditionally kill the entire DAG.
+
+**Failure policy per task**:
+
+```typescript
+interface WorkflowTask {
+  // ... existing fields ...
+  onFailure: 'stop' | 'skip' | 'retry'   // default: 'stop'
+  maxRetries?: number                      // default: 1 (for 'retry' policy)
+}
+```
+
+| Policy | Behavior | Use case |
+|--------|----------|----------|
+| `stop` | Halt the DAG, mark remaining tasks as `skipped`, report partial results | Default — most conservative |
+| `skip` | Mark this task as `failed`, continue executing tasks that don't depend on it | Non-critical tasks (e.g., "generate docs") |
+| `retry` | Re-spawn the Expert with the same plan.md, up to `maxRetries` | Transient failures (timeout, API error) |
+
+**Partial results**: When the DAG stops or completes with some tasks failed,
+`aggregateResults()` produces a `WorkflowResult` with per-task status:
+
+```typescript
+interface WorkflowResult {
+  workflowId: string
+  status: 'completed' | 'partial' | 'failed'
+  tasks: Array<{
+    taskId: string
+    status: 'completed' | 'failed' | 'skipped' | 'pending'
+    result?: TaskResult        // from Expert execution
+    failureReason?: string
+    retryCount?: number
+  }>
+  completedCount: number
+  failedCount: number
+  skippedCount: number
+}
+```
+
+The `WorkflowResult` is persisted to `~/.openteam/workflows/<id>/result.json`
+and written to the Whiteboard as a `progress` entry, so it survives Lead
+process restarts.
+
+##### 4.3.2 Per-Task Timeout
+
+The engine loop `while (this.hasRunnableTasks())` can stall indefinitely if
+an Expert process hangs. Each task gets a timeout enforced by the server:
+
+```typescript
+interface WorkflowTask {
+  // ... existing fields ...
+  timeoutMinutes?: number     // default: 30
+}
+```
+
+**Timeout flow**:
+1. Engine starts a task → records `startedAt` in `state.json`
+2. A timer fires after `timeoutMinutes`
+3. If the task's Expert hasn't exited:
+   - Send SIGTERM to the Expert process via `ExpertSessionStore`
+   - Wait 10s for graceful exit
+   - If still alive, SIGKILL
+4. Task is marked `failed` with `failureReason: 'timeout'`
+5. `onFailure` policy applies (stop/skip/retry)
+
+**Default 30 minutes** matches the current observed upper bound for single-agent
+tasks. Lead can override per-task when creating the DAG.
+
+##### 4.3.3 DAG-Internal Handoff Awareness
+
+When an Expert inside a DAG triggers a Handoff (Expert A → Expert B), the
+Engine must track the replacement so it doesn't lose the task:
+
+**Problem**: Engine waits for Expert A's `expert:exit` event for taskId `t3`.
+Expert A exits (handoff success), but the actual work is now on Expert B.
+Engine sees exit code 0 and records `t3` as completed — wrong.
+
+**Solution**: The Handoff endpoint checks whether the source Agent is part of
+an active Workflow. If so, it updates the DAG's task assignment:
+
+```
+Handoff request arrives for Agent A (part of workflow W1, task t3)
+  → Server:
+    1. WorkflowEngine.reassignTask(workflowId, taskId, newAgentId)
+    2. Update state.json: t3.agentId = Expert B, t3.status = 'running'
+    3. Engine now waits for Expert B's exit event for t3 (not Expert A's)
+    4. Agent A's exit is treated as a handoff-exit (not a task completion)
+```
+
+The `expert:exit` event already carries `agentId`. The engine distinguishes
+between a normal completion (agentId matches task assignment) and a
+handoff-exit (agentId is the OLD assignment, task was reassigned).
+
+```typescript
+// In WorkflowEngine
+private handleExpertExit(agentId: string, exitCode: number): void {
+  const task = this.findTaskByCurrentAgent(agentId)
+  if (!task) return  // handoff-exit: agent was reassigned, ignore
+  // normal completion: record result
+  this.results.set(task.taskId, /* ... */)
+  this.persistCheckpoint()
+}
+```
+
+##### 4.3.4 Automatic Workflow Recovery
+
+When Lead crashes (context limit, process kill), pending Workflows must not
+be orphaned. The recovery chain:
+
+```
+New Lead session starts (user sends next message, or new chat session)
+  → Lead's SOUL.md "Workflow Recovery" section instructs:
+    1. On startup, check for pending workflows:
+       bash {SKILL_DIR}/scripts/list-workflows.sh --status=running
+    2. If any are found:
+       a. Read the workflow's result.json (if exists) — may have partial results
+       b. Report status to user: "Workflow W1 is in progress: 3/5 tasks done"
+       c. Call resume-workflow.sh to continue
+    3. If all tasks completed while Lead was down:
+       a. Read result.json
+       b. Aggregate and present to user
+```
+
+**Server-side guarantee**: The `WorkflowEngine` runs in the server process,
+NOT inside Lead's CLI process. So even when Lead exits:
+- Running Expert processes continue executing their tasks
+- The Engine continues recording `expert:exit` events and updating `state.json`
+- When tasks complete, results accumulate in checkpoint files on disk
+- The Engine stops scheduling NEW tasks (no new Expert spawns) until Lead resumes
+
+This means the server is a **stateful executor** that outlives Lead sessions.
+The key invariant: `state.json` is always up-to-date, even without Lead.
+
+**Server restart**: If the server itself restarts, it scans
+`~/.openteam/workflows/` for `state.json` files with `status: 'running'`.
+For each:
+- Tasks marked `running` whose Expert processes no longer exist → mark `failed`
+  (the Expert was killed by the server restart)
+- Tasks marked `pending` → ready for re-scheduling when Lead resumes
+
+```typescript
+// Server startup
+const pendingWorkflows = scanWorkflowDir()
+for (const wf of pendingWorkflows) {
+  const engine = WorkflowEngine.fromCheckpoint(wf.path)
+  engine.reconcileWithRunningProcesses(sessionRegistry)
+  workflowRegistry.register(engine)
+}
+```
+
+##### 4.3.5 Result Aggregation Chain
+
+After the DAG completes, results must reach the user. This requires a Lead
+process, which may not be the same Lead that created the DAG:
+
+```
+DAG completes (all tasks done or stopped on failure)
+  → WorkflowEngine:
+    1. Writes final result.json to disk
+    2. Writes Whiteboard 'progress' entry: "Workflow W1 completed: 5/5 tasks done"
+    3. Emits WebSocket event: workflow:completed { workflowId, status, summary }
+  → If Lead is running:
+    4. Lead receives SSE event via watch-events.sh
+    5. Lead reads result.json
+    6. Lead generates user-facing summary and reports
+  → If Lead is NOT running (already exited):
+    7. Results persist in result.json + Whiteboard
+    8. Next time Lead starts (user sends message):
+       - Lead sees Whiteboard progress entry
+       - Lead reads result.json
+       - Lead presents results to user as the first response
+    9. Frontend can also show a notification banner:
+       "Workflow completed while you were away — X/Y tasks succeeded"
+```
+
+**Frontend notification**: The `workflow:completed` WebSocket event is sent
+to all connections viewing the chat. Even without Lead, the frontend can
+show an immediate status indicator:
+
+```typescript
+{
+  type: 'workflow:completed'
+  payload: {
+    chatId: string
+    workflowId: string
+    status: 'completed' | 'partial' | 'failed'
+    completedCount: number
+    totalCount: number
+    summary: string           // auto-generated from task descriptions
+  }
+}
+```
+
+##### 4.3.6 Execution Lifecycle State Machine
+
+The complete lifecycle of a Workflow, covering all failure and recovery paths:
+
+```
+                    ┌──────────────┐
+                    │   created    │  Lead calls create-workflow.sh
+                    └──────┬───────┘
+                           │
+                    ┌──────▼───────┐
+               ┌────│   running    │────────────────────────┐
+               │    └──────┬───────┘                        │
+               │           │                                │
+          Lead crashes     │ all tasks                 task fails
+          (or server       │ resolved                  (onFailure=stop)
+           restart)        │                                │
+               │    ┌──────▼───────┐               ┌───────▼──────┐
+               │    │  completed   │               │   stopped    │
+               │    └──────────────┘               └───────┬──────┘
+               │                                           │
+               │           ┌───────────────────────────────┘
+               │           │
+        ┌──────▼───────────▼──┐
+        │   suspended         │  state.json on disk, no active scheduler
+        └──────────┬──────────┘
+                   │
+            Lead resumes
+            (resume-workflow.sh)
+                   │
+            ┌──────▼───────┐
+            │   running    │  picks up from last checkpoint
+            └──────────────┘
+```
+
+States persisted in `state.json`:
+- `created` → DAG received, no tasks started yet
+- `running` → at least one task in progress
+- `completed` → all tasks resolved (completed/skipped/failed with skip policy)
+- `stopped` → a task failed with stop policy, remaining tasks skipped
+- `suspended` → engine is not actively scheduling (Lead/server not running)
+
+##### 4.3.7 Graceful Shutdown Integration
+
+When the application exits (Electron `before-quit`, server `SIGTERM`), running
+Workflows must persist their in-flight state to disk before processes die.
+Two mechanisms ensure checkpoint integrity across all exit scenarios.
+
+**Atomic checkpoint writes**
+
+All `state.json` writes use write-then-rename to prevent partial/corrupt files
+if the process is killed mid-write:
+
+```typescript
+private async persistCheckpoint(): Promise<void> {
+  const data = JSON.stringify(this.serializeState(), null, 2)
+  const tmpPath = this.statePath + '.tmp'
+  await writeFile(tmpPath, data)
+  await rename(tmpPath, this.statePath)   // atomic on POSIX
+}
+```
+
+On recovery, if `state.json` is missing but `state.json.tmp` exists, the
+engine reads the tmp file (it may be more recent than a missing main file).
+
+**Shutdown flush**
+
+The server's `gracefulShutdown()` must flush all active Workflow checkpoints
+BEFORE killing Expert processes:
+
+```typescript
+// server/index.ts — gracefulShutdown addition
+const gracefulShutdown = async (signal: string) => {
+  log.info(`${signal} received, shutting down gracefully...`)
+
+  // 1. Flush workflow checkpoints FIRST (while Experts are still alive)
+  await workflowRegistry.suspendAll()
+  //    For each running workflow:
+  //    - Mark in-progress tasks as 'suspended' (not 'failed' — they were
+  //      not given a chance to finish, not broken)
+  //    - Persist checkpoint with current task assignments
+  //    - Write workflow status = 'suspended'
+
+  // 2. Then kill Expert processes (existing logic)
+  sessionRegistry.killAll()
+
+  // 3. Cleanup (existing logic)
+  if (IS_DAEMON_FILE_OWNER) removePorts()
+  // ...
+}
+```
+
+The ordering matters: `suspendAll()` runs while Expert processes are still
+alive, so `state.json` accurately reflects which tasks were `running` vs
+`pending`. After suspend, `sessionRegistry.killAll()` terminates the processes.
+
+**Recovery after graceful shutdown**:
+
+```
+App restarts → Server scans ~/.openteam/workflows/
+  → Finds state.json with status = 'suspended'
+  → Tasks marked 'suspended' are re-queued as 'pending' (not 'failed')
+  → Lead starts → resume-workflow.sh → Engine re-spawns Experts for those tasks
+  → Net effect: tasks that were in-flight are retried from scratch
+     (partial file changes from the killed Expert remain on disk — the
+      new Expert sees them and can continue or redo)
+```
+
+**Distinction between `suspended` and `failed`**:
+
+| Task state | Meaning | On resume |
+|-----------|---------|-----------|
+| `suspended` | Process was killed by graceful shutdown, not by a bug | Re-queued as `pending`, retried automatically |
+| `failed` | Expert exited with error, timeout, or crash | Subject to `onFailure` policy (stop/skip/retry) |
+
+This distinction prevents graceful app exits from burning retry budgets.
+A task suspended 3 times by the user closing the app should still have its
+full `maxRetries` available for actual failures.
+
+**Crash (non-graceful) exit**:
+
+If the app is force-killed (`kill -9`, OS crash, power loss),
+`gracefulShutdown` does NOT run. In this case:
+- `state.json` reflects the last `persistCheckpoint()` call (last task
+  completion/failure event)
+- Tasks that were `running` at crash time have no process → on next startup,
+  reconcile marks them `failed` (conservative — we don't know if they
+  were making progress or stuck)
+- This is the worst case: running tasks lose progress AND count against
+  retry budget. Acceptable because non-graceful kills are rare.
+
 ---
 
 ## 5. Agent-to-Agent Handoff

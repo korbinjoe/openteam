@@ -26,7 +26,6 @@ import type { ActivityState } from '../terminal/ActivityDeriver'
 import { ExpertSessionStore, compositeKey, parseAgentId, parseChatId, type ExpertEntry, type ExpertListItem } from './ExpertSessionStore'
 import { createExpertLifecycle } from './ExpertLifecycle'
 import { createExpertResumeHandler } from './ExpertResumeHandler'
-import type { MailboxManager } from '../mailbox/MailboxManager'
 import type { WhiteboardManager } from '../whiteboard/WhiteboardManager'
 import { expandSlashCommand } from '../runtime/SlashCommandResolver'
 import { createLogger } from '../lib/logger'
@@ -68,7 +67,6 @@ export class ExpertHandler {
     private sessionRegistry: SessionRegistry,
     private versionGate: VersionGate,
     private broadcastToChat: (chatId: string, msg: Record<string, unknown>) => void = () => {},
-    private mailboxManager?: MailboxManager,
     private whiteboardManager?: WhiteboardManager,
     /**  GlobalTaskContext  chat chat:permission-request / chat:permission-resolved */
     private globalBroadcast: (msg: Record<string, unknown>) => void = () => {},
@@ -125,7 +123,6 @@ export class ExpertHandler {
       persistExpertSession: this.persistExpertSession.bind(this),
       broadcastToChat: this.broadcastToChat,
       globalBroadcast: this.globalBroadcast,
-      mailboxManager: this.mailboxManager,
       whiteboardManager: this.whiteboardManager,
     })
 
@@ -201,7 +198,7 @@ export class ExpertHandler {
 
   async handleStart(
     ws: WebSocket,
-    payload: { agentId: string; task?: string; images?: Array<{ data: string; mediaType: string }>; cwd?: string; repositories?: Array<{ path: string }>; resumeSessionId?: string; chatId?: string; cols?: number; rows?: number },
+    payload: { agentId: string; task?: string; images?: Array<{ data: string; mediaType: string }>; cwd?: string; repositories?: Array<{ path: string }>; resumeSessionId?: string; chatId?: string; cols?: number; rows?: number; previousContext?: { agentName: string; lastMessage?: string; jsonlPath?: string }; executionMode?: 't0' | 't1' | 't2' },
     connectionId: string,
   ): Promise<void> {
     return this.lifecycle.handleStart(ws, payload, connectionId)

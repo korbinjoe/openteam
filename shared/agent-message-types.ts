@@ -49,17 +49,25 @@ export interface AgentMessageBase {
  */
 export type AgentMessage =
   | AgentMessageBase & { type: 'task:assign'; payload: TaskEnvelope }
+  /** @deprecated Mailbox-era type — no longer written. Use SSE events + team-status instead. */
   | AgentMessageBase & { type: 'task:accepted'; payload: { taskId: string } }
+  /** @deprecated Mailbox-era type — no longer written. Use team-status for progress queries. */
   | AgentMessageBase & { type: 'task:progress'; payload: ProgressReport }
+  /** @deprecated Mailbox-era type — no longer written. Use team-status for progress queries. */
   | AgentMessageBase & { type: 'task:milestone'; payload: { taskId: string; milestone: string; percent: number } }
   | AgentMessageBase & { type: 'task:blocked'; payload: { taskId: string; reason: string } }
   | AgentMessageBase & { type: 'task:input_required'; payload: { taskId: string; question: string } }
+  /** @deprecated Mailbox-era type — no longer written. */
   | AgentMessageBase & { type: 'task:idle'; payload: { taskId: string; summary: string } }
+  /** @deprecated Mailbox-era type — no longer written. */
   | AgentMessageBase & { type: 'task:rejected'; payload: { taskId: string; reason: string } }
   | AgentMessageBase & { type: 'task:completed'; payload: TaskResult }
   | AgentMessageBase & { type: 'task:failed'; payload: TaskResult }
+  /** @deprecated Mailbox-era type — no longer written. Use Handoff API instead. */
   | AgentMessageBase & { type: 'task:delegated'; payload: { taskId: string; subTaskId: string; executor: string } }
+  /** @deprecated Mailbox-era type — no longer written. */
   | AgentMessageBase & { type: 'query'; payload: { question: string; timeoutMs?: number } }
+  /** @deprecated Mailbox-era type — no longer written. */
   | AgentMessageBase & { type: 'response'; payload: { answer: string } }
   | AgentMessageBase & { type: 'handoff'; payload: HandoffPayload }
   | AgentMessageBase & { type: 'artifact'; payload: { path: string; description: string } }

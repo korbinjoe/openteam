@@ -19,10 +19,8 @@ import { homedir } from 'os'
 import { join } from 'path'
 import type { ChatStore } from '../stores/ChatStore'
 import type { AgentStore } from '../stores/AgentStore'
-import type { MailboxManager } from '../mailbox/MailboxManager'
 import { parseConversationFile } from '../terminal/ConversationParser'
 import { acpUpdateToWSMessage } from '../acp/ACPToFrontendBridge'
-import { createAgentMessage } from '../../shared/agent-message-types'
 import { cwdToClaudeProjectKey } from '../../shared/projectKey'
 import { createLogger } from '../lib/logger'
 import { trackEvent } from '../lib/eventTracker'
@@ -49,11 +47,10 @@ export interface ExitHandlerDeps {
   chatStore: ChatStore
   agentStore?: AgentStore
   sendTo: (connectionId: string, msg: Record<string, unknown>) => void
-  mailboxManager?: MailboxManager
 }
 
 export const createExpertExitHandler = (deps: ExitHandlerDeps) => {
-  const { sessionRegistry, executionLogStore, store, chatStore, agentStore, sendTo, mailboxManager } = deps
+  const { sessionRegistry, executionLogStore, store, chatStore, agentStore, sendTo } = deps
 
   const handleExit = (
     ctx: ExitContext,
@@ -202,34 +199,6 @@ export const createExpertExitHandler = (deps: ExitHandlerDeps) => {
       }).catch((err) => {
         log.warn('Failed to update execution log', { execLogId, error: err instanceof Error ? err.message : String(err) })
       })
-    }
-
-    if (mailboxManager && chatId) {
-      try {
-        const taskId = store.getMeta(currentKey, 'taskEnvelopeId') as string || store.getMeta(currentKey, 'executionLogId') as string || ''
-        const msgType = taskCompleted ? 'task:completed' as const : 'task:failed' as const
-        const entry = store.get(currentKey)
-        let summary = ''
-        if (entry) {
-          const allMsgs = entry.acpClient.getCurrentMessages() || []
-          const lastText = [...allMsgs].reverse().find(
-            (m: any) => m.type === 'text' && m.role === 'assistant'
-          )
-          summary = ((lastText as any)?.content || '').substring(0, 300)
-        }
-        const msg = createAgentMessage(msgType, {
-          from: agentId, to: 'lead', chatId, taskId,
-          payload: {
-            taskId, executor: agentId,
-            status: exitCode === 0 ? 'completed' : 'failed',
-            summary, artifacts: [], modifiedFiles: [],
-            ...(exitCode !== 0 ? { failureReason: `Process exited with code ${exitCode}` } : {}),
-          },
-        })
-        mailboxManager.writeMessage(chatId, agentId, 'lead', msg)
-      } catch (err) {
-        log.warn('Failed to write exit mailbox message', { agentId, error: err instanceof Error ? err.message : String(err) })
-      }
     }
 
     sessionRegistry.sendToSession(sessionId, {

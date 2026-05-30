@@ -40,5 +40,10 @@ export const createExecutionLogRoutes = (store: ExecutionLogStore): Router => {
     res.json(store.summary(workspaceId as string))
   })
 
+  router.get('/api/execution-logs/orchestration-metrics', (req, res) => {
+    const { workspaceId } = req.query
+    res.json(store.orchestrationMetrics(workspaceId as string | undefined))
+  })
+
   return router
 }

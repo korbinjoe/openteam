@@ -19,7 +19,7 @@ import WorkspaceIcon from '@/components/icons/WorkspaceIcon'
 import CreateWorkspaceDialog from '@/components/home/CreateWorkspaceDialog'
 import DirPickerDialog from '@/components/home/DirPickerDialog'
 import { cn } from '@/lib/utils'
-import { DEFAULT_MODEL, DEFAULT_MODELS, getModelsForProvider } from '@/lib/models'
+import { DEFAULT_MODEL, DEFAULT_MODELS, DEFAULT_AGENT, getModelsForProvider } from '@/lib/models'
 import { sortAgents } from '@/utils/teamStorage'
 import { loadDirHistory, saveDirHistory, loadLastSession, saveLastSession } from '@/components/home/storage'
 import { useDirPicker } from '@/hooks/useDirPicker'
@@ -90,7 +90,7 @@ const NewChatForm = ({ currentWorkspaceId, currentAgentId, onCreated }: NewChatF
 
   useEffect(() => {
     if (selectedAgentIdState || agents.length === 0) return
-    const defaultAgent = agents.find((a) => a.id === 'fullstack-product-engineer') || agents[0]
+    const defaultAgent = agents.find((a) => a.id === DEFAULT_AGENT) || agents[0]
     if (!defaultAgent) return
     setSelectedAgentIdState(defaultAgent.id)
     const compatible = getModelsForProvider(defaultAgent.provider)

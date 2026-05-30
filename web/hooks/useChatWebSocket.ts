@@ -4,6 +4,7 @@ import { getWebSocketClient, sendTelemetry } from '../services/WebSocketClient'
 import type { Message, AgentActivity, WorktreeSession } from '../types/chat'
 import type { AgentSummary } from '../types/agentConfig'
 import { API_BASE, authFetch } from '@/config/api'
+import { DEFAULT_AGENT } from '@/lib/models'
 import { createExpertEventHandlers, type ExpertEventHandlers } from './useExpertEvents'
 import { usePermissionEvents } from './usePermissionEvents'
 import { useAgentMessages, SYSTEM_MESSAGE_AGENT } from './useAgentMessages'
@@ -196,7 +197,7 @@ export const useChatWebSocket = (opts: UseChatWebSocketOptions) => {
 
         const chat = chatRes?.ok ? await chatRes.json() : null
 
-        // Priority：chat.lastAgentId > workspace.primaryAgentId > fullstack-product-engineer > first
+        // Priority：chat.lastAgentId > workspace.primaryAgentId > config.defaultAgent > first
         if (!initialAgentSetRef.current && agents.length > 0 && !selectedAgentIdRef.current) {
           initialAgentSetRef.current = true
           const lastAgent = chat?.lastAgentId
@@ -205,7 +206,7 @@ export const useChatWebSocket = (opts: UseChatWebSocketOptions) => {
           const primary = ws.agentTeam?.primaryAgentId
             ? agents.find((a) => a.id === ws.agentTeam.primaryAgentId)
             : null
-          const fallback = agents.find((a) => a.id === 'fullstack-product-engineer') ?? agents[0]
+          const fallback = agents.find((a) => a.id === DEFAULT_AGENT) ?? agents[0]
           const target = lastAgent ?? primary ?? fallback
           if (target) handleSetSelectedAgentId(target.id)
         } else if (!initialAgentSetRef.current) {

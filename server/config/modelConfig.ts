@@ -28,6 +28,7 @@ const CONFIG_PATH = join(OPENTEAM_HOME, 'config.json')
 interface ConfigFile {
   models?: ModelOption[]
   defaultModel?: string
+  defaultAgent?: string
 }
 
 const loadConfig = (): ConfigFile => {
@@ -51,4 +52,11 @@ export const getModels = (): ModelOption[] => {
 export const getDefaultModel = (): string => {
   const config = loadConfig()
   return config.defaultModel || HARDCODED_DEFAULT_MODEL
+}
+
+const HARDCODED_DEFAULT_AGENT = 'lead'
+
+export const getDefaultAgent = (): string => {
+  const config = loadConfig()
+  return config.defaultAgent || HARDCODED_DEFAULT_AGENT
 }

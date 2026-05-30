@@ -20,23 +20,29 @@ const FALLBACK_MODELS: ModelOption[] = [
 ]
 
 const FALLBACK_DEFAULT_MODEL = 'claude-opus-4-8'
+const FALLBACK_DEFAULT_AGENT = 'lead'
 
 // Mutable state — updated by initModels() before first render
 // eslint-disable-next-line import/no-mutable-exports
 export let DEFAULT_MODELS: ModelOption[] = FALLBACK_MODELS
 // eslint-disable-next-line import/no-mutable-exports
 export let DEFAULT_MODEL: string = FALLBACK_DEFAULT_MODEL
+// eslint-disable-next-line import/no-mutable-exports
+export let DEFAULT_AGENT: string = FALLBACK_DEFAULT_AGENT
 
 export const initModels = async (): Promise<void> => {
   try {
     const res = await authFetch('/api/config/models')
     if (!res.ok) return
-    const data = await res.json() as { models?: ModelOption[], defaultModel?: string }
+    const data = await res.json() as { models?: ModelOption[], defaultModel?: string, defaultAgent?: string }
     if (Array.isArray(data.models) && data.models.length > 0) {
       DEFAULT_MODELS = data.models
     }
     if (data.defaultModel) {
       DEFAULT_MODEL = data.defaultModel
+    }
+    if (data.defaultAgent) {
+      DEFAULT_AGENT = data.defaultAgent
     }
   } catch {
     // fallback to hardcoded

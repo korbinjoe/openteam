@@ -195,12 +195,23 @@ const loadDefaultModel = (): string | undefined => {
   }
 }
 
+const loadDefaultAgent = (): string => {
+  try {
+    const configPath = join(OPENTEAM_HOME, 'config.json')
+    if (!existsSync(configPath)) return 'lead'
+    const config = JSON.parse(readFileSync(configPath, 'utf8'))
+    return config.defaultAgent || 'lead'
+  } catch {
+    return 'lead'
+  }
+}
+
 const resolveAgent = (workspace: any, preselectedAgent?: string): string | undefined => {
   if (preselectedAgent) return preselectedAgent
   const last = loadLastSession()
   if (last && last.workspaceId === workspace.id && last.agentId) return last.agentId
   if (workspace.agentTeam?.primaryAgentId) return workspace.agentTeam.primaryAgentId
-  return undefined
+  return loadDefaultAgent()
 }
 
 const getVersion = (): string => {

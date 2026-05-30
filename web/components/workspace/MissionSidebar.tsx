@@ -62,9 +62,14 @@ const MissionSidebar = ({ collapsed }: MissionSidebarProps) => {
   if (collapsed) {
     return (
       <div className="w-[52px] bg-bg-secondary border-r border-border-subtle flex flex-col flex-shrink-0 transition-[width] duration-200 ease-out">
+        {/* Drag strip — macOS Electron traffic-light zone */}
+        {isMacElectron && <div className="h-[30px] flex-shrink-0 -webkit-app-region-drag" />}
         {/* Header — logo (web only) + expand button */}
         <div
-          className={`${isMacElectron ? 'pt-[30px]' : 'pt-2'} pb-1 flex flex-col items-center gap-1.5 border-b border-border-subtle`}
+          className={cn(
+            'pb-1 flex flex-col items-center gap-1.5 border-b border-border-subtle',
+            !isMacElectron && 'pt-2',
+          )}
         >
           {!isElectron && (
             <button
@@ -78,7 +83,7 @@ const MissionSidebar = ({ collapsed }: MissionSidebarProps) => {
           )}
           <button
             onClick={togglePanel}
-            className="w-7 h-7 rounded-md flex items-center justify-center text-text-muted hover:bg-bg-hover hover:text-text-secondary transition-colors"
+            className="w-7 h-7 rounded-md flex items-center justify-center text-text-muted hover:bg-bg-hover hover:text-text-secondary transition-colors -webkit-app-region-no-drag"
             title="Expand sidebar (⌘B)"
             aria-label="Expand sidebar"
           >
@@ -121,10 +126,12 @@ const MissionSidebar = ({ collapsed }: MissionSidebarProps) => {
       className="bg-bg-secondary border-r border-border-subtle flex flex-col flex-shrink-0 relative"
       style={{ width: sidebarWidth }}
     >
+      {/* Drag strip — macOS Electron traffic-light zone */}
+      {isMacElectron && <div className="h-[30px] flex-shrink-0 -webkit-app-region-drag" />}
       {/* Header — logo (web only) + collapse + new mission button */}
       <div className="px-2.5 pt-2 pb-2 border-b border-border-subtle">
         <div
-          className={`flex items-center gap-2 pr-2.5 pb-2 ${isMacElectron ? 'pl-[78px]' : 'pl-2.5'}`}
+          className="flex items-center gap-2 px-2.5 pb-2"
         >
           {!isElectron && (
             <button

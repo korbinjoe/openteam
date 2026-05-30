@@ -5,9 +5,12 @@ import { useAgents } from '../../hooks/useAgents'
 import LayoutControls from './LayoutControls'
 import { UsersGroup, ChevronRight } from './icons'
 import { cn } from '../../lib/utils'
+import { isElectron } from '../../utils/env'
 import { buildMissionUrl, buildWorkspaceUrl } from './urls'
 import { memberStatusDot } from './MissionSessionRows'
 import type { Chat, ChatMember } from '../workspace/types'
+
+const noDrag = { WebkitAppRegion: 'no-drag' } as React.CSSProperties
 
 // Unified workspace bar — replaces the old 38px Toolbar + 28px StatusBar pair.
 // Layout: [crumb · chat info] · flex spacer · [layout][ide]
@@ -24,7 +27,7 @@ const WorkspaceToolbar = () => {
 
   if (!activeChatId) {
     return (
-      <div className="h-8 border-b border-border-subtle flex items-center px-3 gap-2 flex-shrink-0 bg-bg-tertiary">
+      <div className={cn('h-8 border-b border-border-subtle flex items-center px-3 gap-2 flex-shrink-0 bg-bg-tertiary', isElectron && '-webkit-app-region-drag')}>
         <span className="text-[11px] font-semibold text-text-secondary">OpenTeam</span>
         <ChevronRight size={11} className="text-text-muted flex-shrink-0" />
         <span className="text-[11px] font-medium text-text-secondary">Home</span>
@@ -34,14 +37,14 @@ const WorkspaceToolbar = () => {
   }
 
   return (
-    <div className="h-8 border-b border-border-subtle flex items-center px-3 gap-2 flex-shrink-0 bg-bg-tertiary">
-      <BrandCrumb onClick={handleGoHome} />
+    <div className={cn('h-8 border-b border-border-subtle flex items-center px-3 gap-2 flex-shrink-0 bg-bg-tertiary', isElectron && '-webkit-app-region-drag')}>
+      <span style={noDrag}><BrandCrumb onClick={handleGoHome} /></span>
       <ChevronRight size={11} className="text-text-muted flex-shrink-0" />
-      {viewMode === 'mission-overview' ? <MissionInfoBar /> : <ActiveChatInfoBar />}
+      <span style={noDrag}>{viewMode === 'mission-overview' ? <MissionInfoBar /> : <ActiveChatInfoBar />}</span>
 
       <span className="flex-1" />
 
-      <LayoutControls />
+      <span style={noDrag}><LayoutControls /></span>
     </div>
   )
 }

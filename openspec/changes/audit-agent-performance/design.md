@@ -1,265 +1,267 @@
-# Design: User Satisfaction Metric System
+# Design: Agent Performance Audit & Optimization System
 
 ## Overview
 
-Based on 996 user text messages across 148 Missions, build a multi-signal satisfaction
-scoring system that infers user satisfaction from conversation patterns — no explicit
-thumbs up/down required.
+A data-driven system for evaluating and optimizing AI Agent performance in OpenTeam,
+consisting of three pillars:
+
+1. **Satisfaction Metric** — Infer user satisfaction from multi-turn conversation signals
+2. **Dissatisfaction Diagnosis** — Classify failure modes per Agent to drive targeted fixes
+3. **Agent Definition Optimization** — Concrete SOUL.md / skills / config changes per Agent
+
+Data source: 216 sessions, 912 user text messages, 11-day window (2026-05-20 ~ 2026-05-30).
 
 ---
 
-## 1. Signal Taxonomy
+## 1. User Satisfaction Metric System
 
-From analyzing real conversation data, user feedback falls into 6 classifiable signal
-categories:
+### 1.1 Signal Taxonomy
 
-| Signal | Polarity | Pattern (regex) | Frequency |
-|--------|----------|-----------------|-----------|
-| **Correction** | Negative | `不对\|不是\|错了\|重新\|没有实现\|还是没\|没得到解决\|问题还是\|你这也没` | 62 / 996 (6.2%) |
-| **Escalation** | Strong Negative | `为啥还\|怎么还\|一通.*后\|恶心\|反复修.*修不好` | 2 / 996 (0.2%) |
-| **Aesthetic Rejection** | Negative | `太丑\|不好看\|AI味\|不合理\|不太直观\|有点奇怪\|浪费空间\|区分度.*不.*高` | 12 / 996 (1.2%) |
-| **Iteration** | Mild Negative | `改大\|改小\|改为\|改成\|调整\|太大\|太小\|放大\|缩小\|px` | 38 / 996 (3.8%) |
-| **Acceptance** | Positive | `好的\|可以\|没问题\|对的\|不错\|perfect\|great` | 35 / 996 (3.5%) |
-| **Commit** | Strong Positive | `^commit\|^提交` | 90 / 996 (9.0%) |
-| **Continue** | Weak Positive | `继续\|开干\|实现$\|落地$\|开始$\|直接` | 53 / 996 (5.3%) |
-| **Choice** | Neutral | `^[A-D][\.\s]?$` (single letter selection) | 11 / 996 (1.1%) |
-| **Context Resume** | Excluded | `This session is being continued` | 86 / 996 (8.6%) |
-| **Question** | Neutral | `如何\|是否\|怎么\|是不是\|会不会\|能否\|应该` | 116 / 996 (11.6%) |
+User text messages in JSONL conversations carry classifiable satisfaction signals:
+
+| Signal | Polarity | Weight | Pattern (regex) | Observed Rate |
+|--------|----------|--------|-----------------|---------------|
+| Escalation | Strong Negative | -3.0 | `为啥还\|怎么还\|一通.*后\|恶心\|反复修.*修不好` | 0.3% |
+| Correction | Negative | -1.5 | `不对\|错了\|重新\|没有实现\|还是没\|没得到解决\|你这也没` | 3.5% |
+| Aesthetic Rejection | Negative | -1.0 | `太丑\|不好看\|AI味\|不合理\|不太直观\|浪费空间` | 1.3% |
+| Iteration | Mild Negative | -0.5 | `改大\|改小\|改为\|太大了\|太小了\|\d+px` | 4.2% |
+| Continue | Weak Positive | +0.5 | `继续\|开干\|实现$\|落地$\|直接` | 5.8% |
+| Acceptance | Positive | +1.0 | `好的\|可以\|没问题\|不错\|perfect\|great` | 3.8% |
+| Commit | Strong Positive | +2.0 | `^commit\|^提交` | 9.9% |
+
+Excluded from scoring: context resume messages, single-letter choices, pure questions.
+
+### 1.2 Mission Satisfaction Score (MSS)
+
+```
+MSS = Σ(signal_weight × count) / user_text_turns × 100
+
+Rating:
+  >= 60   HIGH           — first-pass or near-first-pass delivery
+  30~59   MEDIUM-HIGH    — delivered with minor friction
+  0~29    MEDIUM         — delivered but with notable rework
+  < 0     LOW            — user dissatisfied, significant rework or failure
+```
+
+Structural bonuses/penalties:
+
+| Condition | Effect |
+|-----------|--------|
+| Mission ends with `commit` | +10 |
+| Single-turn success | +20 |
+| Context resume >= 3 | -10 |
+| Correction → same topic repeat | -5 per |
+| Timeout after corrections | -15 |
+
+### 1.3 Role-Adjusted Baselines
+
+UI work naturally involves more iteration. Per-role weight overrides:
+
+| Agent Role | `iteration` Weight | Rationale |
+|------------|-------------------|-----------|
+| Default | -0.5 | Standard penalty |
+| ui-designer | -0.2 | Visual iteration is expected workflow |
+
+### 1.4 Composite Agent Effectiveness Score
+
+Neither completion rate nor MSS alone tells the full story:
+
+```
+Effectiveness = 0.4 × CompletionRate + 0.3 × MSS_normalized + 0.3 × (1 - CorrectionRate)
+```
+
+Current results:
+
+| Agent | Completion | MSS | CorrRate | **Effectiveness** |
+|-------|-----------|-----|----------|-------------------|
+| fullstack-product-engineer | 58% | 22.5% | 3.1% | **73%** |
+| ui-designer | 75% | 8.0% | 4.9% | **67%** |
+| code-reviewer | 55% | 10.1% | 3.9% | **61%** |
 
 ---
 
-## 2. Scoring Model
+## 2. Dissatisfaction Root Cause Taxonomy
 
-### 2.1 Per-Message Weights
+44 dissatisfaction events across 216 sessions cluster into 5 failure modes:
 
-Each user text message gets classified and weighted:
+| Failure Mode | Count | % | Description |
+|-------------|-------|---|-------------|
+| UI/Visual quality | 14 | 32% | "AI-flavored" UI, template aesthetics, style mismatch |
+| Bug fix loop | 10 | 23% | Fix claimed but doesn't work; no self-verification |
+| Info architecture | 8 | 18% | Controls placed at wrong UI hierarchy level |
+| Incomplete delivery | 7 | 16% | Multi-item request, only some items addressed |
+| Design aesthetics | 5 | 11% | CSS micro-adjustments fail to converge |
 
-```
-Signal Weight:
-  escalation:           -3.0   (user explicitly frustrated)
-  correction:           -1.5   (agent output rejected or wrong)
-  aesthetic_rejection:  -1.0   (output quality issue)
-  iteration:            -0.5   (needs refinement but direction ok)
-  question:              0.0   (neutral interaction)
-  choice:                0.0   (neutral selection)
-  continue:             +0.5   (implicit approval to proceed)
-  acceptance:           +1.0   (explicit positive feedback)
-  commit:               +2.0   (strongest positive — user ships the work)
-```
+### Per-Agent Failure Mode Distribution
 
-### 2.2 Mission Satisfaction Score (MSS)
-
-```
-MSS = Σ(signal_weight) / user_text_count × 100
-
-Interpretation:
-  MSS >= 60:   High satisfaction — agent delivered well
-  MSS 30~59:   Moderate — delivered but with friction
-  MSS 0~29:    Low — significant rework required
-  MSS < 0:     Negative — agent failed to satisfy
-```
-
-### 2.3 Structural Signals (Bonus/Penalty)
-
-Beyond text classification, structural patterns provide additional signal:
-
-| Structural Signal | Effect | Rationale |
-|-------------------|--------|-----------|
-| Mission ends with `commit` | +10 bonus | User shipped the agent's output |
-| Single-turn success (1 user msg → waiting_input) | +20 bonus | First-pass delivery |
-| Context resume count >= 3 | -10 penalty | Agent ran out of context repeatedly |
-| Correction → same topic repeat | -5 per repeat | Agent didn't fix it the first time |
-| Mission timeout after corrections | -15 penalty | Failed to resolve after user feedback |
-
-### 2.4 Agent Satisfaction Score (ASS)
-
-Per-agent aggregate:
-
-```
-ASS = weighted_avg(MSS across all missions)
-    where weight = sqrt(user_text_count)  // missions with more interaction get more weight
-```
+| Agent | UI Quality | Fix Loop | Info Arch | Incomplete | Aesthetics | Total |
+|-------|-----------|----------|-----------|------------|------------|-------|
+| fullstack | 6 | 4 | 2 | 5 | 3 | 21 |
+| code-reviewer | 3 | 4 | 3 | 0 | 2 | 12 |
+| ui-designer | 1 | 0 | 3 | 1 | 2 | 7 |
+| architect | 0 | 1 | 0 | 2 | 0 | 3 |
 
 ---
 
-## 3. Current Agent Satisfaction Assessment
+## 3. Agent Definition Optimization Design
 
-Applying the model to existing data:
+### 3.1 fullstack-product-engineer
 
-| Agent | Missions | User Turns | Corrections | Escalations | Commits | Correction Rate | Satisfaction |
-|-------|----------|------------|-------------|-------------|---------|-----------------|-------------|
-| **fullstack-product-engineer** | 54 | 200 | 11 | 0 | 39 | 5.5% | **Medium-High** |
-| **code-reviewer** | 18 | 74 | 8 | 0 | 13 | 10.8% | **Medium-Low** |
-| **ui-designer** | 12 | 99 | 9 | 1 | 7 | 9.1% | **Medium-Low** |
-| **product-strategist** | — | — | — | — | — | — | Insufficient data |
+**Problem**: 43% of its dissatisfaction events (9/21) are visual quality issues — an
+engineer doing designer's work.
 
-### Key Findings
+**SOUL.md additions**:
+- Mandatory pre-completion checklist: re-read request, check all sub-items, screenshot
+- Task routing rule: visual tasks → handoff to ui-designer
+- Anti-pattern: never claim done on UI without browser screenshot
 
-**fullstack-product-engineer** performs the best on satisfaction despite having a lower
-task_status success rate (58%). This is because:
-- Highest commit count (39) — users frequently ship its output
-- Lowest correction rate (5.5%) among active agents
-- Most single-turn successes
+**openteam.json changes**:
+- Add `dev-server` to skills (currently missing, prevents self-verification)
 
-**code-reviewer** has the highest correction rate (10.8%), confirming the audit report's
-finding of role mismatch — debugging tasks generate more corrections than reviews would.
+**New file**: `GUARDRAILS.md` — codified anti-patterns
 
-**ui-designer** has a high correction rate (9.1%) but this is partially expected for
-visual work, where iteration is the natural workflow. The presence of 1 escalation
-("你成功恶心到我了") and high iteration count (15) indicates the agent occasionally
-produces outputs that miss the mark significantly.
+### 3.2 code-reviewer
+
+**Problem**: 67% of its dissatisfaction events (8/12) are non-review tasks. Identity
+crisis — review agent dispatched as debugger/designer.
+
+**SOUL.md additions**:
+- Strict scope boundaries: review and analyze only, no implementation
+- Non-review task detection: write open_question to war-room recommending redispatch
+- Bug analysis format: trace code path → show root cause line → propose diff (don't apply)
+
+**openteam.json changes**:
+- Remove Write/Edit from allowedTools (enforce read-only)
+- Remove unused skills (java, go, python)
+- Add `whiteboard` skill for handoff communication
+- Update description to explicitly exclude implementation
+
+### 3.3 ui-designer
+
+**Problem**: Information architecture errors (2 events) + iteration convergence failure
+(3 events). Knows CSS but misses product structure.
+
+**SOUL.md additions**:
+- Design process: describe visual hierarchy strategy before writing CSS
+- Info architecture awareness: identify control level (Mission/Agent/Chat) before implementing
+- Convergence rule: after 3 rounds on same element, pause and ask user for direction
+- Anti-AI-taste checklist: no centered gradient headings, no symmetric card layouts
+
+**openteam.json changes**:
+- Add `playwright-cli` (screenshot evidence)
+- Add `design-taste-frontend` (anti-slop guidance)
+- Add `whiteboard` (handoff communication)
+
+### 3.4 architect
+
+**Problem**: SOUL says "no code modification" but actually dispatched to implement.
+3 events, all from implementation tasks.
+
+**Decision**: Adopt Option B — allow implementation (data shows 2.6% correction rate,
+lowest in fleet; $0.22/turn, cheapest).
+
+**SOUL.md changes**:
+- Remove "No code modification" hard limit
+- Add dual-mode: review-only tasks → reports; implementation tasks → code + verify
+- Add self-verification requirement for implementation mode
+
+**openteam.json changes**:
+- Add `dev-server`, `playwright-cli`, `whiteboard` to skills
+- Explicitly grant Write/Edit in allowedTools
+
+### 3.5 Cross-Agent Universal Changes
+
+**All SOUL.md files** — two new mandatory sections:
+
+1. **Turn Limit Awareness**: At 70% turn consumption, stop and produce progress summary
+2. **Requirement Completeness Check**: Re-read original message before claiming done;
+   if multi-item, address every item or explicitly state what's skipped
+
+**Lead SOUL.md** — dispatch decision tree:
+
+| Task keyword | Route to |
+|-------------|----------|
+| UI/样式/美化/视觉/太丑 | ui-designer |
+| code review/审查/评审代码 | code-reviewer |
+| debug/修复/fix/状态不对 | fullstack-product-engineer |
+| architecture/模块边界/重构 | architect |
+| deploy/CI/CD/上线 | devops-engineer |
+| logo/图标/品牌 | image-creator |
+| 产品调研/竞品分析/PRD | product-strategist |
 
 ---
 
-## 4. Correction Pattern Deep-Dive
+## 4. Implementation Architecture
 
-The 62 correction messages cluster into 4 root causes:
-
-### 4.1 Incomplete Implementation (40%)
-> "还是没有实现", "你这也没按 workspace 进行分组展示", "没有实现"
-
-Agent produces code that doesn't satisfy the requirement. Often happens when:
-- Requirement has multiple sub-items and agent only addresses some
-- Agent interprets the requirement differently than user intended
-
-### 4.2 Regression / Unfixed Bug (25%)
-> "这个问题还是没得到解决", "反复修了2、3次了，都修不好", "问题依然存在"
-
-Agent claims to fix something but the fix doesn't work. Highest frustration signal.
-
-### 4.3 Wrong Direction (20%)
-> "不是要抛弃前面一版设计", "信息结构不对", "不对,重新来"
-
-Agent takes a fundamentally wrong approach. Usually recoverable with one correction.
-
-### 4.4 Visual Quality (15%)
-> "太丑了", "AI味很重", "样式不一致"
-
-Agent's visual output doesn't meet quality bar. Specific to ui-designer and
-fullstack-product-engineer on UI tasks.
-
----
-
-## 5. Implementation Architecture
-
-### 5.1 Data Flow
+### 4.1 SatisfactionClassifier Module
 
 ```
-JSONL File (source of truth)
-    ↓ parse
-User Text Messages
-    ↓ classify (regex patterns)
-Signal Events [ {type, weight, messageIndex} ]
-    ↓ aggregate
-Mission Satisfaction Score (MSS)
-    ↓ store
-satisfaction_scores table (chatId, agentId, mss, signals_json, computedAt)
-    ↓ aggregate
-Agent Satisfaction Score (ASS)
+server/services/SatisfactionClassifier.ts
+
+Input:  ParsedMessage[] (from ConversationParser)
+Output: MissionSatisfaction { mss, signals[], corrections, escalations, ... }
+
+Trigger: ExpertExitHandler → on session exit
+Storage: satisfaction_scores table (new migration V24)
+API:     GET /api/chats/:id/satisfaction
 ```
 
-### 5.2 Computation Strategy
-
-**Lazy evaluation**: Compute MSS when a Mission's session ends (expert exit handler),
-not in real-time. Store the score in a new `satisfaction_scores` table.
-
-**Re-computation**: When a Mission is re-opened (new user messages added), invalidate
-and re-compute the MSS.
-
-**No JSONL parsing in hot path**: The satisfaction scorer runs as a post-processing step
-after session exit, not during live conversation.
-
-### 5.3 Database Schema
+### 4.2 Database Schema (Migration V24)
 
 ```sql
 CREATE TABLE satisfaction_scores (
   id            TEXT PRIMARY KEY,
   chat_id       TEXT NOT NULL,
   agent_id      TEXT NOT NULL,
-  mss           REAL NOT NULL,        -- Mission Satisfaction Score
+  mss           REAL NOT NULL,
   user_turns    INTEGER NOT NULL,
   corrections   INTEGER NOT NULL DEFAULT 0,
   escalations   INTEGER NOT NULL DEFAULT 0,
   iterations    INTEGER NOT NULL DEFAULT 0,
   acceptances   INTEGER NOT NULL DEFAULT 0,
   commits       INTEGER NOT NULL DEFAULT 0,
-  signals_json  TEXT,                  -- detailed signal breakdown
+  signals_json  TEXT,
   computed_at   TEXT NOT NULL,
   UNIQUE(chat_id, agent_id)
 );
-CREATE INDEX idx_sat_agent ON satisfaction_scores(agent_id);
-CREATE INDEX idx_sat_chat ON satisfaction_scores(chat_id);
 ```
 
-### 5.4 Classifier Module
+### 4.3 Agent Definition File Structure
 
-```typescript
-// server/services/SatisfactionClassifier.ts
-
-interface SatisfactionSignal {
-  type: 'correction' | 'escalation' | 'aesthetic_rejection' | 'iteration'
-      | 'acceptance' | 'commit' | 'continue' | 'question' | 'choice'
-  weight: number
-  messageIndex: number
-  matchedText: string
-}
-
-interface MissionSatisfaction {
-  mss: number
-  userTurns: number
-  signals: SatisfactionSignal[]
-  corrections: number
-  escalations: number
-  iterations: number
-  acceptances: number
-  commits: number
-}
-
-// Regex patterns for Chinese + English user feedback classification
-const SIGNAL_PATTERNS: Record<string, { regex: RegExp; weight: number }> = {
-  escalation:          { regex: /为啥还|怎么还|一通.*后|恶心|反复修.*修不好/i,        weight: -3.0 },
-  correction:          { regex: /不对|不是这|错了|重新|没有实现|还是没|没得到解决|问题还是|你这也没/i, weight: -1.5 },
-  aesthetic_rejection: { regex: /太丑|不好看|AI味|不合理|不太直观|有点奇怪|浪费空间/i,   weight: -1.0 },
-  iteration:           { regex: /改大|改小|改为|改成|太大了|太小了|放大|缩小|\d+px/i,   weight: -0.5 },
-  acceptance:          { regex: /好的|可以|没问题|对的|不错|perfect|great|looks good/i, weight: +1.0 },
-  commit:              { regex: /^commit|^提交/i,                                     weight: +2.0 },
-  continue:            { regex: /继续|开干|^实现$|^落地$|^开始$|直接改|直接落/i,          weight: +0.5 },
-}
 ```
-
-### 5.5 Integration Points
-
-1. **ExpertExitHandler** — After expert session exits, trigger satisfaction computation
-2. **ChatStore** — Add `satisfactionScore` field to Chat for quick access
-3. **API route** — `GET /api/chats/:id/satisfaction` returns detailed breakdown
-4. **Sidebar** — Optional satisfaction indicator (color dot or score) per Mission
+ai-assets/agents/<agent>/
+  IDENTITY.md    — name, emoji, animal (no changes)
+  SOUL.md        — personality + NEW: scope boundaries, checklists, routing rules
+  GUARDRAILS.md  — NEW: anti-patterns (fullstack-product-engineer only)
+  BOOT.md        — boot prompt (existing, no changes)
+  HEARTBEAT.md   — heartbeat prompt (existing, no changes)
+```
 
 ---
 
-## 6. Validation Plan
+## 5. Validation Plan
 
-Before deploying to production, validate the model against known outcomes:
+### 5.1 Satisfaction Model Validation
 
-1. Hand-label 30 Missions as "satisfied" / "unsatisfied" / "mixed" based on full
-   conversation reading
-2. Compute MSS for each
-3. Check if MSS correctly separates the three groups
-4. Adjust weights if correlation is weak
+1. Hand-label 30 Missions as satisfied/unsatisfied/mixed
+2. Compute MSS, check separation between groups
+3. Calibration targets: >80% precision on unsatisfied, >95% recall on commit=satisfied
 
-Expected calibration targets:
-- Precision on "unsatisfied" detection: > 80%
-- Recall on "commit" missions being "satisfied": > 95%
-- No false "satisfied" on missions with 2+ corrections and no commit
+### 5.2 Agent Optimization Validation
+
+After implementing SOUL.md changes, run a 2-week A/B period:
+- Track correction rate, escalation rate, timeout rate per Agent
+- Compare against pre-optimization baseline (this report)
+- Target: correction rate 3.5% → 2.0%, timeout rate 30% → 15%
 
 ---
 
-## 7. Future Extensions
+## 6. Projected Impact
 
-1. **Temporal decay**: Recent signals weighted more than early ones (user may be
-   frustrated early but satisfied by the end)
-2. **Cross-mission tracking**: If user creates a new Mission for the same topic,
-   the previous Mission likely failed
-3. **Agent-specific baselines**: UI work naturally has more iterations than
-   debugging — normalize per agent role
-4. **LLM-based classification**: Replace regex with a small model for nuanced
-   sentiment detection (e.g., sarcasm, implicit dissatisfaction)
+| Metric | Current | After P0+P1 | Improvement |
+|--------|---------|-------------|-------------|
+| Correction rate (fleet) | 3.5% | ~2.0% | -43% |
+| Escalation rate | 0.3% | ~0.1% | -67% |
+| Timeout rate | 30% | ~15% | -50% |
+| Role mismatch events | ~8/216 | ~2/216 | -75% |
+| Avg Agent Effectiveness | 67% | ~78% | +16% |

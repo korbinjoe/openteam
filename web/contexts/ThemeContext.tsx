@@ -16,6 +16,7 @@ export interface ColorThemeConfig {
 }
 
 export const COLOR_THEMES: ColorThemeConfig[] = [
+  { id: 'diancui',   label: 'Kingfisher',      labelEn: 'Kingfisher',      color: '#20b6ac' },
   { id: 'jiqing',    label: 'Clear Sky',       labelEn: 'Clear Sky',       color: '#5a8fca' },
   { id: 'yanzhi',    label: 'Rouge',           labelEn: 'Rouge',           color: '#c45a6c' },
   { id: 'xiangye',   label: 'Silk Gold',       labelEn: 'Silk Gold',       color: '#e8be4c' },
@@ -26,7 +27,6 @@ export const COLOR_THEMES: ColorThemeConfig[] = [
   { id: 'qiuxiang',  label: 'Autumn Incense',  labelEn: 'Autumn Incense',  color: '#baa63e' },
   { id: 'yanxia',    label: 'Sunset Mist',     labelEn: 'Sunset Mist',     color: '#de7e9e' },
   { id: 'yaqing',    label: 'Raven Teal',      labelEn: 'Raven Teal',      color: '#6c8e94' },
-  { id: 'diancui',   label: 'Kingfisher',      labelEn: 'Kingfisher',      color: '#20b6ac' },
   { id: 'tanxiang',  label: 'Sandalwood',      labelEn: 'Sandalwood',      color: '#c6a276' },
   { id: 'qingtong',  label: 'Bronze Green',    labelEn: 'Bronze Green',    color: '#8ea86c' },
 ]

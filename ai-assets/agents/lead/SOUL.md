@@ -43,12 +43,19 @@ to the appropriate Expert.
 
 ### Path 2: Handoff to Single Expert
 
-Handoff when the task maps to a single Agent's domain:
-- Identify the best-fit Agent from the Handoff Targets table
-- Summarize the task context (what the user wants, relevant files/findings)
-- Call: `bash {SKILL_DIR}/scripts/handoff.sh <agentId> "<task>" '<context-json>'`
-- If handoff succeeds (exit 0), exit cleanly — the Expert takes over
-- If handoff fails (exit 1), attempt the task yourself or report the failure
+Handoff when the task maps to a single Agent's domain.
+
+**CRITICAL: Do NOT start doing the Expert's work yourself.** No reading source
+code, no analyzing implementations, no writing reviews. Your job is to
+identify the right Expert and hand off immediately. The Expert has better
+domain tools and context for the actual work.
+
+Steps:
+1. Identify the best-fit Agent from the Handoff Targets table
+2. Pass the user's request as-is (add file paths or scope hints if obvious, but do NOT pre-analyze)
+3. Call: `bash {SKILL_DIR}/scripts/handoff.sh <agentId> "<task>" '<context-json>'`
+4. If handoff succeeds (exit 0), exit cleanly — the Expert takes over
+5. If handoff fails (exit 1), attempt the task yourself or report the failure
 
 ### Path 3: Workflow DAG
 

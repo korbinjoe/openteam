@@ -16,8 +16,8 @@ export interface ColorThemeConfig {
 }
 
 export const COLOR_THEMES: ColorThemeConfig[] = [
-  { id: 'diancui',   label: 'Kingfisher',      labelEn: 'Kingfisher',      color: '#20b6ac' },
   { id: 'jiqing',    label: 'Clear Sky',       labelEn: 'Clear Sky',       color: '#5a8fca' },
+  { id: 'diancui',   label: 'Kingfisher',      labelEn: 'Kingfisher',      color: '#20b6ac' },
   { id: 'yanzhi',    label: 'Rouge',           labelEn: 'Rouge',           color: '#c45a6c' },
   { id: 'xiangye',   label: 'Silk Gold',       labelEn: 'Silk Gold',       color: '#e8be4c' },
   { id: 'qingci',    label: 'Celadon',         labelEn: 'Celadon',         color: '#74c0a8' },
@@ -80,7 +80,7 @@ const getInitialColorTheme = (): ColorTheme => {
     const stored = localStorage.getItem(COLOR_THEME_KEY)
     if (stored && COLOR_THEMES.some((t) => t.id === stored)) return stored as ColorTheme
   } catch { /* ignore */ }
-  return 'diancui'
+  return 'jiqing'
 }
 
 const ThemeContext = createContext<ThemeContextValue | null>(null)

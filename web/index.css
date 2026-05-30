@@ -51,10 +51,10 @@
   --radius-md:        10px;
   --radius-lg:        14px;
 
-  /* Default brand = Diancui */
-  --accent-brand:       32 182 172;
-  --accent-brand-light: 82 212 202;
-  --accent-brand-deep:  12 152 142;
+  /* Default brand = Jiqing */
+  --accent-brand:       90 143 202;
+  --accent-brand-light: 130 176 222;
+  --accent-brand-deep:  62 114 172;
 }
 
 :root.light {

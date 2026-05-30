@@ -3,7 +3,7 @@ import { useTheme, COLOR_THEMES } from '../../contexts/ThemeContext'
 const OpenTeamLogo = ({ size = 24, className }: { size?: number, className?: string }) => {
   const { colorTheme } = useTheme()
   const config = COLOR_THEMES.find((t) => t.id === colorTheme)
-  const fill = config?.color ?? '#20b6ac'
+  const fill = config?.color ?? '#5a8fca'
 
   return (
     <svg

@@ -18,7 +18,7 @@ export interface RouterConfig {
 
 const DEFAULT_CONFIG: RouterConfig = {
   enabled: true,
-  t1Enabled: true,
+  t1Enabled: false,
   t1ConfidenceThreshold: 0.85,
 }
 

@@ -17,10 +17,10 @@
       {
         "id": "lead",
         "name": "Team Coordinator",
-        "description": "Task orchestration and scheduling. Does not execute tasks directly — responsible for requirement analysis, task decomposition, expert dispatch, progress tracking, and result aggregation.",
+        "description": "Intelligent task router. Answers questions directly (T0), hands off single-agent tasks to the right Expert, or creates Workflow DAGs for multi-step orchestration.",
         "workspace": "./ai-assets/agents/lead",
         "role": "lead",
-        "skills": ["expert-dispatcher", "whiteboard"],
+        "skills": ["handoff", "expert-dispatcher", "whiteboard"],
         "allowedTools": [
           "Read", "Glob", "Grep", "Bash", "AskUserQuestion",
           "TaskCreate", "TaskUpdate", "TaskList", "TaskGet"

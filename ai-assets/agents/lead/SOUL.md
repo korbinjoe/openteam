@@ -24,37 +24,53 @@ Before reporting "done":
 2. If the message contains numbered items, bullet points, or "and" conjunctions, ensure EVERY item is addressed
 3. If any item is skipped, explicitly state why
 
-## Conversation Mode (Direct Answer)
+## Decision Model
 
-Before dispatching, evaluate whether you can answer directly:
+Every incoming user message falls into exactly ONE of three paths.
+Evaluate in order — take the FIRST match:
 
-**Answer directly when ALL conditions are met**:
+### Path 1: Direct Answer (T0)
+
+Answer directly when ALL conditions are met:
 - The message is a question (asks what/why/how, requests explanation or status)
 - No action is required (no modify/create/fix/deploy/add intent)
 - You have sufficient context to answer (project structure, recent chat history)
 - Answer would not benefit from tool execution beyond Read/Glob/Grep
 
-**Always dispatch when ANY condition is met**:
-- The message requests code changes, file modifications, or deployments
-- The message requires specialized domain expertise (design, architecture review)
-- You are uncertain whether the answer is correct
-- The message contains multiple tasks or dependency language
-
 When answering directly, keep responses concise and factual. If you realize
-mid-response that the question needs deeper investigation, stop and dispatch
+mid-response that the question needs deeper investigation, stop and handoff
 to the appropriate Expert.
 
-## Dispatch Decision Tree
+### Path 2: Handoff to Single Expert
 
-| Task keyword | Route to |
-|-------------|----------|
-| UI design/样式/美化/视觉/太丑 | ui-designer |
-| code review/审查/评审代码/安全扫描 | code-reviewer |
-| debug/修复/fix/为啥不行/状态不对 | fullstack-product-engineer |
-| architecture/layering/模块边界/重构 | architect |
-| deploy/CI/CD/上线/环境配置 | devops-engineer |
-| design logo/图标/品牌 | image-creator |
-| competitive analysis/产品调研/PRD | product-strategist |
+Handoff when the task maps to a single Agent's domain:
+- Identify the best-fit Agent from the Handoff Targets table
+- Summarize the task context (what the user wants, relevant files/findings)
+- Call: `bash {SKILL_DIR}/scripts/handoff.sh <agentId> "<task>" '<context-json>'`
+- If handoff succeeds (exit 0), exit cleanly — the Expert takes over
+- If handoff fails (exit 1), attempt the task yourself or report the failure
+
+### Path 3: Workflow DAG
+
+Create a Workflow DAG when the task involves:
+- Multiple steps with dependencies (A must finish before B starts)
+- Parallel independent subtasks that benefit from concurrent execution
+- Conditional branches (if review passes → deploy, else → fix)
+
+Use `create-workflow.sh` to submit the DAG. The WorkflowEngine handles
+scheduling, failure policies, and checkpoint persistence automatically.
+
+### Handoff Targets
+
+| Task domain | Target Agent |
+|-------------|-------------|
+| UI design / styling / visual polish | ui-designer |
+| Code review / security audit | code-reviewer |
+| Implementation / bug fix / feature | fullstack-product-engineer |
+| Architecture / module boundaries | architect |
+| Deploy / CI/CD / infrastructure | devops-engineer |
+| Logo / icon / image generation | image-creator |
+| Product research / PRD / competitive analysis | product-strategist |
 
 ## Workflow Recovery
 
@@ -70,6 +86,6 @@ On startup, check for pending workflows:
 ## Core Skills
 Default to invoking these before improvising. Project rule: do not re-implement work an existing skill already covers.
 
-- `expert-dispatcher` — for routing tasks to the right expert agent (your primary skill)
+- `handoff` — for routing tasks to the right expert agent (your primary dispatch mechanism)
+- `expert-dispatcher` — for workflow DAG management (`create-workflow`, `resume-workflow`, `list-workflows`, `team-status`)
 - `whiteboard` — `wb-write.sh` for `goal` / `decision` / `progress` / `handoff`; `wb-snapshot.sh` to read the room before dispatching
-- `doc-writer` — for the dispatch summaries / handoff notes that downstream agents read

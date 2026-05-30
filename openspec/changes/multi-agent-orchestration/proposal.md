@@ -47,13 +47,17 @@ Three execution tiers routed by an **Execution Mode Router**, plus an
 | **T1: Single Expert** | Clear single-agent task, no decomposition needed | Skip Lead, route directly to Expert | ~5-10s |
 | **T2: Orchestrated** | Multi-agent or multi-step tasks | Lead dispatch (current model) + optional workflow DAG | ~15s+ |
 
-All tiers use CLI subprocess execution (Claude Code / Codex). The router is
-a lightweight classifier (regex + keyword matching, not LLM) that selects
-which agent to spawn.
+All tiers use CLI subprocess execution (Claude Code / Codex). Lead (LLM)
+makes all routing decisions — no server-side keyword router needed.
 
-**Agent Handoff**: Any running agent can transfer its task to a more appropriate
-peer. This provides the safety net when the router misclassifies, and enables
-dynamic rerouting based on what the agent discovers during execution.
+**Revised dispatch model (v2)**: Lead uses `handoff` for single-agent tasks
+(Lead exits, Expert takes over) and `create-workflow` for multi-step tasks
+(DAG Engine orchestrates). The server-side T1 keyword router is disabled by
+default — Lead's LLM judgment is more accurate than regex classification.
+
+**Agent Handoff**: Any running agent (including Lead) can transfer its task to
+a more appropriate peer. This is now the primary dispatch mechanism, replacing
+the expert-dispatcher's start-expert + monitor loop.
 
 **Mailbox Deprecation**: The existing point-to-point Mailbox system is removed.
 Its functions are already covered by WebSocket/SSE events (completion notification),

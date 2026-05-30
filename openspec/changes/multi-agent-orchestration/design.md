@@ -1307,3 +1307,68 @@ Add `executionMode` and `handoffFrom` to the existing `expert:started` event:
 - Handoff messages: a system message in the chat timeline shows "Agent A handed
   off to Agent B: {reason}" between the two agents' outputs
 - DAG workflow: a workflow progress indicator (future Phase, placeholder spec)
+
+---
+
+## 12. Architecture Revision: Handoff-First Dispatch Model
+
+### 12.1 Motivation
+
+The original design had three routing layers:
+1. Server-side keyword router (T1) — regex/keyword bypass of Lead
+2. Lead conversation mode (T0) — Lead answers directly
+3. Lead manual dispatch (T2) — Lead uses expert-dispatcher to start/monitor/aggregate
+
+In practice, the server-side router (T1) never triggered due to overly
+conservative scoring (keyword coverage ratio yields ~0.5 for clear matches,
+well below the 0.85 threshold). Meanwhile, Lead already has LLM-level
+understanding of task intent — duplicating that with regex adds complexity
+without benefit.
+
+### 12.2 Revised Decision Model
+
+All routing decisions are made by Lead (LLM judgment), not the server:
+
+```
+User message → Lead spawns
+  → Lead evaluates:
+    ├── T0: Question/status → Answer directly, no Expert
+    ├── Single-agent task → Handoff to best-fit Expert (Lead exits)
+    └── Multi-step task → Create Workflow DAG (Engine orchestrates)
+```
+
+**Key change**: Lead uses the `handoff` skill (not `start-expert`) for
+single-agent dispatch. This means:
+- Lead exits after successful handoff — no monitoring loop
+- Expert interacts directly with the user
+- No intermediate aggregation step
+
+### 12.3 expert-dispatcher Role Change
+
+| Before | After |
+|--------|-------|
+| Primary dispatch mechanism (start-expert + watch-events + send-to-expert) | Workflow DAG management only (create/resume/list-workflows + team-status) |
+| Lead stays alive to monitor, forward input, aggregate results | Lead exits after handoff; Expert owns the user interaction |
+| Manual sequential dispatch for multi-step tasks | Workflow DAG Engine handles scheduling automatically |
+
+The `start-expert.sh` and `watch-events.sh` scripts remain as fallback
+for edge cases but are no longer the primary dispatch path.
+
+### 12.4 Server-Side Router (T1) Status
+
+The `ExecutionModeRouter` is retained in code but **disabled by default**
+(`t1Enabled: false`). It can be re-enabled after collecting production data
+from `execution_logs.execution_mode` to tune the scoring algorithm.
+
+The router code and dispatch rules are preserved for future optimization —
+once enough data shows which tasks consistently route to the same Expert,
+the T1 bypass can be enabled with data-driven thresholds.
+
+### 12.5 Impact on Existing Tiers
+
+| Tier | Before | After |
+|------|--------|-------|
+| T0 | Lead answers directly | Unchanged |
+| T1 | Server router bypasses Lead | Disabled by default; Lead handles all routing |
+| T2 | Lead → start-expert → monitor → aggregate | Lead → handoff (single) or create-workflow (multi) |
+| Handoff | Expert-to-Expert peer transfer | Also used for Lead-to-Expert dispatch |

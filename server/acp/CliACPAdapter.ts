@@ -36,6 +36,7 @@ import type {
   ACPRequestPermissionParams,
   ACPRequestPermissionResult,
 } from '../../shared/acp-types'
+import { expandSlashCommand } from '../runtime/SlashCommandResolver'
 import { createLogger } from '../lib/logger'
 import { trackEvent } from '../lib/eventTracker'
 
@@ -90,6 +91,7 @@ export interface CliACPAdapterOptions {
   baseArgs: string[]
   env?: Record<string, string>
   provider?: string
+  cwd?: string
   promptTimeoutMs?: number
   permissionTimeoutMs?: number
 }
@@ -232,7 +234,19 @@ export class CliACPAdapter extends EventEmitter implements ACPAgentAdapter {
         images.push({ data: block.data, mediaType: block.mimeType })
       }
     }
-    const text = textParts.join('\n')
+    let text = textParts.join('\n')
+
+    if (text.startsWith('/') && this.options.provider !== 'codex' && this.options.cwd) {
+      const expanded = await expandSlashCommand(text, this.options.cwd)
+      if (expanded !== text) {
+        log.warn('Safety-net slash expansion triggered in ACP adapter — upstream missed expansion', {
+          sessionId: this.sessionId,
+          command: text.split(/\s/)[0],
+          cwd: this.options.cwd,
+        })
+        text = expanded
+      }
+    }
 
     this.pushUpdate({ ts: Date.now(), type: 'session/prompt', summary: text.length > 80 ? text.slice(0, 80) + '…' : text, dir: 'in', data: params })
 

@@ -14,6 +14,7 @@ export interface CreateAdapterOptions {
   command: string
   baseArgs: string[]
   env?: Record<string, string>
+  cwd?: string
 }
 
 export const createACPAdapter = (

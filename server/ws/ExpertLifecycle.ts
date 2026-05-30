@@ -258,6 +258,7 @@ export const createExpertLifecycle = (deps: ExpertLifecycleDeps) => {
       const adapter = createACPAdapter(provider, streamManager, {
         command: compiled.command,
         baseArgs: compiled.args,
+        cwd,
       })
       acpClient = new ACPClient(adapter)
       acpClient.initialize().catch((err) => {

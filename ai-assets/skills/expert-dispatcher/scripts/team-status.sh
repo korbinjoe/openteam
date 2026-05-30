@@ -4,6 +4,9 @@
 
 set -euo pipefail
 
+# shellcheck disable=SC1091
+source "$(dirname "$0")/_env.sh"
+
 API_BASE="${EXPERT_API_BASE:?Environment variable EXPERT_API_BASE is not set}"
 CHAT_ID="${OPENTEAM_CHAT_ID:?Environment variable OPENTEAM_CHAT_ID is not set}"
 

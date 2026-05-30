@@ -8,6 +8,9 @@ AGENT_ID="${1:?Usage: start-expert.sh <agentId> <task> [instanceSuffix]}"
 TASK="${2:?Usage: start-expert.sh <agentId> <task> [instanceSuffix]}"
 INSTANCE_SUFFIX="${3:-}"
 
+# shellcheck disable=SC1091
+source "$(dirname "$0")/_env.sh"
+
 API_BASE="${EXPERT_API_BASE:?Environment variable EXPERT_API_BASE is not set}"
 CONNECTION_ID="${EXPERT_CONNECTION_ID:-}"
 CHAT_ID="${OPENTEAM_CHAT_ID:-}"

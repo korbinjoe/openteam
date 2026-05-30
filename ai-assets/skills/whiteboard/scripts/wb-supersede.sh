@@ -4,6 +4,9 @@
 
 set -euo pipefail
 
+# shellcheck disable=SC1091
+source "$(dirname "$0")/_env.sh"
+
 ENTRY_ID="${1:?Usage: wb-supersede.sh <entryId> <type> <summary>}"
 TYPE="${2:?Usage: wb-supersede.sh <entryId> <type> <summary>}"
 SUMMARY="${3:?Usage: wb-supersede.sh <entryId> <type> <summary>}"

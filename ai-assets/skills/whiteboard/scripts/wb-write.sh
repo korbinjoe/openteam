@@ -4,6 +4,9 @@
 
 set -euo pipefail
 
+# shellcheck disable=SC1091
+source "$(dirname "$0")/_env.sh"
+
 TYPE="${1:?Usage: wb-write.sh <type> <summary> [tags] [refs-json]}"
 SUMMARY="${2:?Usage: wb-write.sh <type> <summary> [tags] [refs-json]}"
 TAGS="${3:-}"

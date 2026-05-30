@@ -10,6 +10,19 @@ TARGET_AGENT="${1:?Usage: handoff.sh <targetAgentId> <task> <context-json>}"
 TASK="${2:?Usage: handoff.sh <targetAgentId> <task> <context-json>}"
 CONTEXT="${3:-{}}"
 
+# Source env file if vars are missing (Claude CLI Bash tool may not inherit spawn env)
+if [ -z "${EXPERT_API_BASE:-}" ] || [ -z "${OPENTEAM_CHAT_ID:-}" ] || [ -z "${OPENTEAM_INSTANCE_ID:-}" ]; then
+  _ENV_DIR="${HOME}/.openteam/tmp/env"
+  if [ -d "$_ENV_DIR" ]; then
+    _LATEST_ENV=$(ls -t "$_ENV_DIR"/*.env 2>/dev/null | head -1)
+    if [ -n "${_LATEST_ENV:-}" ]; then
+      # shellcheck disable=SC1090
+      source "$_LATEST_ENV"
+    fi
+  fi
+  unset _ENV_DIR _LATEST_ENV
+fi
+
 API_BASE="${EXPERT_API_BASE:?Environment variable EXPERT_API_BASE is not set}"
 INSTANCE_ID="${OPENTEAM_INSTANCE_ID:?Environment variable OPENTEAM_INSTANCE_ID is not set}"
 CHAT_ID="${OPENTEAM_CHAT_ID:?Environment variable OPENTEAM_CHAT_ID is not set}"

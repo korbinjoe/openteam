@@ -4,6 +4,9 @@
 
 set -euo pipefail
 
+# shellcheck disable=SC1091
+source "$(dirname "$0")/_env.sh"
+
 ENTRY_ID="${1:?Usage: wb-archive.sh <entryId>}"
 
 API_BASE="${EXPERT_API_BASE:?Environment variable EXPERT_API_BASE is not set}"

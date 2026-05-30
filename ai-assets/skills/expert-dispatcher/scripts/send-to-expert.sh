@@ -4,6 +4,9 @@
 
 set -euo pipefail
 
+# shellcheck disable=SC1091
+source "$(dirname "$0")/_env.sh"
+
 AGENT_ID="${1:?Usage: send-to-expert.sh <agentId> <message>}"
 MESSAGE="${2:?Usage: send-to-expert.sh <agentId> <message>}"
 

@@ -144,10 +144,18 @@ export class ConfigCompiler {
       )
       args.push('--settings', resumeSettingsPath)
 
+      const resumeEnv: Record<string, string> = {}
+      if (context.chatId) resumeEnv.OPENTEAM_CHAT_ID = context.chatId
+      if (context.instanceId) resumeEnv.OPENTEAM_INSTANCE_ID = context.instanceId
+      resumeEnv.EXPERT_API_BASE = `http://localhost:${context.serverPort}`
+      resumeEnv.EXPERT_CONNECTION_ID = context.connectionId || ''
+
+      await this.writeEnvFile(context, resumeEnv)
+
       return {
         command: effectiveProvider === 'qoder' ? 'qodercli' : 'claude',
         args,
-        env: {},
+        env: resumeEnv,
         cwd,
         cleanup: async () => {
           await silentlyIgnore(() => this.hooksConfigManager.cleanup(resumeSessionKey), 'hooks cleanup for resume session')
@@ -280,6 +288,8 @@ export class ConfigCompiler {
     args.push('--input-format', 'stream-json')
     args.push('--include-partial-messages')
     args.push('--replay-user-messages')
+
+    await this.writeEnvFile(context, env)
 
     return {
       command: effectiveProvider === 'qoder' ? 'qodercli' : 'claude',
@@ -532,6 +542,18 @@ export class ConfigCompiler {
    *  agent prompt  `{SKILL_DIR}/scripts/<scriptName>`  skill
    *  scriptName
    */
+  private async writeEnvFile(context: CompileContext, env: Record<string, string>): Promise<void> {
+    if (!context.chatId || !context.instanceId) return
+    const envDir = join(homedir(), '.openteam', 'tmp', 'env')
+    await mkdir(envDir, { recursive: true })
+    const envPath = join(envDir, `${context.chatId}-${context.instanceId}.env`)
+    const keys = ['EXPERT_API_BASE', 'OPENTEAM_CHAT_ID', 'OPENTEAM_INSTANCE_ID', 'EXPERT_CONNECTION_ID']
+    const lines = keys
+      .filter(k => env[k] !== undefined)
+      .map(k => `export ${k}="${env[k]}"`)
+    await writeFile(envPath, lines.join('\n') + '\n', 'utf-8')
+  }
+
   private substituteSkillDirInAgentPrompt(
     content: string,
     scriptToDir: Map<string, string>,

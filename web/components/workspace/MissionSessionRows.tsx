@@ -49,10 +49,11 @@ export const memberStatusDot = (status: ChatMemberStatus | undefined): string =>
   }
 }
 
-// Mission-level dot rolls up from members[] using the same worst-wins priority
-// the server uses (MemberAggregator.rollupStatus):
-// error > waiting > waiting_input > running > done > idle.
-const ROLLUP_PRIORITY: ChatMemberStatus[] = ['error', 'waiting', 'waiting_input', 'running', 'done', 'idle']
+// Mission-level dot rolls up from members[]:
+// error > running > waiting > waiting_input > done > idle.
+// Running beats waiting so a mission with any active agent shows blue (work in
+// progress), not yellow. Yellow only surfaces when every agent has stopped.
+const ROLLUP_PRIORITY: ChatMemberStatus[] = ['error', 'running', 'waiting', 'waiting_input', 'done', 'idle']
 
 export const chatStatusDot = (chat: Chat): string => {
   const members = chat.members ?? []
@@ -247,9 +248,9 @@ export const MissionRow = ({ chat, isSelected, agentNames, onPin, onArchive, onA
         )}
         <span
           className="font-mono text-[10px] text-text-muted tabular-nums flex-shrink-0 transition-opacity duration-100 group-hover:opacity-0"
-          title={`Created ${new Date(chat.createdAt).toLocaleString()}`}
+          title={`Last active ${new Date(chat.lastMessageAt ?? chat.createdAt).toLocaleString()}`}
         >
-          {ageLabel(chat.createdAt)}
+          {ageLabel(chat.lastMessageAt ?? chat.createdAt)}
         </span>
         <RowHoverActions
           actions={[
@@ -435,9 +436,9 @@ export const CompletedRow = ({ chat, isSelected, archived, agentNames, onPin, on
       <span className="text-[12px] text-text-secondary flex-1 truncate">{chat.title}</span>
       <span
         className="font-mono text-[10px] text-text-muted tabular-nums flex-shrink-0 transition-opacity duration-100 group-hover:opacity-0"
-        title={`Created ${new Date(chat.createdAt).toLocaleString()}`}
+        title={`Last active ${new Date(chat.lastMessageAt ?? chat.createdAt).toLocaleString()}`}
       >
-        {ageLabel(chat.createdAt)}
+        {ageLabel(chat.lastMessageAt ?? chat.createdAt)}
       </span>
       <RowHoverActions
         actions={[

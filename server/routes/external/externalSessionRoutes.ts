@@ -116,7 +116,7 @@ export const createExternalSessionRoutes = ({
           latestMtimeMs: d.latest_mtime_ms,
         }
       })
-      .filter((d) => d.sessionCount > 0 || d.adoptedCount > 0)
+      .filter((d) => d.sessionCount > 0)
 
     res.json({ workspaces: wsOut, unmatchedDirs })
   })

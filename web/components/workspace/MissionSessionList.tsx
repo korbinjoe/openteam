@@ -95,7 +95,7 @@ const MissionSessionList = ({ query = '' }: MissionSessionListProps) => {
   // drives which chat is highlighted and (optionally later) auto-scroll. This
   // keeps the user's full local jsonl inventory visible in one place.
   const visibleUnmatched = unmatchedDirs.filter(
-    (d) => d.sessionCount > 0 || d.adoptedCount > 0,
+    (d) => d.sessionCount > 0,
   )
 
   if (workspaces.length === 0 && visibleUnmatched.length === 0) {

@@ -35,25 +35,23 @@
 - [x] Design cross-agent universal changes (checkpoint, completeness check)
 - [x] Design Lead dispatch decision tree
 
-## Phase 5: Implementation (TODO)
+## Phase 5: Implementation (DONE)
 
-- [ ] Update fullstack-product-engineer SOUL.md with pre-completion checklist and routing rules
-- [ ] Create fullstack-product-engineer GUARDRAILS.md
-- [ ] Add dev-server to fullstack-product-engineer skills in openteam.json
-- [ ] Update code-reviewer SOUL.md with scope boundaries
-- [ ] Update code-reviewer in openteam.json (remove Write/Edit, add whiteboard, trim skills)
-- [ ] Update ui-designer SOUL.md with design process and info-arch awareness
-- [ ] Add playwright-cli, design-taste-frontend, whiteboard to ui-designer in openteam.json
-- [ ] Update architect SOUL.md (remove no-code-modification limit, add dual-mode)
-- [ ] Add dev-server, playwright-cli, whiteboard to architect in openteam.json
-- [ ] Add turn-limit checkpoint section to ALL Agent SOUL.md files
-- [ ] Add requirement completeness check section to ALL Agent SOUL.md files
-- [ ] Add dispatch decision tree to lead SOUL.md
-- [ ] Implement SatisfactionClassifier (server/services/SatisfactionClassifier.ts)
-- [ ] Add satisfaction_scores migration (V24)
-- [ ] Wire SatisfactionClassifier into ExpertExitHandler
-- [ ] Add GET /api/chats/:id/satisfaction API route
-- [ ] Wire GrowthStore.increment() on expert session completion
+- [x] Update fullstack-product-engineer SOUL.md with pre-completion checklist and routing rules
+- [x] Create fullstack-product-engineer GUARDRAILS.md
+- [x] Add dev-server to fullstack-product-engineer skills in openteam.json
+- [x] Update code-reviewer SOUL.md with scope boundaries
+- [x] Update code-reviewer in openteam.json (remove Write/Edit, add whiteboard, trim skills)
+- [x] Update ui-designer SOUL.md with design process and info-arch awareness
+- [x] Add playwright-cli, design-taste-frontend, whiteboard to ui-designer in openteam.json
+- [x] Update architect SOUL.md (remove no-code-modification limit, add dual-mode)
+- [x] Add dev-server, playwright-cli, whiteboard to architect in openteam.json
+- [x] Add turn-limit checkpoint section to ALL Agent SOUL.md files (10 agents)
+- [x] Add requirement completeness check section to ALL Agent SOUL.md files (10 agents)
+- [x] Add dispatch decision tree to lead SOUL.md
+- [x] Implement satisfaction-score.sh hook script (parse JSONL, compute MSS, append to agent memory md)
+- [x] Register satisfaction hook in whiteboard skill Stop hook chain
+- [x] Deprecate GrowthStore — no wiring, satisfaction evaluation handled by hook (table retained for DB compat)
 
 ## Phase 6: Validation (TODO)
 

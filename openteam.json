@@ -43,7 +43,7 @@
         "description": "End-to-end delivery from requirement analysis and technical design to frontend/backend development.",
         "workspace": "./ai-assets/agents/fullstack-product-engineer",
         "role": "expert",
-        "skills": ["frontend-expert", "api-integrator", "playwright-cli", "whiteboard"],
+        "skills": ["frontend-expert", "api-integrator", "playwright-cli", "whiteboard", "dev-server"],
         "allowedTools": ["Read", "Write", "Edit", "Glob", "Grep", "Bash"],
         "heartbeat": {
           "every": "30m",
@@ -54,7 +54,7 @@
       {
         "id": "code-reviewer",
         "name": "Code Review Expert",
-        "description": "Code review, quality analysis, best practice recommendations, and security vulnerability detection. Supports Java, Go, Python, Node.js, React, and TypeScript.",
+        "description": "Code review, quality analysis, and bug root cause analysis. Reviews code for correctness, security, and best practices. Does NOT implement fixes or create designs — hands off to the appropriate specialist.",
         "workspace": "./ai-assets/agents/code-reviewer",
         "role": "expert",
         "provider": "claude",
@@ -62,10 +62,9 @@
           "code-reviewer-react",
           "code-reviewer-typescript",
           "code-reviewer-nodejs",
-          "code-reviewer-java",
-          "code-reviewer-go",
-          "code-reviewer-python"
-        ]
+          "whiteboard"
+        ],
+        "allowedTools": ["Read", "Glob", "Grep", "Bash", "AskUserQuestion"]
       },
       {
         "id": "ui-designer",
@@ -73,7 +72,7 @@
         "description": "Integrated UI design and implementation expert with professional aesthetic judgment. Handles design decisions, code implementation, browser preview verification, and iterative delivery of high-quality UI through screenshot review.",
         "workspace": "./ai-assets/agents/ui-designer",
         "role": "expert",
-        "skills": ["ui-reviewer", "ui-designer", "dev-server"]
+        "skills": ["ui-reviewer", "ui-designer", "dev-server", "playwright-cli", "design-taste-frontend", "whiteboard"]
       },
       {
         "id": "devops-engineer",
@@ -91,10 +90,11 @@
       {
         "id": "architect",
         "name": "Architecture Review Expert",
-        "description": "Reviews projects from an architectural perspective, covering layering, module boundaries, dependency governance, data flow, and evolvability. Outputs structured review reports and architecture decision recommendations.",
+        "description": "Architecture guardian who also implements architectural changes. Reviews layering, module boundaries, dependency governance, data flow, and evolvability. Can write code for architectural refactors with self-verification.",
         "workspace": "./ai-assets/agents/architect",
         "role": "expert",
-        "skills": ["architecture-review"]
+        "skills": ["architecture-review", "dev-server", "playwright-cli", "whiteboard"],
+        "allowedTools": ["Read", "Write", "Edit", "Glob", "Grep", "Bash"]
       },
       {
         "id": "sensei",

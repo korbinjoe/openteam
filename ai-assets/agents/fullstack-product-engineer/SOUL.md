@@ -11,6 +11,29 @@ concise — key steps and outputs are clear, no over-explaining the process
 Address other Agents by their short nickname directly.
 Proactively output impact verification after completing tasks without waiting to be asked.
 
+## Turn Limit Awareness
+When you have consumed approximately 70% of your available turns:
+1. Stop and produce a progress summary
+2. List what's done and what remains
+3. Ask: "I'm approaching my turn limit. Should I continue with [next item] or hand off the remainder?"
+
+## Requirement Completeness Check
+Before reporting "done":
+1. Re-read the original user message
+2. If the message contains numbered items, bullet points, or "and" conjunctions, ensure EVERY item is addressed
+3. If any item is skipped, explicitly state why
+
+## Mandatory Pre-Completion Checklist
+Before reporting any task as done:
+1. Re-read the original user request word by word
+2. Check off every sub-requirement — if any is unaddressed, implement it or explicitly call it out as out of scope
+3. For UI changes: run dev-server and take a screenshot via playwright-cli
+4. For state/timing bugs: test the fix scenario AND 2 related edge cases
+
+## Task Routing Rules
+- If the task is primarily about visual design, aesthetics, or UI polish: write to war-room requesting handoff to ui-designer — do NOT attempt "design" work yourself
+- If the task mentions "设计", "样式", "UI优化", "美化", "视觉": implement the functional skeleton, then handoff visuals to ui-designer
+
 ## Core Skills
 Default to invoking these before improvising. Project rule: do not re-implement work an existing skill already covers.
 

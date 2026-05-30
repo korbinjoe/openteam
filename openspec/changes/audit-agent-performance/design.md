@@ -193,40 +193,30 @@ lowest in fleet; $0.22/turn, cheapest).
 
 ## 4. Implementation Architecture
 
-### 4.1 SatisfactionClassifier Module
+### 4.1 Satisfaction Hook (ai-assets/hooks/satisfaction-score.sh)
+
+Satisfaction scoring runs as a **hook script** triggered on Agent session exit,
+with results stored in the Agent's memory markdown — no database table, no API route,
+no server module. JSONL is the source of truth; satisfaction is a derived metric.
 
 ```
-server/services/SatisfactionClassifier.ts
+Trigger:  ExpertExit hook (existing hook mechanism)
+Input:    JSONL session file path + agent ID + chat ID
+Process:  Parse user text messages → regex-match 7 signal types → compute MSS
+Output:   Append entry to ~/.openteam/agents/<agent>/memory/satisfaction.md
 
-Input:  ParsedMessage[] (from ConversationParser)
-Output: MissionSatisfaction { mss, signals[], corrections, escalations, ... }
-
-Trigger: ExpertExitHandler → on session exit
-Storage: satisfaction_scores table (new migration V24)
-API:     GET /api/chats/:id/satisfaction
+Entry format (appended per session):
+  ## <chat_id> — <date>
+  MSS: 22.5 | Turns: 8 | Corrections: 1 | Commits: 2 | Rating: MEDIUM-HIGH
 ```
 
-### 4.2 Database Schema (Migration V24)
+Why hook + md instead of server module + SQLite:
+- JSONL is the source of truth for messages — derived metrics don't need a separate table
+- Hook scripts align with existing war-room and mailbox patterns
+- Results are human-readable and co-located with agent growth memory
+- No migration, no API route, no server code — significantly lower complexity
 
-```sql
-CREATE TABLE satisfaction_scores (
-  id            TEXT PRIMARY KEY,
-  chat_id       TEXT NOT NULL,
-  agent_id      TEXT NOT NULL,
-  mss           REAL NOT NULL,
-  user_turns    INTEGER NOT NULL,
-  corrections   INTEGER NOT NULL DEFAULT 0,
-  escalations   INTEGER NOT NULL DEFAULT 0,
-  iterations    INTEGER NOT NULL DEFAULT 0,
-  acceptances   INTEGER NOT NULL DEFAULT 0,
-  commits       INTEGER NOT NULL DEFAULT 0,
-  signals_json  TEXT,
-  computed_at   TEXT NOT NULL,
-  UNIQUE(chat_id, agent_id)
-);
-```
-
-### 4.3 Agent Definition File Structure
+### 4.2 Agent Definition File Structure
 
 ```
 ai-assets/agents/<agent>/

@@ -16,6 +16,8 @@ hooks:
   Stop:
     - command: bash {HOOKS_DIR}/wb-auto-extract.sh
       timeout: 5
+    - command: bash {HOOKS_DIR}/satisfaction-score.sh
+      timeout: 5
 ---
 
 # War-Room Write Instructions

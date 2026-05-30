@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { User, ChevronDown, ChevronRight, Terminal } from 'lucide-react'
+import { User, ChevronDown, ChevronRight, Terminal, RotateCcw } from 'lucide-react'
 import type { Message } from '../../../types/chat'
 import AgentAvatar from '@/components/ui/agent-avatar'
 import MentionTag from '../input/MentionTag'
@@ -172,6 +172,108 @@ const SlashCommandMessage = ({ message, marker, body }: { message: Message; mark
   )
 }
 
+/* ── Continuation Summary (out-of-run context handoff) ───── */
+
+const CONTINUATION_RE = /^This session is being continued from a previous conversation/
+
+const isContinuationSummary = (content: string): boolean => CONTINUATION_RE.test(content.trim())
+
+const extractSummaryPreview = (content: string): string => {
+  const lines = content.split('\n').filter((l) => l.trim())
+  for (const line of lines) {
+    if (line.startsWith('Summary:') || line.match(/^\d+\.\s/)) {
+      return line.replace(/^Summary:\s*/, '').slice(0, 60) + (line.length > 60 ? '...' : '')
+    }
+  }
+  return lines[1]?.slice(0, 60) || ''
+}
+
+const ContinuationSummaryMessage = ({ message }: { message: Message }) => {
+  const [expanded, setExpanded] = useState(false)
+  const Icon = expanded ? ChevronDown : ChevronRight
+  const preview = extractSummaryPreview(message.content)
+
+  return (
+    <div style={{
+      padding: '8px 16px',
+      animation: 'fadeIn 0.2s ease',
+    }}>
+      <div
+        role="button"
+        tabIndex={0}
+        aria-label={expanded ? 'Collapse continuation summary' : 'Expand continuation summary'}
+        onClick={() => setExpanded((v) => !v)}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExpanded((v) => !v) } }}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          padding: '6px 12px',
+          borderRadius: 6,
+          background: 'rgb(var(--bg-hover-subtle) / var(--bg-hover-subtle-alpha))',
+          border: '1px solid rgb(var(--border-subtle))',
+          cursor: 'pointer',
+          transition: 'background 0.1s',
+        }}
+        onMouseEnter={(e) => { e.currentTarget.style.background = 'rgb(var(--bg-hover-muted) / var(--bg-hover-muted-alpha))' }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = 'rgb(var(--bg-hover-subtle) / var(--bg-hover-subtle-alpha))' }}
+      >
+        <Icon size={12} style={{ color: 'rgb(var(--text-muted))', flexShrink: 0 }} />
+        <RotateCcw size={11} style={{ color: 'rgb(var(--text-muted))', flexShrink: 0 }} />
+        <span style={{
+          fontSize: 11,
+          fontWeight: 500,
+          color: 'rgb(var(--text-secondary))',
+          flexShrink: 0,
+        }}>
+          Continued from previous session
+        </span>
+        {!expanded && preview && (
+          <span style={{
+            fontSize: 11,
+            color: 'rgb(var(--text-muted))',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+            minWidth: 0,
+            flex: 1,
+          }}>
+            · {preview}
+          </span>
+        )}
+        <span style={{
+          fontSize: 10,
+          color: 'rgb(var(--text-muted))',
+          fontFamily: 'monospace',
+          marginLeft: 'auto',
+          flexShrink: 0,
+          opacity: 0.5,
+        }}>
+          {new Date(message.timestamp).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
+        </span>
+      </div>
+      {expanded && (
+        <div style={{
+          marginTop: 4,
+          padding: '10px 14px',
+          borderRadius: 8,
+          background: 'rgb(var(--bg-hover-subtle) / var(--bg-hover-subtle-alpha))',
+          border: '1px solid rgb(var(--border-subtle))',
+          color: 'rgb(var(--text-secondary))',
+          fontSize: 12,
+          lineHeight: 1.7,
+          whiteSpace: 'pre-wrap',
+          wordBreak: 'break-word',
+          maxHeight: 300,
+          overflow: 'auto',
+        }}>
+          {message.content}
+        </div>
+      )}
+    </div>
+  )
+}
+
 const isSystemInstructionsMessage = (content: string): boolean => {
   if (content.startsWith('# AGENTS.md instructions for')) return true
   if (content.startsWith('<user_instructions>')) return true
@@ -264,6 +366,10 @@ const UserMessage = ({ message }: { message: Message }) => {
   const slash = parseSlashMarker(message.content)
   if (slash) {
     return <SlashCommandMessage message={message} marker={slash.marker} body={slash.body} />
+  }
+
+  if (isContinuationSummary(message.content)) {
+    return <ContinuationSummaryMessage message={message} />
   }
 
   if (isSystemInstructionsMessage(message.content)) {

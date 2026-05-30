@@ -7,7 +7,7 @@
 import { loader } from '@monaco-editor/react'
 import * as monaco from 'monaco-editor'
 
-const { typescriptDefaults, javascriptDefaults } = monaco.languages.typescript
+const { typescriptDefaults, javascriptDefaults } = monaco.languages.typescript as any
 typescriptDefaults.setDiagnosticsOptions({
   noSemanticValidation: true,
   noSyntaxValidation: true,

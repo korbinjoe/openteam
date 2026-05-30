@@ -111,13 +111,14 @@ export class MemberAggregator {
   }
 
   /**
-   * Worst-of rollup across members, used to keep the legacy chat.status /
-   * taskStatus fields in sync without requiring callers to compute it.
+   * Rollup across members for chat-level status.
    *
-   * Priority: error > waiting > waiting_input > running > done > idle
+   * Priority: error > running > waiting > waiting_input > done > idle
+   * Running beats waiting so a mission with any active agent shows "running",
+   * not "waiting". Yellow only surfaces when every agent has stopped.
    */
   rollupStatus(members: ChatMember[]): ChatMemberStatus {
-    const priority: ChatMemberStatus[] = ['error', 'waiting', 'waiting_input', 'running', 'done', 'idle']
+    const priority: ChatMemberStatus[] = ['error', 'running', 'waiting', 'waiting_input', 'done', 'idle']
     for (const p of priority) {
       if (members.some((m) => m.status === p)) return p
     }

@@ -14,7 +14,8 @@ import { useMissionPinArchive } from '../../hooks/useMissionPinArchive'
 import { useExternalCwds, type UnmatchedExternalDir } from '../../hooks/useExternalCwds'
 import { useWorkspaceExternalSessions } from '../../hooks/useWorkspaceExternalSessions'
 import { useExternalCwdSessions, type ExternalSession } from '../../hooks/useExternalCwdSessions'
-import { ChevronDown, ChevronRight, Plus, Archive, Pin } from './icons'
+import { useWorkspaceVisibility } from '../../hooks/useWorkspaceVisibility'
+import { ChevronDown, ChevronRight, Plus, Archive, Pin, EyeOff, Eye } from './icons'
 import type { Chat } from './types'
 import { MissionRow, CompletedRow } from './MissionSessionRows'
 import { ExternalSessionRow } from './ExternalSessionRow'
@@ -34,6 +35,7 @@ const MissionSessionList = ({ query = '' }: MissionSessionListProps) => {
   const isSearching = q.length > 0
 
   const { pinnedIds, pinnedAt, archivedIds, togglePin, toggleArchive, archiveAll } = useMissionPinArchive(chats)
+  const { hiddenIds, toggleHide } = useWorkspaceVisibility()
 
   // Global pinned chats — extracted from all workspaces, rendered at the top.
   const wsNameById = useMemo(() => {
@@ -105,7 +107,7 @@ const MissionSessionList = ({ query = '' }: MissionSessionListProps) => {
   // While searching: hide workspaces with no name match and no chat-title match.
   // External sessions are also filterable but only against what's already loaded —
   // we don't trigger fetches based on the query.
-  const renderedWorkspaces = workspaces
+  const allRendered = workspaces
     .map((ws) => {
       const wsChats = chats.filter((c) => c.workspaceId === ws.id)
       if (!isSearching) return { ws, wsChats, wsNameMatches: false }
@@ -115,6 +117,10 @@ const MissionSessionList = ({ query = '' }: MissionSessionListProps) => {
       return { ws, wsChats, wsNameMatches }
     })
     .filter((x): x is { ws: typeof workspaces[number]; wsChats: Chat[]; wsNameMatches: boolean } => x !== null)
+
+  // When searching, show all workspaces (including hidden) so results aren't silently suppressed.
+  const renderedWorkspaces = isSearching ? allRendered : allRendered.filter((x) => !hiddenIds.has(x.ws.id))
+  const hiddenWorkspaces = isSearching ? [] : allRendered.filter((x) => hiddenIds.has(x.ws.id))
 
   // Pinned chats filtered by search query
   const visiblePinned = isSearching
@@ -160,6 +166,7 @@ const MissionSessionList = ({ query = '' }: MissionSessionListProps) => {
             onArchiveAll={archiveAll}
             onAddAgent={openAddAgent}
             onNewTask={openNewMission}
+            onHide={() => toggleHide(ws.id)}
           />
         )
       })}
@@ -172,6 +179,13 @@ const MissionSessionList = ({ query = '' }: MissionSessionListProps) => {
           onPin={togglePin}
           onArchive={toggleArchive}
           onAddAgent={openAddAgent}
+        />
+      )}
+
+      {!isSearching && hiddenWorkspaces.length > 0 && (
+        <HiddenWorkspacesSection
+          workspaces={hiddenWorkspaces}
+          onUnhide={toggleHide}
         />
       )}
 
@@ -227,7 +241,7 @@ const WorkspaceGroup = ({
   wsId, name, chats, pinnedIds, pinnedAt, archivedIds,
   expanded, isCurrent, activeChatId, agentNames,
   query, wsNameMatches, hidePinnedSection = false,
-  onToggle, onPin, onArchive, onArchiveAll, onAddAgent, onNewTask,
+  onToggle, onPin, onArchive, onArchiveAll, onAddAgent, onNewTask, onHide,
 }: {
   wsId: string
   name: string
@@ -248,6 +262,7 @@ const WorkspaceGroup = ({
   onArchiveAll: (chatIds: string[]) => void
   onAddAgent: (chatId: string) => void
   onNewTask: (workspaceId: string) => void
+  onHide?: () => void
 }) => {
   const { sessions, hasMore, loading, loadMore, hide } = useWorkspaceExternalSessions(wsId, expanded)
   const [archivingAll, setArchivingAll] = useState(false)
@@ -426,6 +441,21 @@ const WorkspaceGroup = ({
               )}
             >
               <Archive size={11} />
+            </span>
+          )}
+          {onHide && (
+            <span
+              role="button"
+              tabIndex={-1}
+              onClick={(e) => { e.stopPropagation(); onHide() }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') { e.stopPropagation(); e.preventDefault(); onHide() }
+              }}
+              title={`Hide ${name}`}
+              aria-label={`Hide ${name}`}
+              className="w-5 h-5 rounded flex items-center justify-center text-text-muted hover:text-text-primary hover:bg-bg-hover cursor-pointer"
+            >
+              <EyeOff size={11} />
             </span>
           )}
         </span>
@@ -653,6 +683,56 @@ const ExternalCwdGroup = ({ cwd, count, expanded, onToggle, onPin, onArchive, on
               {loading ? 'Loading…' : 'Load more'}
             </button>
           )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Hidden workspaces ─────────────────────────────────────────────────────
+const HiddenWorkspacesSection = ({ workspaces, onUnhide }: {
+  workspaces: Array<{ ws: { id: string; name: string }; wsChats: Chat[] }>
+  onUnhide: (wsId: string) => void
+}) => {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <div className="mt-2 border-t border-border/40 pt-2">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center gap-1.5 px-2 py-1 hover:bg-bg-hover/50 rounded-sm transition-colors"
+        aria-expanded={open}
+      >
+        <span className="text-text-muted -ml-px">
+          {open ? <ChevronDown size={9} /> : <ChevronRight size={9} />}
+        </span>
+        <EyeOff size={10} className="text-text-muted" />
+        <span className="text-[10px] uppercase tracking-wide text-text-muted">Hidden</span>
+        <span className="ml-auto font-mono text-[10px] text-text-muted tabular-nums">{workspaces.length}</span>
+      </button>
+      {open && (
+        <div className="flex flex-col gap-0.5 ml-2">
+          {workspaces.map(({ ws }) => (
+            <div
+              key={ws.id}
+              className="group/hidden flex items-center gap-1.5 px-2 py-1 rounded-sm hover:bg-bg-hover/50 transition-colors"
+            >
+              <span className="text-[11px] text-text-muted truncate flex-1">{ws.name}</span>
+              <span
+                role="button"
+                tabIndex={-1}
+                onClick={() => onUnhide(ws.id)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onUnhide(ws.id) }
+                }}
+                title={`Show ${ws.name}`}
+                aria-label={`Show ${ws.name}`}
+                className="w-5 h-5 rounded flex items-center justify-center text-text-muted hover:text-text-primary hover:bg-bg-hover cursor-pointer opacity-0 group-hover/hidden:opacity-100 transition-opacity"
+              >
+                <Eye size={11} />
+              </span>
+            </div>
+          ))}
         </div>
       )}
     </div>

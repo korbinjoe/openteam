@@ -169,13 +169,14 @@ export class WhiteboardManager {
       throw new WhiteboardValidationError(WHITEBOARD_ERROR.ENTRY_NOT_FOUND, `Entry ${oldEntryId} not found`)
     }
 
+    old.status = 'superseded'
+
     const newEntry = this.appendEntry(chatId, {
       ...newInput,
       refs: { ...(newInput.refs ?? {}), entries: [...(newInput.refs?.entries ?? []), oldEntryId] },
       tags: [...(newInput.tags ?? []), '_supersede'],
     })
 
-    old.status = 'superseded'
     old.supersededBy = newEntry.id
     this.scheduleSnapshotRebuild(chatId)
     return newEntry

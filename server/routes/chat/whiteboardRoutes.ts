@@ -103,6 +103,19 @@ export const createWhiteboardRoutes = (deps: WhiteboardRouteDeps): Router => {
       return res.status(201).json({ entry })
     } catch (e) {
       if (e instanceof WhiteboardValidationError) {
+        if (e.code === 'whiteboard.goal_already_exists' && input.type === 'goal') {
+          const existing = wb.query(chatId, { types: ['goal'], status: 'active' })[0]
+          if (existing) {
+            try {
+              const entry = wb.supersede(chatId, existing.id, input)
+              void persistChatMeta(chatId, entry)
+              broadcastToChat?.(chatId, { type: 'whiteboard:entry-added', payload: { chatId, entry, supersededId: existing.id } })
+              return res.status(201).json({ entry, superseded: existing.id })
+            } catch (e2) {
+              log.error('Auto-supersede goal failed', { chatId, existingId: existing.id, error: e2 instanceof Error ? e2.message : String(e2) })
+            }
+          }
+        }
         return res.status(422).json({ error: e.code, message: e.message })
       }
       log.error('appendEntry failed', { chatId, error: e instanceof Error ? e.message : String(e) })

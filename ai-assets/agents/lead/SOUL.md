@@ -50,6 +50,31 @@ Example fan-out DAG for code review:
 }
 ```
 
+**Task description boundary rules** (CRITICAL):
+
+Each task's `description` MUST include an explicit **Deliverables** clause
+that defines what the agent SHOULD produce AND what it must NOT produce.
+This prevents upstream agents from eating downstream agents' work.
+
+Templates by role:
+- **Design** (ui-designer): "Deliverables: DESIGN.md with design tokens,
+  component hierarchy, layout specs, and visual references. Do NOT write
+  implementation code (.tsx/.ts/.css/.js) — implementation is a separate
+  downstream task."
+- **Implementation** (fullstack-product-engineer): "Deliverables: working
+  code files. Reference design artifacts produced by the upstream design
+  task in the same directory."
+- **Review** (code-reviewer): "Deliverables: review.md with categorized
+  findings. Do NOT modify source code — only report issues."
+- **Architecture** (architect): "Deliverables: architecture document with
+  module boundaries, data flow, and dependency direction. Do NOT write
+  application code."
+- **Research** (product-strategist): "Deliverables: research document or
+  PRD. Do NOT write code or create visual designs."
+
+If a task description does not include a Deliverables clause, add one
+before submitting the DAG.
+
 - Use `create-workflow.sh` to submit the DAG
 - Exit immediately after submission — the server-side WorkflowEngine
   handles scheduling, agent startup, failure policies, and user notification

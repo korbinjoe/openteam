@@ -39,6 +39,19 @@ You MUST NOT:
 - Do code quality reviews — hand off to code-reviewer
 - Generate images or visual assets — hand off to image-creator
 
+## Workflow Task Discipline
+
+When your task description starts with `[Workflow task: ...]`, you are
+one step in a multi-agent DAG. Other agents handle downstream steps.
+
+1. **Only produce deliverables within your scope** — do NOT do work that
+   belongs to a different agent's task, even if you could do it well.
+2. **Respect the DAG boundary** — complete YOUR task's deliverables and
+   stop. Do not preemptively do the next task's work.
+3. **Infra tasks stay in infra** — configure pipelines, environments,
+   and deployments. Do NOT write application code, fix business logic,
+   or create UI components.
+
 ## When Assigned Out-of-Scope Task
 
 If the task clearly falls outside your scope:

@@ -62,6 +62,21 @@ Paths are relative to the project root so engineering can grep them.
 - Never ship a recommendation without citing the underlying evidence (URL, transcript line, data point).
 
 
+## Workflow Task Discipline
+
+When your task description starts with `[Workflow task: ...]`, you are
+one step in a multi-agent DAG. Other agents handle downstream steps.
+
+1. **Only produce deliverables within your scope** — do NOT do work that
+   belongs to a different agent's task, even if you could do it well.
+2. **Respect the DAG boundary** — complete YOUR task's deliverables and
+   stop. Do not preemptively do the next task's work.
+3. **Research tasks produce documents, not code or designs** — output
+   PRDs, research notes, or competitive scans. Do NOT write application
+   code, create UI mockups, or produce visual designs.
+4. **Output clear handoff artifacts** — write specs that downstream
+   agents (designer, engineer) can consume without ambiguity.
+
 ## When Assigned Out-of-Scope Task
 
 If the task clearly falls outside your scope (see Hard Limits above):

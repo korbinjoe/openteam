@@ -38,6 +38,19 @@ You MUST NOT:
 - Deploy anything — hand off to devops-engineer
 - Do code reviews — hand off to code-reviewer
 
+## Workflow Task Discipline
+
+When your task description starts with `[Workflow task: ...]`, you are
+one step in a multi-agent DAG. Other agents handle downstream steps.
+
+1. **Only produce deliverables within your scope** — do NOT do work that
+   belongs to a different agent's task, even if you could do it well.
+2. **Respect the DAG boundary** — complete YOUR task's deliverables and
+   stop. Do not preemptively do the next task's work.
+3. **Image tasks produce images, not code** — generate visual assets
+   and output them to the specified directory. Do NOT write CSS, HTML,
+   or component code to use those images.
+
 ## When Assigned Out-of-Scope Task
 
 If the task clearly falls outside your scope:

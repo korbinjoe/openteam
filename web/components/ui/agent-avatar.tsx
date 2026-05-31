@@ -25,11 +25,11 @@ interface AgentAvatarProps {
 }
 
 const SIZE_MAP: Record<AgentAvatarSize, { px: number; cls: string; text: string }> = {
-  xs: { px: 16, cls: 'h-4 w-4', text: 'text-[8px]' },
-  sm: { px: 20, cls: 'h-5 w-5', text: 'text-[9px]' },
-  md: { px: 28, cls: 'h-7 w-7', text: 'text-[11px]' },
-  lg: { px: 40, cls: 'h-10 w-10', text: 'text-base' },
-  xl: { px: 56, cls: 'h-14 w-14', text: 'text-xl' },
+  xs: { px: 16, cls: 'h-4 w-4', text: 'text-[9px]' },
+  sm: { px: 20, cls: 'h-5 w-5', text: 'text-[11px]' },
+  md: { px: 28, cls: 'h-7 w-7', text: 'text-[13px]' },
+  lg: { px: 40, cls: 'h-10 w-10', text: 'text-lg' },
+  xl: { px: 56, cls: 'h-14 w-14', text: 'text-2xl' },
 }
 
 const DEFAULT_COLORS = ['#F59E0B', '#6366F1', '#10B981', '#F472B6', '#38BDF8']
@@ -46,9 +46,28 @@ const ANIMATION_CLASS_MAP: Record<AvatarAnimationState, string> = {
 // Hue chosen by name hash, saturation/lightness fixed for consistency.
 const MONOGRAM_HUES = [210, 250, 280, 320, 0, 25, 45, 90, 160, 190]
 
+const AGENT_COLOR_MAP: Record<string, string> = {
+  'lead':                         '#6B8DB5', // 天青 Sky blue
+  'fullstack-product-engineer':   '#C87941', // 琥珀 Amber
+  'code-reviewer':                '#5BA0A8', // 碧落 Cerulean
+  'ui-designer':                  '#C76B8A', // 海棠 Crabapple
+  'devops-engineer':              '#7BA056', // 翠柳 Willow green
+  'architect':                    '#5878B0', // 群青 Ultramarine
+  'sensei':                       '#9B6BC0', // 紫藤 Wisteria
+  'image-creator':                '#D4A03C', // 缃叶 Golden leaf
+  'product-strategist':           '#6A9BA0', // 秋水 Autumn water
+  'growth-marketer':              '#D47B5A', // 丹霞 Danxia coral
+}
+
 const VIBRANT_PALETTE = [
-  '#6366f1', '#3b82f6', '#8b5cf6', '#ec4899', '#10b981',
-  '#f59e0b', '#ef4444', '#06b6d4', '#a855f7', '#64748b',
+  '#8B6BAE', // 藤萝 Vine purple
+  '#5C9E72', // 松花 Pine green
+  '#B87850', // 赭黄 Sienna
+  '#6898B8', // 湖蓝 Lake blue
+  '#C0728A', // 苋红 Amaranth
+  '#8FA84E', // 柳黄 Willow gold
+  '#7A8EB5', // 雾蓝 Mist blue
+  '#BA9540', // 姜黄 Turmeric
 ]
 
 const hashName = (s: string): number => {
@@ -60,9 +79,7 @@ const hashName = (s: string): number => {
 const initialsOf = (name: string): string => {
   const cleaned = name.replace(/[_\-]+/g, ' ').trim()
   if (!cleaned) return '?'
-  const parts = cleaned.split(/\s+/).filter(Boolean)
-  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase()
-  return cleaned.slice(0, 2).toUpperCase()
+  return cleaned[0].toUpperCase()
 }
 
 const AgentAvatar = ({
@@ -101,7 +118,7 @@ const AgentAvatar = ({
   const hash = hashName(monogramKey)
   const hue = MONOGRAM_HUES[hash % MONOGRAM_HUES.length]
   const monogramBg = vibrant
-    ? VIBRANT_PALETTE[hash % VIBRANT_PALETTE.length]
+    ? (agentId && AGENT_COLOR_MAP[agentId]) || VIBRANT_PALETTE[hash % VIBRANT_PALETTE.length]
     : `hsl(${hue} 30% 92%)`
   const monogramFg = vibrant ? '#fff' : `hsl(${hue} 55% 32%)`
 
@@ -132,10 +149,10 @@ const AgentAvatar = ({
       ) : (
         <span
           className={cn(
-            'flex h-full w-full items-center justify-center font-semibold tracking-tight select-none',
+            'flex h-full w-full items-center justify-center font-medium select-none',
             sizeConfig.text,
           )}
-          style={{ background: monogramBg, color: monogramFg }}
+          style={{ background: monogramBg, color: monogramFg, fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif' }}
         >
           {initialsOf(name)}
         </span>

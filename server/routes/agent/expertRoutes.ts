@@ -16,6 +16,7 @@ import type { WhiteboardManager } from '../../whiteboard/WhiteboardManager'
 import type { WorkflowRegistry } from '../../orchestration/WorkflowRegistry'
 import { wrapTaskEnvelope, type TaskEnvelope } from '../../../shared/agent-message-types'
 import type { HandoffRequest } from '../../../shared/handoff-types'
+import { WHITEBOARD_SUMMARY_MAX } from '../../../shared/whiteboard-types'
 import { TERMINAL_PHASES, type ExpertEvent } from '../../../shared/expert-event-types'
 import { parseAgentId } from '../../ws/ExpertSessionStore'
 import { expandSlashCommand } from '../../runtime/SlashCommandResolver'
@@ -319,10 +320,12 @@ ${expandedTask}`
 
     try {
       if (whiteboardManager) {
+        const prefix = `${from} → ${to}: `
+        const detail = (reason || task).slice(0, WHITEBOARD_SUMMARY_MAX - prefix.length)
         whiteboardManager.appendEntry(chatId, {
           type: 'handoff',
           by: from,
-          summary: `Handoff ${from} → ${to}: ${(reason || task).slice(0, 60)}`,
+          summary: `${prefix}${detail}`,
           refs: { files: context?.relevantFiles },
           tags: ['handoff', from, to],
         })
@@ -397,10 +400,12 @@ ${expandedTask}`
 
       if (whiteboardManager) {
         try {
+          const errPrefix = `FAIL ${from} → ${to}: `
+          const errDetail = errorMsg.slice(0, WHITEBOARD_SUMMARY_MAX - errPrefix.length)
           whiteboardManager.appendEntry(chatId, {
             type: 'handoff',
             by: from,
-            summary: `Handoff failed ${from} → ${to}: ${errorMsg.slice(0, 50)}`,
+            summary: `${errPrefix}${errDetail}`,
             tags: ['handoff', 'failed', from, to],
           })
         } catch {}

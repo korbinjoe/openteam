@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState, useCallback } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { WorkspaceProvider, useWorkspace } from '../contexts/WorkspaceContext'
 import { buildMissionUrl } from '../components/workspace/urls'
-import { isSingleAgent } from '../components/workspace/MissionSessionRows'
 import { useChatTabs } from '../contexts/ChatTabContext'
 import { useWorkspaceChats } from '../hooks/useWorkspaceChats'
 import MissionSidebar from '../components/workspace/MissionSidebar'
@@ -19,7 +18,6 @@ const WorkspaceLayoutInner = () => {
   const {
     workspaceId,
     activeChatId,
-    selectedAgentId,
     panelCollapsed,
     ideCollapsed,
     commandPaletteOpen,
@@ -56,18 +54,6 @@ const WorkspaceLayoutInner = () => {
   useEffect(() => {
     if (workspaceId && activeChatId) openTab(activeChatId, workspaceId)
   }, [workspaceId, activeChatId, openTab])
-
-  // URL normalization: a mission URL without ?agent= renders mission-overview (whiteboard).
-  // For single-agent chats the whiteboard is empty by design, so the page looks
-  // blank when arrived at via direct link / bookmark / refresh. Redirect to the
-  // agent 1:1 view so JSONL replay kicks in. Navigation entry points apply the
-  // same rule; this catches the URL-as-entrypoint case.
-  useEffect(() => {
-    if (!workspaceId || !activeChatId || selectedAgentId) return
-    const chat = chats.find((c) => c.id === activeChatId)
-    if (!chat || !isSingleAgent(chat)) return
-    navigate(buildMissionUrl(workspaceId, activeChatId, chat.primaryAgentId), { replace: true })
-  }, [workspaceId, activeChatId, selectedAgentId, chats, navigate])
 
   useEffect(() => {
     if (workspaceId) persistLastWorkspace(workspaceId)

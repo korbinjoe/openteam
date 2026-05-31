@@ -3,7 +3,7 @@
  *
  *  Agent / Whiteboard
  *  +  ≤ BRIEFING_BUDGET_CHARS  markdown
- *  Agent  prompt  ≤80
+ *  Agent  prompt  ≤120
  *
  *   1. active goal1 + active open_questions 3 + active handoff 2
  *   2. tags  Agent tags / agentId  →
@@ -120,7 +120,7 @@ export class ContextBriefing {
       '- `progress` — When completing a milestone',
       '- `open_question` — When blocked and needing external decision',
       '',
-      'Write command：`bash {SKILL_DIR}/scripts/wb-write.sh <type> "<summary ≤80 chars>"`',
+      'Write command：`bash {SKILL_DIR}/scripts/wb-write.sh <type> "<summary ≤120 chars>"`',
     ].join('\n')
   }
 

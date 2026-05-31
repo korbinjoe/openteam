@@ -6,7 +6,7 @@
  *  Agent
  *
  *  - JSONL  mailbox / SessionFileWatcher
- *  -  entry  summary  ≤80
+ *  -  entry  summary  ≤120
  *  -  SQLite DB  +  goal
  */
 
@@ -69,7 +69,7 @@ export interface WhiteboardSnapshot {
   updatedAt: string
 }
 
-export const WHITEBOARD_SUMMARY_MAX = 80
+export const WHITEBOARD_SUMMARY_MAX = 120
 
 export const WHITEBOARD_ERROR = {
   SUMMARY_TOO_LONG: 'whiteboard.summary_too_long',

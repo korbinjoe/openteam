@@ -62,7 +62,7 @@ bash {SKILL_DIR}/scripts/wb-write.sh <type> "<summary>" [tags] [refs-json]
 ```
 
 - `type`: `goal | decision | artifact | progress | open_question | constraint | handoff`
-- `summary`: **≤80 characters**, one sentence that makes it clear (server rejects longer)
+- `summary`: **≤120 characters**, one sentence that makes it clear (server rejects longer)
 - `tags`: optional, comma-separated (e.g., `db,migration`)
 - `refs-json`: optional, JSON string (e.g., `'{"files":["a.ts"],"agents":["shield"]}'`)
 
@@ -109,5 +109,5 @@ All wb-* script calls must use Bash's `description` parameter, e.g., "Write to w
 
 - ❌ Use war-room as a chat log, writing every thought
 - ❌ Repeatedly refresh the same goal with `goal` (should `supersede` the old one)
-- ❌ Write summary as a long paragraph (hard limit: 80 characters)
+- ❌ Write summary as a long paragraph (hard limit: 120 characters)
 - ❌ Write without `by` (script auto-injects from `OPENTEAM_INSTANCE_ID`)

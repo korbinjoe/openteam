@@ -64,7 +64,7 @@ export const reconcileMembersFromActivity = (
   const isTerminal = payload.phase === 'completed' || payload.phase === 'error'
   const terminalStatus: ChatMemberStatus = payload.phase === 'error' ? 'error' : 'done'
 
-  return members.map((m) => {
+  const updated = members.map((m) => {
     const live = phaseByAgent.get(m.agentId)
     if (live) {
       const next = phaseToMemberStatus(live)
@@ -75,4 +75,16 @@ export const reconcileMembersFromActivity = (
     }
     return m
   })
+
+  const knownIds = new Set(members.map((m) => m.agentId))
+  let appended = false
+  phaseByAgent.forEach((phase, agentId) => {
+    if (knownIds.has(agentId)) return
+    const status = phaseToMemberStatus(phase)
+    if (!status) return
+    appended = true
+    updated.push({ agentId, role: 'worker', status, lastMessageAt: '' })
+  })
+
+  return appended ? updated : (updated === members ? members : updated)
 }

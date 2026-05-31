@@ -5,7 +5,7 @@
 # stdin protocol: { session_id, transcript_path, hook_event_name, cwd, stop_hook_active }
 #
 # Rules (only extract high-confidence events, fingerprint dedup prevents spam):
-#   1. No goal in chat war-room and is first turn -> extract <=80 chars from first user message as goal
+#   1. No goal in chat war-room and is first turn -> extract <=120 chars from first user message as goal
 #   2. This turn used Task tool -> write handoff
 #   3. (Removed) artifact now written proactively by Expert
 #   4. (Removed) progress now written proactively by Expert
@@ -76,9 +76,9 @@ find_parent_id() {
 write_wb() {
   local type="$1"
   local summary="$2"
-  # Normalize + truncate to 80 *characters* (perl -CSD for UTF-8, avoids byte-slice breaking multibyte chars)
+  # Normalize + truncate to 120 *characters* (perl -CSD for UTF-8, avoids byte-slice breaking multibyte chars)
   summary=$(printf "%s" "$summary" | tr '\n' ' ' | awk '{gsub(/[[:space:]]+/," "); gsub(/^ +| +$/,""); print}')
-  summary=$(printf "%s" "$summary" | perl -CSD -ne 'print substr($_, 0, 80)' 2>/dev/null || printf "%s" "$summary")
+  summary=$(printf "%s" "$summary" | perl -CSD -ne 'print substr($_, 0, 120)' 2>/dev/null || printf "%s" "$summary")
   [ -z "$summary" ] && return 0
 
   # Fingerprint dedup: same type+summary only written once per chat

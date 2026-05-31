@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { ChevronRight, Pin, PinOff, Archive, Plus, Trash } from './icons'
@@ -89,28 +89,8 @@ export const ageLabel = (input: number | string | undefined): string => {
 
 export const isCompletedStatus = (c: Chat) => c.status === 'stopped' || c.status === 'merged'
 
-// Mission-overview is the cross-agent whiteboard timeline. For chats that never
-// wrote whiteboard entries (the vast majority of legacy single-agent chats),
-// it renders blank — the user expects to see the actual conversation. Route
-// "single-team" chats straight to the agent 1:1 view so JSONL replay kicks in.
-// Multi-team chats keep the overview so the user gets the cross-agent rollup.
-//
-// "Single-team" = declared team has only the primary agent. We deliberately
-// IGNORE chat.members and expertSessions-derived ad-hoc participants: a chat
-// where the user @-mentioned a code-reviewer mid-conversation is still a
-// single-agent mission from a routing perspective — the lead's JSONL is the
-// canonical content the user expects to see on reopen. MemberAggregator
-// inflates members[] from expertSessions, which would otherwise misclassify
-// these legacy chats as multi-agent and strand the user on an empty whiteboard.
-export const isSingleAgent = (chat: Chat): boolean => {
-  if (chat.teamAgentIds && chat.teamAgentIds.length > 0) return false
-  return !!chat.primaryAgentId
-}
-
 export const buildMissionOpenUrl = (chat: Chat): string =>
-  isSingleAgent(chat)
-    ? buildMissionUrl(chat.workspaceId, chat.id, chat.primaryAgentId)
-    : buildMissionUrl(chat.workspaceId, chat.id)
+  buildMissionUrl(chat.workspaceId, chat.id)
 
 interface MissionRowProps {
   chat: Chat
@@ -128,24 +108,13 @@ interface MissionRowProps {
 export const MissionRow = ({ chat, isSelected, agentNames, onPin, onArchive, onAddAgent, isPinned = false, badge }: MissionRowProps) => {
   const navigate = useNavigate()
   const { selectedAgentId } = useWorkspace()
-  // Default collapsed; the selected mission auto-opens to surface its agents.
-  // No persistence — each session starts clean.
-  const [expanded, setExpanded] = useState<boolean>(isSelected)
-
-  // Selection drives expansion: only the focused mission shows its agents. When
-  // selection moves to another mission, the previous one auto-collapses so the
-  // sidebar stays a single-mission deep-dive instead of accumulating open rows.
-  // Manual toggle still works on the selected row (until selection changes).
-  useEffect(() => {
-    setExpanded(isSelected)
-  }, [isSelected])
+  const [expanded, setExpanded] = useState(false)
 
   const toggle = useCallback((e: React.MouseEvent) => {
     e.stopPropagation()
     setExpanded((prev) => !prev)
   }, [])
 
-  // Single-agent → agent 1:1 (JSONL replay). Multi-agent → mission-overview (whiteboard rollup).
   const handleOpen = () => navigate(buildMissionOpenUrl(chat))
 
   const handleDeleteTask = useCallback(async () => {

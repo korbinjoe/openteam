@@ -359,7 +359,13 @@ const SystemInstructionsMessage = ({ message }: { message: Message }) => {
   )
 }
 
-const UserMessage = ({ message }: { message: Message }) => {
+interface UserMessageProps {
+  message: Message
+  agentNames?: Record<string, string>
+  agentPersonalities?: Record<string, import('../../../types/agentConfig').AgentPersonality>
+}
+
+const UserMessage = ({ message, agentNames, agentPersonalities }: UserMessageProps) => {
   const { t } = useTranslation('chat')
   const [lightboxSrc, setLightboxSrc] = useState<string | null>(null)
 
@@ -391,17 +397,28 @@ const UserMessage = ({ message }: { message: Message }) => {
           gap: 6,
           marginBottom: 4,
         }}>
-          {message.mentions && message.mentions.length > 0 && (
-            <span style={{
-              fontSize: 10,
-              padding: '1px 6px',
-              borderRadius: 3,
-              background: 'rgb(var(--accent-brand) / 0.1)',
-              color: 'rgb(var(--accent-brand))',
-            }}>
-              → {message.mentions.map((m) => m.name).join(', ')}
-            </span>
-          )}
+          {(() => {
+            const mentionNames = message.mentions?.length
+              ? message.mentions.map((m) => m.name)
+              : null
+            const inferredName = !mentionNames && message.agentId
+              ? (agentPersonalities?.[message.agentId]?.nickname
+                || agentNames?.[message.agentId]
+                || null)
+              : null
+            const displayNames = mentionNames || (inferredName ? [inferredName] : null)
+            return displayNames && (
+              <span style={{
+                fontSize: 10,
+                padding: '1px 6px',
+                borderRadius: 3,
+                background: 'rgb(var(--accent-brand) / 0.1)',
+                color: 'rgb(var(--accent-brand))',
+              }}>
+                → {displayNames.join(', ')}
+              </span>
+            )
+          })()}
           <span style={{ flex: 1 }} />
           <span style={{
             fontSize: 10,

@@ -54,7 +54,7 @@ const ChatBody = ({
     const displayActivity = isLast ? currentMergedActivity ?? groupActivities[group.id] : groupActivities[group.id]
     return (
       <div>
-        {group.userMessage ? <UserMessage message={group.userMessage} /> : (
+        {group.userMessage ? <UserMessage message={group.userMessage} agentNames={agentNames} agentPersonalities={agentPersonalities} /> : (
           <div style={{ padding: '8px 16px 2px', fontSize: 11, color: 'rgb(var(--text-muted))' }}>Agent Mission Progress</div>
         )}
         <AgentTurnCard

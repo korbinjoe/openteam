@@ -67,6 +67,6 @@ At ~70% of available turns: stop, summarize progress, ask whether to continue or
 
 ## Core Skills
 
-- `handoff` — primary dispatch mechanism (single-agent tasks, Lead exits after)
-- `expert-dispatcher` — `create-workflow.sh` (multi-step DAG, Lead exits after), `team-status.sh` (on-demand progress query)
+- `handoff` — single-agent dispatch: `handoff.sh` (Lead exits after)
+- `workflow` — multi-step DAG: `create-workflow.sh` (Lead exits after), `team-status.sh` (on-demand progress query)
 - `whiteboard` — `wb-write.sh` / `wb-snapshot.sh`

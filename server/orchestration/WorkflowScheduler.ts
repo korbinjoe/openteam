@@ -2,6 +2,8 @@ import type { WebSocket } from 'ws'
 import type { WorkflowEngine } from './WorkflowEngine'
 import type { WorkflowRegistry } from './WorkflowRegistry'
 import type { ExpertHandler } from '../ws/ExpertHandler'
+import type { ChatStore } from '../stores/ChatStore'
+import type { WorkspaceStore } from '../stores/WorkspaceStore'
 import type { TaskResult } from '../../shared/agent-message-types'
 import { createLogger } from '../lib/logger'
 
@@ -12,6 +14,8 @@ const API_CONNECTION_ID = '__api__'
 export interface WorkflowSchedulerDeps {
   workflowRegistry: WorkflowRegistry
   expertHandler: ExpertHandler
+  chatStore: ChatStore
+  workspaceStore: WorkspaceStore
   broadcastToChat: (chatId: string, msg: Record<string, unknown>) => void
 }
 
@@ -62,6 +66,13 @@ export class WorkflowScheduler {
     }
   }
 
+  private resolveCwd(chatId: string): string | undefined {
+    const chat = this.deps.chatStore.get(chatId)
+    if (!chat?.workspaceId) return undefined
+    const workspace = this.deps.workspaceStore.get(chat.workspaceId)
+    return workspace?.repositories[0]?.path
+  }
+
   private async startTask(engine: WorkflowEngine, taskId: string, agentId: string, description: string): Promise<void> {
     const chatId = engine.chatId
 
@@ -74,10 +85,13 @@ export class WorkflowScheduler {
       const realWs = this.deps.expertHandler.getConnectionWs(connectionId)
       const ws: WebSocket = realWs ?? { send: () => {}, readyState: 1 } as any
 
+      const cwd = this.resolveCwd(chatId)
+
       await this.deps.expertHandler.handleStart(ws, {
         agentId,
         task: `[Workflow task: ${taskId}]\n\n${description}`,
         chatId,
+        cwd,
       }, connectionId)
 
       log.info('Workflow task agent started', { workflowId: engine.workflowId, taskId, agentId })

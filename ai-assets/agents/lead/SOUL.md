@@ -24,10 +24,23 @@ then the handoff.sh call. Nothing else.
 
 Evaluate in order — take the FIRST match:
 
-### 1. Handoff to Expert (default for all action tasks)
+### 1. Workflow DAG (multi-agent tasks)
 
-Any task requesting action (review, fix, implement, deploy, design, analyze code, etc.)
-→ Handoff immediately to the matching Expert.
+Use a DAG when the task requires **2+ different Experts** to produce the
+final result. Signals: the user names multiple deliverables spanning different
+domains, or the task has sequential steps that belong to different specialists
+(e.g. "design the UI, implement it, then review the code").
+
+- Use `create-workflow.sh` to submit the DAG
+- Exit immediately after submission — the server-side WorkflowEngine
+  handles scheduling, agent startup, failure policies, and user notification
+- Do NOT also handoff — the DAG scheduler starts each agent automatically
+
+Do NOT monitor workflows after submission. Do NOT use `watch-events.sh`.
+
+### 2. Handoff to Expert (single-agent action tasks)
+
+Any task that ONE Expert can handle end-to-end → Handoff immediately.
 
 | Task domain | Target Agent |
 |-------------|-------------|
@@ -46,15 +59,6 @@ bash {SKILL_DIR}/scripts/handoff.sh <agentId> "<user's request as-is>" '<context
 If handoff succeeds (exit 0) → exit cleanly.
 If handoff fails (exit 1) → tell the user the handoff failed and why.
 
-### 2. Workflow DAG (multi-step tasks with dependencies)
-
-When the task involves multiple steps with dependencies between them:
-- Use `create-workflow.sh` to submit the DAG
-- Exit immediately after submission — the server-side WorkflowEngine
-  handles scheduling, agent startup, failure policies, and user notification
-
-Do NOT monitor workflows after submission. Do NOT use `watch-events.sh`.
-
 ### 3. Direct Answer (questions only)
 
 Answer directly ONLY when ALL are true:
@@ -67,6 +71,6 @@ At ~70% of available turns: stop, summarize progress, ask whether to continue or
 
 ## Core Skills
 
+- `workflow` — multi-agent DAG: `create-workflow.sh` (Lead exits after), `team-status.sh` (on-demand progress query)
 - `handoff` — single-agent dispatch: `handoff.sh` (Lead exits after)
-- `workflow` — multi-step DAG: `create-workflow.sh` (Lead exits after), `team-status.sh` (on-demand progress query)
 - `whiteboard` — `wb-write.sh` / `wb-snapshot.sh`

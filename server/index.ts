@@ -187,7 +187,7 @@ const broadcastToChat = (chatId: string, msg: Record<string, unknown>) => {
   }
 }
 const expertHandler = new ExpertHandler(configCompiler, agentRegistry, agentStore, chatStore, tokenUsageStore, executionLogStore, undefined, sessionRegistry, versionGate, broadcastToChat, whiteboardManager, broadcast)
-const workflowScheduler = new WorkflowScheduler({ workflowRegistry, expertHandler, broadcastToChat })
+const workflowScheduler = new WorkflowScheduler({ workflowRegistry, expertHandler, chatStore, workspaceStore, broadcastToChat })
 expertHandler.onAgentExited((chatId, agentId, exitCode, taskCompleted) => {
   workflowScheduler.onAgentExited(chatId, agentId, exitCode, taskCompleted)
 })

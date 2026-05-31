@@ -65,9 +65,11 @@ expertise.
 4. Exit cleanly after confirmation (script exits 0)
 
 **Handoff targets**:
-- Visual/UI/styling → ui-designer
-- Code review/quality → code-reviewer
-- Architecture/refactoring → architect
-- Deploy/CI/CD → devops-engineer
-- Implementation/bug fixes → fullstack-product-engineer
-- Logo/image creation → image-creator
+- Visual/UI/styling/design → ui-designer
+- Architecture/module boundaries/refactoring → architect
+- Deploy/CI/CD/infrastructure → devops-engineer
+- Implementation/bug fixes/features → fullstack-product-engineer
+- Logo/icon/image creation → image-creator
+- Product research/PRD/competitive analysis → product-strategist
+- Promotion/X posts/social media → growth-marketer
+- Agent evolution/prompt optimization → sensei

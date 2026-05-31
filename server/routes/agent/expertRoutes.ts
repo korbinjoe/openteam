@@ -280,7 +280,7 @@ ${expandedTask}`
     res.json({ success: true, clearedCount })
   })
 
-  const MAX_HANDOFF_CHAIN_DEPTH = 1
+  const MAX_HANDOFF_CHAIN_DEPTH = 2
 
   router.post('/api/expert/handoff', async (req, res) => {
     const { from, to, chatId, task, context, reason } = req.body as HandoffRequest & { reason?: string }

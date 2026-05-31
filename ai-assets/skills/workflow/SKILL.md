@@ -59,6 +59,15 @@ Filter by status: `running`, `suspended`, `completed`, `stopped`
 bash {SKILL_DIR}/scripts/resume-workflow.sh <workflow-id>
 ```
 
+## Advance Workflow
+
+```bash
+bash {SKILL_DIR}/scripts/advance-workflow.sh '<workflow-id>'
+```
+
+Start all ready tasks in a workflow. Called by Lead after receiving a
+`[Workflow progress]` notification and reviewing the completed task.
+
 ## Team Status
 
 ```bash
@@ -74,6 +83,7 @@ All script calls must use Bash's `description` parameter:
 | Script | description example |
 |--------|-------------------|
 | `create-workflow.sh` | `Create workflow DAG` |
+| `advance-workflow.sh` | `Advance workflow` |
 | `team-status.sh` | `Check team status` |
 | `list-workflows.sh` | `List workflows` |
 | `resume-workflow.sh` | `Resume workflow` |

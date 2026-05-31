@@ -154,6 +154,7 @@ sessionRegistry.onActivityChanged((payload) => {
   }
   broadcast({ type: 'chat:activity', payload })
   semanticLogBroadcaster.handle(payload)
+  workflowScheduler.onActivityChanged(payload)
   const sessions = sessionRegistry.findAllByChat(payload.chatId)
   for (const s of sessions) {
     if (s.connectionType === 'virtual') {
@@ -187,7 +188,7 @@ const broadcastToChat = (chatId: string, msg: Record<string, unknown>) => {
   }
 }
 const expertHandler = new ExpertHandler(configCompiler, agentRegistry, agentStore, chatStore, workspaceStore, tokenUsageStore, executionLogStore, undefined, sessionRegistry, versionGate, broadcastToChat, whiteboardManager, broadcast)
-const workflowScheduler = new WorkflowScheduler({ workflowRegistry, expertHandler, chatStore, workspaceStore, broadcastToChat })
+const workflowScheduler = new WorkflowScheduler({ workflowRegistry, expertHandler, chatStore, workspaceStore, sessionRegistry, broadcastToChat })
 expertHandler.onAgentExited((chatId, agentId, exitCode, taskCompleted) => {
   workflowScheduler.onAgentExited(chatId, agentId, exitCode, taskCompleted)
 })
@@ -238,7 +239,7 @@ const { authToken } = setupRoutes(app, {
   tokenUsageStore, executionLogStore,
   cronJobStore, cronScheduler, nlCronParser,
   notificationStore, memoryStore, growthStore, eventStore,
-  sessionRegistry, whiteboardManager, workflowRegistry,
+  sessionRegistry, whiteboardManager, workflowRegistry, workflowScheduler,
   updateManager, bundleStorage, updateMonitor,
   broadcastToChat, broadcast,
   projectRoot: PROJECT_ROOT,

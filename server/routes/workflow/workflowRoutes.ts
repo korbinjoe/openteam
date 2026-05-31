@@ -1,5 +1,6 @@
 import { Router } from 'express'
 import type { WorkflowRegistry } from '../../orchestration/WorkflowRegistry'
+import type { WorkflowScheduler } from '../../orchestration/WorkflowScheduler'
 import type { WorkflowDAG, WorkflowTask } from '../../../shared/workflow-types'
 import { createLogger } from '../../lib/logger'
 
@@ -7,6 +8,7 @@ const log = createLogger('WorkflowRoutes')
 
 interface WorkflowRouteDeps {
   workflowRegistry: WorkflowRegistry
+  workflowScheduler: WorkflowScheduler
 }
 
 const generateWorkflowId = (): string => {
@@ -17,7 +19,7 @@ const generateWorkflowId = (): string => {
 
 export const createWorkflowRoutes = (deps: WorkflowRouteDeps): Router => {
   const router = Router()
-  const { workflowRegistry } = deps
+  const { workflowRegistry, workflowScheduler } = deps
 
   router.post('/api/workflow/create', async (req, res) => {
     const { chatId, createdBy, dag } = req.body as {
@@ -112,6 +114,19 @@ export const createWorkflowRoutes = (deps: WorkflowRouteDeps): Router => {
       return res.status(404).json({ error: 'Workflow not found' })
     }
     res.json(engine.aggregateResults())
+  })
+
+  router.post('/api/workflow/:workflowId/advance', (req, res) => {
+    const { workflowId } = req.params
+    const { started, error } = workflowScheduler.advanceWorkflow(workflowId)
+
+    if (error) {
+      log.warn('Workflow advance failed', { workflowId, error })
+      return res.status(404).json({ error })
+    }
+
+    log.info('Workflow advanced via API', { workflowId, startedCount: started.length })
+    res.json({ success: true, workflowId, started })
   })
 
   return router

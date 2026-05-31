@@ -64,6 +64,7 @@ interface RouteDeps {
   updateMonitor: Parameters<typeof createUpdateRoutes>[0]['updateMonitor']
   signatureVerifier: Parameters<typeof createUpdateRoutes>[0]['signatureVerifier']
   workflowRegistry: Parameters<typeof createWorkflowRoutes>[0]['workflowRegistry']
+  workflowScheduler: Parameters<typeof createWorkflowRoutes>[0]['workflowScheduler']
   broadcastToChat: (chatId: string, msg: Record<string, unknown>) => void
   broadcast: (msg: Record<string, unknown>) => void
   projectRoot: string
@@ -152,7 +153,7 @@ export const setupRoutes = (app: Express, d: RouteDeps) => {
   app.use(createLogRoutes())
   app.use(createUpdateRoutes({ updateManager: d.updateManager, bundleStorage: d.bundleStorage, updateMonitor: d.updateMonitor, signatureVerifier: d.signatureVerifier }))
   app.use(createTrayRoutes({ chatStore: d.chatStore, workspaceStore: d.workspaceStore, sessionRegistry: d.sessionRegistry }))
-  app.use(createWorkflowRoutes({ workflowRegistry: d.workflowRegistry }))
+  app.use(createWorkflowRoutes({ workflowRegistry: d.workflowRegistry, workflowScheduler: d.workflowScheduler }))
   app.use(geminiRoutes)
   app.use(fileRoutes)
 

@@ -1,5 +1,5 @@
 /**
- * timelineHelpers — Timeline dispatch tool grouping (legacy expert-dispatcher + handoff)
+ * timelineHelpers — Timeline dispatch tool grouping (handoff)
  */
 
 import type { Message } from '@/types/chat'
@@ -38,11 +38,11 @@ export interface ExpertProgressGroup {
 
 export type RenderItem = TimelineEntry | ToolGroup | ExpertProgressGroup
 
-export const isExpertDispatcherTool = (toolName: string): boolean =>
-  toolName.startsWith('mcp__expert-dispatcher__') || toolName.startsWith('mcp__expert_dispatcher__') || toolName.startsWith('mcp__handoff__')
+export const isHandoffTool = (toolName: string): boolean =>
+  toolName.startsWith('mcp__handoff__')
 
 export const getExpertAction = (toolName: string): string | null => {
-  if (!isExpertDispatcherTool(toolName)) return null
+  if (!isHandoffTool(toolName)) return null
   return toolName.split('__').pop() || null
 }
 

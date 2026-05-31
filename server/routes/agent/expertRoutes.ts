@@ -1,10 +1,8 @@
 /**
  * Expert Agent HTTP API
- *  server/index.ts  Lead Agent  MCP Expert Dispatcher
  *
- * HTTP API  WS  expert  connectionId
- *  api  Lead Agent  MCP dispatcher
- *  WS  chat
+ * HTTP API for managing expert agents within a chat session.
+ * Routes are registered in server/index.ts.
  */
 
 import { Router } from 'express'

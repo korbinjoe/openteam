@@ -1,8 +1,6 @@
 /**
- * ExpertProgressView — expert-dispatcher MCP
- *
- *  wait_for_expert
- *  expert
+ * ExpertProgressView — Collapsible progress view for expert agent work.
+ * Groups consecutive wait_for_expert tool calls into a single timeline block.
  */
 
 import { useState } from 'react'

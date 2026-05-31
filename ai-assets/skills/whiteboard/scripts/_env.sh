@@ -1,5 +1,5 @@
 #!/bin/bash
-# _env.sh — Shared env loader for expert-dispatcher and handoff scripts.
+# _env.sh — Shared env loader for whiteboard and handoff scripts.
 # Source this at the top of any script that needs EXPERT_API_BASE, OPENTEAM_CHAT_ID, etc.
 # Claude CLI's Bash tool may not inherit the env vars set via child_process.spawn,
 # so we fall back to reading from a persisted env file.

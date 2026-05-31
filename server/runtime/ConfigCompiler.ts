@@ -182,7 +182,7 @@ export class ConfigCompiler {
 
     if (agent.allowedTools?.length) {
       for (const tool of agent.allowedTools) {
-        if (tool.startsWith('mcp__expert-dispatcher__') || tool.startsWith('mcp__handoff__')) continue
+        if (tool.startsWith('mcp__handoff__')) continue
         args.push('--allowedTools', tool)
       }
       if (agent.mcpServers?.playwright) {

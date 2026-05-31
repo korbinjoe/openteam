@@ -544,7 +544,9 @@ export class ExpertHandler {
 
   notifyAgentExited(chatId: string, agentId: string, exitCode: number, taskCompleted: boolean): void {
     for (const cb of this.agentExitedCallbacks) {
-      try { cb(chatId, agentId, exitCode, taskCompleted) } catch {}
+      try { cb(chatId, agentId, exitCode, taskCompleted) } catch (err) {
+        log.error('agentExitedCallback failed', { agentId, chatId, exitCode, error: err instanceof Error ? err.message : String(err) })
+      }
     }
   }
 

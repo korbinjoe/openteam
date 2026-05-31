@@ -231,6 +231,9 @@ export class WorkflowEngine extends EventEmitter {
     }
     this.checkCompletion()
     this.state.updatedAt = new Date().toISOString()
+    this.persistCheckpoint().catch(err =>
+      log.warn('Checkpoint persist failed after reconcile', { workflowId: this.workflowId, error: err instanceof Error ? err.message : String(err) }),
+    )
   }
 
   aggregateResults(): WorkflowResult {

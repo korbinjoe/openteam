@@ -33,10 +33,16 @@ export class WorkflowScheduler {
 
   onAgentExited(chatId: string, agentId: string, exitCode: number, taskCompleted: boolean): void {
     const engine = this.deps.workflowRegistry.findByAgent(agentId)
-    if (!engine) return
+    if (!engine) {
+      log.debug('No workflow found for exited agent', { agentId, chatId, exitCode })
+      return
+    }
 
     const taskState = engine.findTaskByCurrentAgent(agentId)
-    if (!taskState) return
+    if (!taskState) {
+      log.warn('Workflow found but no matching task for agent', { agentId, chatId, workflowId: engine.workflowId })
+      return
+    }
 
     const result: TaskResult = {
       taskId: taskState.taskId,

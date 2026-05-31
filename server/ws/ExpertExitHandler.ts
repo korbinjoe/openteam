@@ -53,6 +53,16 @@ export interface ExitHandlerDeps {
 export const createExpertExitHandler = (deps: ExitHandlerDeps) => {
   const { sessionRegistry, executionLogStore, store, chatStore, agentStore, sendTo, onExited } = deps
 
+  const notifyExited = (chatId: string, agentId: string, exitCode: number, taskCompleted: boolean): void => {
+    if (onExited) {
+      try {
+        onExited(chatId, agentId, exitCode, taskCompleted)
+      } catch (err) {
+        log.error('onExited callback failed', { agentId, chatId, exitCode, error: err instanceof Error ? err.message : String(err) })
+      }
+    }
+  }
+
   const handleExit = (
     ctx: ExitContext,
     exitCode: number,
@@ -71,6 +81,7 @@ export const createExpertExitHandler = (deps: ExitHandlerDeps) => {
 
     if (!expertInfo) {
       log.debug('Exit ignored — already cleaned up by chat switch', { agentId })
+      notifyExited(chatId, agentId, exitCode, false)
       return
     }
 
@@ -87,6 +98,7 @@ export const createExpertExitHandler = (deps: ExitHandlerDeps) => {
         type: 'expert:list-updated',
         payload: { experts: store.getExpertListForConnection(currentConnectionId, chatId), chatId },
       })
+      notifyExited(chatId, agentId, exitCode, false)
       return
     }
 
@@ -150,6 +162,7 @@ export const createExpertExitHandler = (deps: ExitHandlerDeps) => {
         type: 'expert:list-updated',
         payload: { experts: store.getExpertListForConnection(currentConnectionId, chatId), chatId },
       })
+      notifyExited(chatId, agentId, exitCode, false)
       return
     }
 
@@ -214,9 +227,7 @@ export const createExpertExitHandler = (deps: ExitHandlerDeps) => {
       payload: { experts: store.getExpertListForConnection(currentConnectionId, chatId), chatId },
     })
 
-    if (onExited) {
-      onExited(chatId, agentId, exitCode, taskCompleted)
-    }
+    notifyExited(chatId, agentId, exitCode, taskCompleted)
   }
 
   return { handleExit }

@@ -149,10 +149,10 @@ const AgentAvatar = ({
       ) : (
         <span
           className={cn(
-            'flex h-full w-full items-center justify-center font-medium select-none',
+            'flex h-full w-full items-center justify-center font-semibold select-none',
             sizeConfig.text,
           )}
-          style={{ background: monogramBg, color: monogramFg, fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", system-ui, sans-serif' }}
+          style={{ background: monogramBg, color: monogramFg, fontFamily: '"Nunito", "SF Pro Rounded", ui-rounded, system-ui, sans-serif' }}
         >
           {initialsOf(name)}
         </span>

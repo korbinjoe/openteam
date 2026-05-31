@@ -19,6 +19,7 @@ import { createExecutionLogRoutes } from '../routes/system/executionLogRoutes'
 import { createCronJobRoutes } from '../routes/system/cronJobRoutes'
 import { createNotificationRoutes } from '../routes/system/notificationRoutes'
 import { createMemoryRoutes } from '../routes/agent/memoryRoutes'
+import { createEvolutionRoutes } from '../routes/agent/evolutionRoutes'
 import { createTokenUsageRoutes } from '../routes/system/tokenUsageRoutes'
 import { createPreferencesRoutes } from '../routes/system/preferencesRoutes'
 import { createAdminRoutes } from '../routes/system/adminRoutes'
@@ -146,6 +147,7 @@ export const setupRoutes = (app: Express, d: RouteDeps) => {
   app.use(createCronJobRoutes({ cronJobStore: d.cronJobStore, cronScheduler: d.cronScheduler, nlCronParser: d.nlCronParser, workspaceStore: d.workspaceStore, agentStore: d.agentStore }))
   app.use(createNotificationRoutes({ notificationStore: d.notificationStore, broadcast: d.broadcast }))
   app.use(createMemoryRoutes({ memoryStore: d.memoryStore, growthStore: d.growthStore }))
+  app.use(createEvolutionRoutes({ memoryStore: d.memoryStore, growthStore: d.growthStore }))
   app.use(createTokenUsageRoutes({ tokenUsageStore: d.tokenUsageStore }))
   app.use(createPreferencesRoutes({ db: getDatabase() }))
   app.use(createAdminRoutes({ db: getDatabase() }))

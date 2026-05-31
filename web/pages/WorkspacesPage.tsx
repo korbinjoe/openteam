@@ -13,7 +13,6 @@ import {
 import { cn } from '@/lib/utils'
 import AgentAvatar from '@/components/ui/agent-avatar'
 import WorkspaceIcon from '@/components/icons/WorkspaceIcon'
-import CreateWorkspaceDialog from '@/components/home/CreateWorkspaceDialog'
 import DirPickerDialog from '@/components/home/DirPickerDialog'
 import { loadDirHistory, saveDirHistory } from '@/components/home/storage'
 import { useDirPicker } from '../hooks/useDirPicker'
@@ -41,10 +40,6 @@ const WorkspacesPage = () => {
   const [search, setSearch] = useState('')
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<WorkspaceInfo | null>(null)
-  const [createOpen, setCreateOpen] = useState(false)
-  const [createName, setCreateName] = useState('')
-  const [createRepos, setCreateRepos] = useState<string[]>([])
-  const [creating, setCreating] = useState(false)
   const [dirHistory, setDirHistory] = useState<string[]>(() => loadDirHistory())
   const dirPicker = useDirPicker(dirHistory)
 
@@ -106,55 +101,35 @@ const WorkspacesPage = () => {
     }
   }
 
-  const handleCreate = async (andStart: boolean) => {
-    if (!createName.trim() || createRepos.length === 0) return
-    setCreating(true)
+  const onPathSelected = async (path: string) => {
+    setDirHistory(saveDirHistory(path))
+    dirPicker.setDirModalOpen(false)
     try {
-      const res = await authFetch(`${API_BASE}/api/workspaces`, {
+      const res = await authFetch(`${API_BASE}/api/workspaces/quick-start`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: createName.trim(),
-          repositories: createRepos.map((p) => ({ path: p })),
-        }),
+        body: JSON.stringify({ repoPath: path, skipChat: true }),
       })
       if (!res.ok) throw new Error()
-      const ws = await res.json()
-      toast.success(t('workspace:list.created'))
-      setCreateOpen(false)
-      if (andStart) {
-        navigate(`${WORKSPACE_BASE}/${ws.id}`)
+      const data = await res.json() as { workspace: WorkspaceInfo, isExisting: boolean }
+      if (data.isExisting) {
+        toast.info(t('workspace:list.alreadyExists'))
       } else {
-        fetchData()
+        toast.success(t('workspace:list.created'))
       }
+      navigate(`${WORKSPACE_BASE}/${data.workspace.id}`)
     } catch {
       toast.error(t('workspace:list.createFailed'))
-    } finally {
-      setCreating(false)
     }
   }
 
-  const openCreateDialog = () => {
-    setCreateName('')
-    setCreateRepos([])
-    setCreateOpen(true)
-  }
-
-  const handleAddRepoToCreateWs = () => {
-    dirPicker.openDirPickerForCreateWs()
-  }
-
-  const handlePickDir = (path: string) => {
-    setDirHistory(saveDirHistory(path))
-    dirPicker.setDirModalOpen(false)
-    dirPicker.setPickingForCreateWs(false)
-    setCreateRepos((prev) => prev.includes(path) ? prev : [...prev, path])
-    setCreateName((prev) => prev || path.split('/').pop() || '')
-  }
-
-  const handleQuickSelectRepo = (path: string) => {
-    setCreateRepos((prev) => prev.includes(path) ? prev : [...prev, path])
-    setCreateName((prev) => prev || path.split('/').pop() || '')
+  const handleQuickCreate = async () => {
+    if (isElectron && window.openteamBridge?.pickDirectory) {
+      const path = await window.openteamBridge.pickDirectory()
+      if (path) await onPathSelected(path)
+    } else {
+      dirPicker.openDirPicker()
+    }
   }
 
   return (
@@ -195,7 +170,7 @@ const WorkspacesPage = () => {
             <RefreshCw size={12} />
           </button>
           <button
-            onClick={openCreateDialog}
+            onClick={handleQuickCreate}
             aria-label={t('workspace:list.createWorkspace')}
             tabIndex={0}
             className="inline-flex items-center gap-1 rounded bg-accent-brand px-2.5 py-1 text-xs font-medium text-white hover:opacity-90 transition-opacity"
@@ -222,7 +197,7 @@ const WorkspacesPage = () => {
                   <WorkspaceIcon size={32} className="text-text-secondary opacity-40" />
                   <div className="text-sm text-text-secondary">{t('workspace:list.noWorkspaces')}</div>
                   <button
-                    onClick={openCreateDialog}
+                    onClick={handleQuickCreate}
                     aria-label={t('workspace:list.createWorkspace')}
                     tabIndex={0}
                     className="inline-flex items-center gap-1.5 rounded-md bg-accent-brand px-3 py-1.5 text-xs font-medium text-white hover:opacity-90 transition-opacity"
@@ -283,23 +258,9 @@ const WorkspacesPage = () => {
         </DialogContent>
       </Dialog>
 
-      <CreateWorkspaceDialog
-        open={createOpen}
-        onOpenChange={setCreateOpen}
-        name={createName}
-        onNameChange={setCreateName}
-        repos={createRepos}
-        creating={creating}
-        dirHistory={dirHistory}
-        onAddRepo={handleAddRepoToCreateWs}
-        onRemoveRepo={(path) => setCreateRepos((prev) => prev.filter((p) => p !== path))}
-        onQuickSelectRepo={handleQuickSelectRepo}
-        onCreate={handleCreate}
-      />
-
       <DirPickerDialog
         open={dirPicker.dirModalOpen}
-        onOpenChange={(open) => { dirPicker.setDirModalOpen(open); if (!open) dirPicker.setPickingForCreateWs(false) }}
+        onOpenChange={dirPicker.setDirModalOpen}
         browsePath={dirPicker.browsePath}
         homeDir={dirPicker.homeDir}
         dirs={dirPicker.dirs}
@@ -314,10 +275,10 @@ const WorkspacesPage = () => {
         onNewFolderNameChange={dirPicker.setNewFolderName}
         newFolderError={dirPicker.newFolderError}
         onNewFolderErrorChange={dirPicker.setNewFolderError}
-        pickingForCreateWs={dirPicker.pickingForCreateWs}
+        pickingForCreateWs={false}
         onLoadDirs={dirPicker.loadDirs}
-        onPickAndLaunch={handlePickDir}
-        onCreateFolder={() => dirPicker.handleCreateFolder(handlePickDir)}
+        onPickAndLaunch={onPathSelected}
+        onCreateFolder={() => dirPicker.handleCreateFolder(onPathSelected)}
       />
     </div>
   )

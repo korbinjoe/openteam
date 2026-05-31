@@ -14,7 +14,6 @@ import { ShortcutManager } from './modules/ShortcutManager'
 import { IPCBridge } from './modules/IPCBridge'
 import { PowerSaveManager } from './modules/PowerSaveManager'
 import { UpdateBridge } from './modules/UpdateBridge'
-import { NotchManager } from './modules/NotchManager'
 import { PORTS } from '../shared/ports'
 
 import { existsSync, readlinkSync } from 'fs'
@@ -44,7 +43,6 @@ const sendElectronTelemetry = (category: string, event: string, properties?: Rec
   }).catch(() => {})
 }
 const preloadPath = join(dirname(fileURLToPath(import.meta.url)), 'preload.cjs')
-const notchPreloadPath = join(dirname(fileURLToPath(import.meta.url)), 'notch-preload.cjs')
 
 /**
  * 
@@ -106,7 +104,6 @@ const shortcutManager = new ShortcutManager(windowManager)
 const powerSaveManager = new PowerSaveManager()
 const ipcBridge = new IPCBridge(windowManager, trayManager)
 const updateBridge = new UpdateBridge(windowManager)
-let notchManager: NotchManager | null = null
 
 // Trigger representedObject is not a WeakPtrToElectronMenuModelAsNSObject Warning
 if (process.platform === 'darwin') {
@@ -203,15 +200,6 @@ async function bootstrap() {
 
   updateBridge.setup(bootstrapServerPort)
 
-  // if (process.platform === 'darwin') {
-  //   notchManager = new NotchManager(windowManager, bootstrapServerPort, isDev, notchPreloadPath)
-  //   notchManager.init()
-  //   shortcutManager.setNotchManager(notchManager)
-  //   const mainWindow = windowManager.getMainWindow()
-  //   mainWindow?.on('enter-full-screen', () => notchManager?.hide())
-  //   mainWindow?.on('leave-full-screen', () => notchManager?.show())
-  // }
-
   if (process.platform === 'darwin') {
     const mainWindow = windowManager.getMainWindow()
     mainWindow?.on('close', (e) => {
@@ -254,7 +242,6 @@ app.on('activate', () => {
 
 app.on('before-quit', () => {
   isQuitting = true
-  notchManager?.destroy()
   shortcutManager.unregisterAll()
   updateBridge.destroy()
   powerSaveManager.destroy()

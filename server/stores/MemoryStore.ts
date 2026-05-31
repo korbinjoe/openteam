@@ -87,6 +87,20 @@ export class MemoryStore extends SqliteBaseStore<AgentMemory> {
     return result.changes
   }
 
+  getBySource(agentId: string, source: string): AgentMemory | undefined {
+    const row = this.db.prepare(
+      'SELECT * FROM agent_memories WHERE agent_id = ? AND source = ?'
+    ).get(agentId, source)
+    return row ? this.rowToEntity(row as Record<string, unknown>) : undefined
+  }
+
+  listAllSources(): string[] {
+    const rows = this.db.prepare(
+      'SELECT source FROM agent_memories WHERE source IS NOT NULL'
+    ).all() as Array<{ source: string }>
+    return rows.map((r) => r.source)
+  }
+
   countByAgent(agentId: string): number {
     const result = this.db.prepare(
       'SELECT COUNT(*) as cnt FROM agent_memories WHERE agent_id = ?'

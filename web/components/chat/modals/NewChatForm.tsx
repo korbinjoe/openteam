@@ -16,13 +16,13 @@ import {
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import AgentAvatar from '@/components/ui/agent-avatar'
 import WorkspaceIcon from '@/components/icons/WorkspaceIcon'
-import CreateWorkspaceDialog from '@/components/home/CreateWorkspaceDialog'
 import DirPickerDialog from '@/components/home/DirPickerDialog'
 import { cn } from '@/lib/utils'
 import { DEFAULT_MODEL, DEFAULT_MODELS, DEFAULT_AGENT, getModelsForProvider } from '@/lib/models'
 import { sortAgents } from '@/utils/teamStorage'
 import { loadDirHistory, saveDirHistory, loadLastSession, saveLastSession } from '@/components/home/storage'
 import { useDirPicker } from '@/hooks/useDirPicker'
+import { isElectron } from '@/utils/env'
 import { API_BASE, authFetch } from '@/config/api'
 import { useWorkspaceCreatedRefresh } from '@/hooks/useWorkspaceEvents'
 import { sendAESEvent } from '@/lib/aes'
@@ -60,14 +60,6 @@ const NewChatForm = ({ currentWorkspaceId, currentAgentId, onCreated }: NewChatF
   const [agentDropdownOpen, setAgentDropdownOpen] = useState(false)
   const agentBoxRef = useRef<HTMLDivElement>(null)
 
-  // Inline workspace creation — keeps the New Workspace button self-contained
-  // because the dropdown lives in a stack of two Dialogs, and lifting state to a
-  // shared listener would require routing through every layout that mounts
-  // NewChatFullDialog.
-  const [createOpen, setCreateOpen] = useState(false)
-  const [createName, setCreateName] = useState('')
-  const [createRepos, setCreateRepos] = useState<string[]>([])
-  const [wsCreating, setWsCreating] = useState(false)
   const [dirHistory, setDirHistory] = useState<string[]>(() => loadDirHistory())
   const dirPicker = useDirPicker(dirHistory)
 
@@ -236,54 +228,37 @@ const NewChatForm = ({ currentWorkspaceId, currentAgentId, onCreated }: NewChatF
     return { ws, agent, model: lastSession.model, modelLabel }
   }, [lastSession, workspaces, agents])
 
-  const handleOpenCreateWorkspace = useCallback(() => {
-    setCreateName('')
-    setCreateRepos([])
-    setCreateOpen(true)
-  }, [])
-
-  const handleCreateWorkspace = useCallback(async (_andStart: boolean) => {
-    const name = createName.trim()
-    if (!name || createRepos.length === 0) return
-    setWsCreating(true)
-    try {
-      const res = await authFetch(`${API_BASE}/api/workspaces`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name,
-          repositories: createRepos.map((p) => ({ path: p })),
-        }),
-      })
-      if (!res.ok) throw new Error('create failed')
-      const ws = (await res.json()) as WorkspaceInfo
-      setWorkspaces((prev) => (prev.some((w) => w.id === ws.id) ? prev : [...prev, ws]))
-      setSelectedWsId(ws.id)
-      setCreateOpen(false)
-      toast.success(t('workspace:list.created'))
-    } catch {
-      toast.error(t('workspace:list.createFailed'))
-    } finally {
-      setWsCreating(false)
-    }
-  }, [createName, createRepos, t])
-
-  const handleAddRepoToCreateWs = useCallback(() => {
-    dirPicker.openDirPickerForCreateWs()
-  }, [dirPicker])
-
-  const handlePickDir = useCallback((path: string) => {
+  const onWsPathSelected = useCallback(async (path: string) => {
     setDirHistory(saveDirHistory(path))
     dirPicker.setDirModalOpen(false)
-    dirPicker.setPickingForCreateWs(false)
-    setCreateRepos((prev) => prev.includes(path) ? prev : [...prev, path])
-    setCreateName((prev) => prev || path.split('/').pop() || '')
-  }, [dirPicker])
+    try {
+      const res = await authFetch(`${API_BASE}/api/workspaces/quick-start`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ repoPath: path, skipChat: true }),
+      })
+      if (!res.ok) throw new Error('create failed')
+      const data = await res.json() as { workspace: WorkspaceInfo, isExisting: boolean }
+      setWorkspaces((prev) => (prev.some((w) => w.id === data.workspace.id) ? prev : [...prev, data.workspace]))
+      setSelectedWsId(data.workspace.id)
+      if (data.isExisting) {
+        toast.info(t('workspace:list.alreadyExists'))
+      } else {
+        toast.success(t('workspace:list.created'))
+      }
+    } catch {
+      toast.error(t('workspace:list.createFailed'))
+    }
+  }, [dirPicker, t])
 
-  const handleQuickSelectRepo = useCallback((path: string) => {
-    setCreateRepos((prev) => prev.includes(path) ? prev : [...prev, path])
-    setCreateName((prev) => prev || path.split('/').pop() || '')
-  }, [])
+  const handleQuickCreateWorkspace = useCallback(async () => {
+    if (isElectron && window.openteamBridge?.pickDirectory) {
+      const path = await window.openteamBridge.pickDirectory()
+      if (path) await onWsPathSelected(path)
+    } else {
+      dirPicker.openDirPicker()
+    }
+  }, [dirPicker, onWsPathSelected])
 
   const handleQuickStart = useCallback(() => {
     if (!quickStart) return
@@ -416,7 +391,7 @@ const NewChatForm = ({ currentWorkspaceId, currentAgentId, onCreated }: NewChatF
                   onClick={() => {
                     setWsDropdownOpen(false)
                     setWsSearch('')
-                    handleOpenCreateWorkspace()
+                    handleQuickCreateWorkspace()
                   }}
                   className="flex items-center gap-2 w-full px-3 py-1.5 text-left transition-colors hover:bg-bg-hover-muted border-t border-border-subtle mt-1 pt-1.5"
                 >
@@ -547,23 +522,9 @@ const NewChatForm = ({ currentWorkspaceId, currentAgentId, onCreated }: NewChatF
         </span>
       </div>
 
-      <CreateWorkspaceDialog
-        open={createOpen}
-        onOpenChange={setCreateOpen}
-        name={createName}
-        onNameChange={setCreateName}
-        repos={createRepos}
-        creating={wsCreating}
-        dirHistory={dirHistory}
-        onAddRepo={handleAddRepoToCreateWs}
-        onRemoveRepo={(path) => setCreateRepos((prev) => prev.filter((p) => p !== path))}
-        onQuickSelectRepo={handleQuickSelectRepo}
-        onCreate={handleCreateWorkspace}
-      />
-
       <DirPickerDialog
         open={dirPicker.dirModalOpen}
-        onOpenChange={(open) => { dirPicker.setDirModalOpen(open); if (!open) dirPicker.setPickingForCreateWs(false) }}
+        onOpenChange={dirPicker.setDirModalOpen}
         browsePath={dirPicker.browsePath}
         homeDir={dirPicker.homeDir}
         dirs={dirPicker.dirs}
@@ -578,10 +539,10 @@ const NewChatForm = ({ currentWorkspaceId, currentAgentId, onCreated }: NewChatF
         onNewFolderNameChange={dirPicker.setNewFolderName}
         newFolderError={dirPicker.newFolderError}
         onNewFolderErrorChange={dirPicker.setNewFolderError}
-        pickingForCreateWs={dirPicker.pickingForCreateWs}
+        pickingForCreateWs={false}
         onLoadDirs={dirPicker.loadDirs}
-        onPickAndLaunch={handlePickDir}
-        onCreateFolder={() => dirPicker.handleCreateFolder(handlePickDir)}
+        onPickAndLaunch={onWsPathSelected}
+        onCreateFolder={() => dirPicker.handleCreateFolder(onWsPathSelected)}
       />
     </div>
   )

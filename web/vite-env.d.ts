@@ -18,6 +18,8 @@ interface OpenTeamBridge {
 
   getPreventSleep: () => Promise<boolean>
   setPreventSleep: (enabled: boolean) => Promise<boolean>
+
+  pickDirectory: () => Promise<string | null>
 }
 
 interface Window {

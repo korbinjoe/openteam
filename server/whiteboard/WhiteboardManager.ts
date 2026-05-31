@@ -52,9 +52,13 @@ export class WhiteboardValidationError extends Error {
   }
 }
 
+export type WhiteboardEntryListener = (chatId: string, entry: WhiteboardEntry) => void
+
 export class WhiteboardManager {
   /** chatId → debounce timer snapshot */
   private snapshotTimers = new Map<string, NodeJS.Timeout>()
+
+  private entryListeners: WhiteboardEntryListener[] = []
 
   private readCursors = new Map<string, number>()
 
@@ -80,6 +84,10 @@ export class WhiteboardManager {
 
   private snapshotPath(chatId: string): string {
     return join(this.chatDir(chatId), 'snapshot.json')
+  }
+
+  onEntryAppended(listener: WhiteboardEntryListener): void {
+    this.entryListeners.push(listener)
   }
 
   ensureChatDir(chatId: string): string {
@@ -136,6 +144,11 @@ export class WhiteboardManager {
       by: entry.by,
       summaryPreview: entry.summary.slice(0, 40),
     })
+
+    for (const listener of this.entryListeners) {
+      try { listener(chatId, entry) } catch { /* listener errors must not break append */ }
+    }
+
     return entry
   }
 

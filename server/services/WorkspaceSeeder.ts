@@ -30,6 +30,23 @@ export class WorkspaceSeeder {
       this.seedDir('system', true),
       this.seedOpenTeamJson(),
     ])
+    await this.ensureAgentMemoryDirs()
+  }
+
+  private async ensureAgentMemoryDirs(): Promise<void> {
+    const agentsDir = join(this.openteamHome, 'agents')
+    if (!existsSync(agentsDir)) return
+    try {
+      const entries = await readdir(agentsDir, { withFileTypes: true })
+      for (const entry of entries) {
+        if (entry.isDirectory()) {
+          await mkdir(join(agentsDir, entry.name, 'memory'), { recursive: true })
+        }
+      }
+      log.debug('Ensured memory/ dirs for all agents')
+    } catch (err) {
+      log.warn('Failed to ensure agent memory dirs', { error: String(err) })
+    }
   }
 
   /**

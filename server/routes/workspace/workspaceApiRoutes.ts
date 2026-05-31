@@ -40,7 +40,7 @@ export const createWorkspaceApiRoutes = ({ workspaceStore, chatStore, chatServic
    */
   router.post('/api/workspaces/quick-start', async (req, res) => {
     try {
-      const { repoPath, repoPaths, model, agentId, workspaceId, title } = req.body
+      const { repoPath, repoPaths, model, agentId, workspaceId, title, skipChat } = req.body
 
       const paths: string[] = Array.isArray(repoPaths) && repoPaths.length > 0
         ? repoPaths.filter((p: unknown) => typeof p === 'string' && p)
@@ -50,6 +50,7 @@ export const createWorkspaceApiRoutes = ({ workspaceStore, chatStore, chatServic
         return res.status(400).json({ error: 'repoPath or repoPaths is required' })
       }
 
+      let isExisting = false
       let workspace = (typeof workspaceId === 'string' && workspaceId)
         ? workspaceStore.get(workspaceId)
         : (paths.length === 1
@@ -68,7 +69,12 @@ export const createWorkspaceApiRoutes = ({ workspaceStore, chatStore, chatServic
           userId,
         })
       } else {
+        isExisting = true
         await workspaceStore.update(workspace.id, { ...(agentTeam ? { agentTeam } : {}) })
+      }
+
+      if (skipChat) {
+        return res.status(201).json({ workspace, isExisting })
       }
 
       const chat = await chatService.createChat({
@@ -77,7 +83,7 @@ export const createWorkspaceApiRoutes = ({ workspaceStore, chatStore, chatServic
         model,
       })
 
-      res.status(201).json({ workspace, chat })
+      res.status(201).json({ workspace, chat, isExisting })
     } catch (err) {
       res.status(500).json({ error: err instanceof Error ? err.message : 'Quick start failed' })
     }

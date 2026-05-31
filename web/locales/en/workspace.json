@@ -165,6 +165,7 @@
     "repoCount": "{{count}} repo(s)",
     "chatCount": "{{count}} chat(s)",
     "created": "Workspace created",
+    "alreadyExists": "Workspace already exists, navigating to it",
     "createFailed": "Failed to create workspace",
     "createDesc": "Enter a name and project directory path to create a workspace.",
     "wsName": "Name",

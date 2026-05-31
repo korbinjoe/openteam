@@ -23,6 +23,8 @@ import useAgentEditor, {
   type EditorTab,
 } from '../hooks/useAgentEditor'
 import useAgentDNA from '../hooks/useAgentDNA'
+import useAgentEvolution from '../hooks/useAgentEvolution'
+import EvolutionLog from '@/components/evolution/EvolutionLog'
 import useSenseiUpgrade from '../hooks/useSenseiUpgrade'
 import useSenseiUpgradeFull, { type FullSuiteState } from '../hooks/useSenseiUpgradeFull'
 import { generateAvatar } from '@/services/agentApi'
@@ -84,6 +86,7 @@ const AgentEditorPage = () => {
   }, [isNew])
 
   const { dna } = useAgentDNA(isNew ? undefined : id)
+  const { entries: evolutionEntries } = useAgentEvolution(isNew ? undefined : id)
   const sensei = useSenseiUpgrade(id, agentsMd, updateAgentsMd)
 
   const currentSuite = useMemo<FullSuiteState>(
@@ -480,6 +483,9 @@ const AgentEditorPage = () => {
                   </div>
                 )}
           </Section>
+          <div className="mt-4">
+            <EvolutionLog entries={evolutionEntries} />
+          </div>
         </div>
         )}
       </div>

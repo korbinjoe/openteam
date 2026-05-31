@@ -17,21 +17,13 @@ interface OpenTeamBridge {
 
   getPreventSleep: () => Promise<boolean>
   setPreventSleep: (enabled: boolean) => Promise<boolean>
-}
 
-interface NotchBridge {
-  onStateChange: (cb: (state: 'compact' | 'expanded' | 'hidden') => void) => () => void
-  onNotification: (cb: (data: { agentName: string; message: string }) => void) => () => void
-  setIgnoreMouseEvents: (ignore: boolean, opts?: { forward: boolean }) => void
-  notchAction: (action: 'expand' | 'compact' | 'hide') => void
-  sendQuickCommand: (message: string) => void
-  openWorkbench: () => void
+  pickDirectory: () => Promise<string | null>
 }
 
 declare global {
   interface Window {
     openteamBridge?: OpenTeamBridge
-    notchBridge?: NotchBridge
   }
 }
 

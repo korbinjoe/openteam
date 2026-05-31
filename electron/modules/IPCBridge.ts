@@ -4,7 +4,7 @@
  *  Express Server  WS Agent  Renderer
  */
 
-import { ipcMain, Notification } from 'electron'
+import { ipcMain, dialog, Notification } from 'electron'
 import { WebSocket } from 'ws'
 import type { WindowManager } from './WindowManager'
 import type { TrayManager, TrayStatus } from './TrayManager'
@@ -50,6 +50,14 @@ export class IPCBridge {
     ipcMain.on(IPC_CHANNELS.OPEN_WORKBENCH, () => {
       this.windowManager.focusMain()
     })
+
+    ipcMain.handle('pick-directory', async () => {
+      const result = await dialog.showOpenDialog({
+        properties: ['openDirectory'],
+        title: 'Select Project Folder',
+      })
+      return result.canceled ? null : result.filePaths[0]
+    })
   }
 
   connectToServer(port: number): void {
@@ -71,6 +79,7 @@ export class IPCBridge {
       this.ws = null
     }
     ipcMain.removeAllListeners(IPC_CHANNELS.OPEN_WORKBENCH)
+    ipcMain.removeHandler('pick-directory')
   }
 
   private doConnect(url: string): void {

@@ -50,6 +50,7 @@ import { IdleReaper } from './terminal/IdleReaper'
 import { TerminalViewManager } from './terminal/TerminalViewManager'
 
 import { WhiteboardManager } from './whiteboard/WhiteboardManager'
+import { MemoryGrowthCapture } from './services/agent-evolution/MemoryGrowthCapture'
 import { ExecutionPlanManager } from './mailbox/ExecutionPlanManager'
 import { WorkflowRegistry } from './orchestration/WorkflowRegistry'
 import { WorkflowScheduler } from './orchestration/WorkflowScheduler'
@@ -189,8 +190,17 @@ const broadcastToChat = (chatId: string, msg: Record<string, unknown>) => {
 }
 const expertHandler = new ExpertHandler(configCompiler, agentRegistry, agentStore, chatStore, workspaceStore, tokenUsageStore, executionLogStore, undefined, sessionRegistry, versionGate, broadcastToChat, whiteboardManager, broadcast)
 const workflowScheduler = new WorkflowScheduler({ workflowRegistry, expertHandler, chatStore, workspaceStore, sessionRegistry, broadcastToChat })
+const memoryGrowthCapture = new MemoryGrowthCapture(memoryStore, growthStore, whiteboardManager, agentRegistry)
+whiteboardManager.onEntryAppended((chatId, entry) => {
+  memoryGrowthCapture.onWhiteboardEntry(chatId, entry)
+})
 expertHandler.onAgentExited((chatId, agentId, exitCode, taskCompleted) => {
   workflowScheduler.onAgentExited(chatId, agentId, exitCode, taskCompleted)
+  if (taskCompleted) {
+    memoryGrowthCapture.onTaskCompleted(agentId, chatId)
+  } else {
+    memoryGrowthCapture.onTaskFailed(agentId, chatId)
+  }
 })
 workflowRegistry.setDeps({ whiteboardManager, broadcastToChat, scheduler: workflowScheduler })
 const semanticLogBroadcaster = new SemanticLogBroadcaster(agentRegistry, sessionRegistry, (connId) => expertHandler.getConnectionWs(connId))

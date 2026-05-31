@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>Quick Create Workspace - Interaction Mockup v2</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+    background: #1a1a1a;
+    color: #e0e0e0;
+    min-height: 100vh;
+    padding: 40px 20px;
+  }
+
+  .spec-header {
+    text-align: center;
+    margin-bottom: 40px;
+    max-width: 650px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .spec-header h1 { font-size: 20px; font-weight: 600; margin-bottom: 8px; }
+  .spec-header p { font-size: 13px; color: #888; line-height: 1.6; }
+
+  .section-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #aaa;
+    text-align: center;
+    margin: 50px 0 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+  }
+
+  /* Flow diagram */
+  .flow-diagram {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin: 30px auto;
+    max-width: 800px;
+    flex-wrap: wrap;
+  }
+  .flow-box {
+    background: #222;
+    border: 1px solid #333;
+    border-radius: 6px;
+    padding: 10px 16px;
+    font-size: 12px;
+    color: #ccc;
+    text-align: center;
+    min-width: 120px;
+  }
+  .flow-box.action { border-color: #3b82f6; background: #1e293b; color: #93c5fd; }
+  .flow-box.auto { border-color: #166534; background: #14291e; color: #86efac; font-size: 11px; }
+  .flow-arrow { color: #444; font-size: 16px; }
+
+  /* Tab switcher */
+  .env-tabs {
+    display: flex;
+    justify-content: center;
+    gap: 2px;
+    margin: 30px auto 0;
+    background: #222;
+    border-radius: 6px;
+    padding: 3px;
+    width: fit-content;
+  }
+  .env-tab {
+    padding: 6px 18px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    color: #888;
+    transition: all 0.15s;
+    border: none;
+    background: transparent;
+  }
+  .env-tab.active { background: #333; color: #eee; }
+  .env-tab:hover:not(.active) { color: #bbb; }
+
+  .env-panel {
+    display: none;
+    max-width: 750px;
+    margin: 20px auto;
+  }
+  .env-panel.active { display: block; }
+
+  /* App frames */
+  .mockup-row {
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+    justify-content: center;
+    margin: 20px 0;
+    flex-wrap: wrap;
+  }
+  .mockup-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+  .mockup-label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: #555;
+  }
+
+  .app-frame {
+    width: 340px;
+    background: #111;
+    border-radius: 8px;
+    border: 1px solid #2a2a2a;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .header-bar {
+    height: 36px;
+    background: #161616;
+    border-bottom: 1px solid #222;
+    display: flex;
+    align-items: center;
+    padding: 0 10px;
+    gap: 8px;
+  }
+  .header-bar .title { font-size: 11px; font-weight: 600; color: #ccc; }
+  .header-bar .spacer { flex: 1; }
+
+  .btn-new {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 4px 10px;
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+
+  /* Dir picker mockup */
+  .dir-picker {
+    padding: 0;
+  }
+  .dir-toolbar {
+    display: flex;
+    gap: 4px;
+    padding: 8px 10px;
+    border-bottom: 1px solid #222;
+    background: #161616;
+  }
+  .dir-btn {
+    padding: 3px 8px;
+    border-radius: 3px;
+    font-size: 10px;
+    color: #999;
+    background: #222;
+    border: 1px solid #333;
+    cursor: pointer;
+  }
+  .dir-btn.primary { background: #1d4ed8; color: white; border-color: #2563eb; }
+  .dir-breadcrumb {
+    padding: 6px 10px;
+    font-size: 10px;
+    color: #666;
+    border-bottom: 1px solid #1a1a1a;
+    background: #0d0d0d;
+  }
+  .dir-breadcrumb span { color: #888; }
+  .dir-list {
+    max-height: 180px;
+    overflow-y: auto;
+  }
+  .dir-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    font-size: 11px;
+    color: #aaa;
+    border-bottom: 1px solid #1a1a1a;
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+  .dir-item:hover { background: #1a1a1a; color: #ddd; }
+  .dir-item.highlight { background: #1e293b; color: #93c5fd; border-color: #1d4ed8; }
+  .dir-item .icon { font-size: 11px; }
+  .dir-item .arrow { margin-left: auto; color: #444; font-size: 10px; }
+  .dir-search {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border-bottom: 1px solid #222;
+  }
+  .dir-search input {
+    flex: 1;
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 3px;
+    padding: 4px 8px;
+    font-size: 10px;
+    color: #ccc;
+    outline: none;
+  }
+  .dir-search .icon { color: #555; font-size: 11px; }
+
+  /* Native dialog mockup */
+  .native-dialog {
+    background: #2a2a2a;
+    border-radius: 10px;
+    border: 1px solid #444;
+    padding: 0;
+    width: 340px;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+  }
+  .native-titlebar {
+    height: 32px;
+    background: linear-gradient(180deg, #3a3a3a, #2e2e2e);
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    gap: 6px;
+  }
+  .native-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .native-dot.red { background: #ff5f57; }
+  .native-dot.yellow { background: #febc2e; }
+  .native-dot.green { background: #28c840; }
+  .native-sidebar {
+    display: flex;
+    height: 200px;
+  }
+  .native-side {
+    width: 100px;
+    background: #1e1e1e;
+    border-right: 1px solid #333;
+    padding: 8px 0;
+  }
+  .native-side-item {
+    padding: 3px 10px;
+    font-size: 9px;
+    color: #888;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .native-side-item.active { background: #3b82f6; color: white; border-radius: 3px; margin: 0 4px; }
+  .native-main {
+    flex: 1;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .native-folder {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 6px;
+    font-size: 10px;
+    color: #aaa;
+    border-radius: 3px;
+  }
+  .native-folder.selected { background: #3b82f6; color: white; }
+  .native-footer {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    border-top: 1px solid #333;
+    background: #262626;
+  }
+  .native-footer-btn {
+    padding: 4px 12px;
+    border-radius: 4px;
+    font-size: 10px;
+    border: none;
+    cursor: pointer;
+  }
+  .native-footer-btn.cancel { background: #444; color: #aaa; }
+  .native-footer-btn.open { background: #3b82f6; color: white; }
+
+  /* Comparison */
+  .comparison {
+    max-width: 700px;
+    margin: 0 auto;
+  }
+  .comparison-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .comparison-card {
+    background: #161616;
+    border: 1px solid #2a2a2a;
+    border-radius: 8px;
+    padding: 16px;
+  }
+  .comparison-card h3 {
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: #888;
+  }
+  .comparison-card.new h3 { color: #3b82f6; }
+  .flow-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .flow-step {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    color: #999;
+  }
+  .flow-step .num {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #2a2a2a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    font-weight: 600;
+    color: #666;
+    flex-shrink: 0;
+  }
+  .comparison-card.new .flow-step .num { background: #1e3a5f; color: #60a5fa; }
+
+  /* Edge cases table */
+  .edge-table {
+    width: 100%;
+    font-size: 11px;
+    border-collapse: collapse;
+    max-width: 700px;
+    margin: 0 auto;
+    background: #161616;
+    border: 1px solid #2a2a2a;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .edge-table td {
+    padding: 10px 14px;
+    border-bottom: 1px solid #222;
+    vertical-align: top;
+  }
+  .edge-table td:first-child { color: #888; width: 25%; }
+  .edge-table td:last-child { color: #ccc; }
+  .edge-table tr:last-child td { border-bottom: none; }
+
+  /* Annotation callout */
+  .callout {
+    background: #1e293b;
+    border: 1px solid #1d4ed8;
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-size: 11px;
+    color: #93c5fd;
+    margin: 12px 0;
+    line-height: 1.5;
+  }
+  .callout strong { color: #bfdbfe; }
+
+  .annotation {
+    position: absolute;
+    font-size: 9px;
+    color: #f59e0b;
+    background: #422006;
+    border: 1px solid #92400e;
+    border-radius: 3px;
+    padding: 2px 6px;
+    white-space: nowrap;
+  }
+
+  @media (max-width: 800px) {
+    .mockup-row { flex-direction: column; align-items: center; }
+    .comparison-grid { grid-template-columns: 1fr; }
+    .flow-diagram { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+
+<div class="spec-header">
+  <h1>Workspace 一键创建 - 交互方案 v2</h1>
+  <p>
+    点击 "+ New" → 直接进入文件夹选择 → 选定即创建。<br>
+    Electron 用原生 OS 对话框，Web 复用已有 DirPickerDialog（支持多级导航）。
+  </p>
+</div>
+
+<!-- Flow overview -->
+<div class="section-title">操作流程总览</div>
+<div class="flow-diagram">
+  <div class="flow-box action">点击 "+ New"</div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-box">文件夹选择器<br><span style="font-size:10px;color:#666;">(多级导航/搜索)</span></div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-box action">选中目标文件夹</div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-box auto">自动创建 Workspace<br><span style="font-size:9px;">名称=文件夹名</span></div>
+  <div class="flow-arrow">→</div>
+  <div class="flow-box auto">自动跳转进入</div>
+</div>
+
+<!-- Environment tabs -->
+<div class="section-title">分环境交互细节</div>
+<div class="env-tabs">
+  <button class="env-tab active" onclick="switchTab('electron')">Electron (桌面端)</button>
+  <button class="env-tab" onclick="switchTab('web')">Web (浏览器端)</button>
+</div>
+
+<!-- Electron panel -->
+<div class="env-panel active" id="panel-electron">
+  <div class="callout">
+    <strong>Electron 方案：</strong>调用 <code>dialog.showOpenDialog({ properties: ['openDirectory'] })</code>，
+    弹出 macOS Finder / Windows Explorer 原生对话框。多级导航、搜索、收藏夹全部由 OS 提供，零开发成本。
+  </div>
+  <div class="mockup-row">
+    <div class="mockup-col">
+      <div class="mockup-label">1. 点击 New</div>
+      <div class="app-frame">
+        <div class="header-bar">
+          <div class="title">Workspaces</div>
+          <div class="spacer"></div>
+          <button class="btn-new" style="animation: pulse-ring 1.5s ease-out infinite; box-shadow: 0 0 0 0 rgba(59,130,246,0.5);">+ New</button>
+        </div>
+        <div style="padding:12px;">
+          <div class="dir-item" style="border:1px solid #222; border-radius:5px; margin-bottom:4px;">
+            <span class="icon">📂</span> openteam <span class="arrow" style="margin-left:auto; color:#555; font-size:10px;">3 chats</span>
+          </div>
+          <div class="dir-item" style="border:1px solid #222; border-radius:5px;">
+            <span class="icon">📂</span> my-blog <span class="arrow" style="margin-left:auto; color:#555; font-size:10px;">1 chat</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mockup-col">
+      <div class="mockup-label">2. 系统原生对话框</div>
+      <div class="native-dialog">
+        <div class="native-titlebar">
+          <div class="native-dot red"></div>
+          <div class="native-dot yellow"></div>
+          <div class="native-dot green"></div>
+          <span style="flex:1;text-align:center;font-size:10px;color:#aaa;">Open</span>
+        </div>
+        <div class="native-sidebar">
+          <div class="native-side">
+            <div class="native-side-item"><span>⭐</span> Favorites</div>
+            <div class="native-side-item"><span>🏠</span> Home</div>
+            <div class="native-side-item active"><span>💻</span> Desktop</div>
+            <div class="native-side-item"><span>📁</span> Documents</div>
+            <div class="native-side-item"><span>⬇️</span> Downloads</div>
+          </div>
+          <div class="native-main">
+            <div class="native-folder"><span>📁</span> node_modules</div>
+            <div class="native-folder"><span>📁</span> packages</div>
+            <div class="native-folder selected"><span>📁</span> ai-saas-app</div>
+            <div class="native-folder"><span>📁</span> scripts</div>
+            <div class="native-folder"><span>📁</span> vendor</div>
+            <div style="flex:1;"></div>
+            <div style="font-size:9px;color:#666;padding:4px;">
+              ~/work/projects/ai-saas-app
+            </div>
+          </div>
+        </div>
+        <div class="native-footer">
+          <div class="native-footer-btn cancel">Cancel</div>
+          <div class="native-footer-btn open">Open</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="callout" style="margin-top:20px;">
+    用户点 "Open" 后 → 后端自动用文件夹路径调 <code>POST /api/workspaces/quick-start</code> → 创建 Workspace → 前端跳转进入。<strong>全程无额外表单。</strong>
+  </div>
+</div>
+
+<!-- Web panel -->
+<div class="env-panel" id="panel-web">
+  <div class="callout">
+    <strong>Web 方案：</strong>复用已有的 DirPickerDialog 组件。支持多级目录浏览（点击进入子目录）、
+    返回上级、Home 跳转、以及关键词搜索。选中目标文件夹后点 "选择此目录" 即完成。
+  </div>
+  <div class="mockup-row">
+    <div class="mockup-col">
+      <div class="mockup-label">1. 点击 New → 直接弹出目录浏览器</div>
+      <div class="app-frame" style="width:380px;">
+        <div class="header-bar">
+          <div class="title" style="font-size:10px;">选择项目文件夹</div>
+          <div class="spacer"></div>
+        </div>
+        <div class="dir-picker">
+          <div class="dir-search">
+            <span class="icon">🔍</span>
+            <input placeholder="搜索文件夹..." />
+          </div>
+          <div class="dir-toolbar">
+            <div class="dir-btn">Home</div>
+            <div class="dir-btn">上级</div>
+            <div class="dir-btn primary">选择此目录</div>
+          </div>
+          <div class="dir-breadcrumb">
+            <span>~</span> / <span>work</span> / <span>projects</span>
+          </div>
+          <div class="dir-list">
+            <div class="dir-item">
+              <span class="icon">📁</span> components <span class="arrow">›</span>
+            </div>
+            <div class="dir-item highlight">
+              <span class="icon">📁</span> ai-saas-app <span class="arrow">›</span>
+            </div>
+            <div class="dir-item">
+              <span class="icon">📁</span> backend-api <span class="arrow">›</span>
+            </div>
+            <div class="dir-item">
+              <span class="icon">📁</span> mobile-app <span class="arrow">›</span>
+            </div>
+            <div class="dir-item">
+              <span class="icon">📁</span> shared-libs <span class="arrow">›</span>
+            </div>
+          </div>
+        </div>
+        <div style="position:relative;">
+          <div class="annotation" style="top:-14px; right:8px;">点击 › 进入子目录</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mockup-col">
+      <div class="mockup-label">2. 也可搜索直达</div>
+      <div class="app-frame" style="width:380px;">
+        <div class="header-bar">
+          <div class="title" style="font-size:10px;">选择项目文件夹</div>
+          <div class="spacer"></div>
+        </div>
+        <div class="dir-picker">
+          <div class="dir-search">
+            <span class="icon">🔍</span>
+            <input value="ai-saas" style="color:#ccc;background:#1a1a1a;border:1px solid #3b82f6;border-radius:3px;padding:4px 8px;font-size:10px;flex:1;outline:none;" />
+          </div>
+          <div class="dir-toolbar">
+            <div class="dir-btn">Home</div>
+            <div class="dir-btn">上级</div>
+            <div class="dir-btn primary">选择此目录</div>
+          </div>
+          <div class="dir-list">
+            <div class="dir-item highlight">
+              <span class="icon">📁</span>
+              <span>~/work/projects/<strong style="color:#93c5fd">ai-saas</strong>-app</span>
+            </div>
+            <div class="dir-item">
+              <span class="icon">📁</span>
+              <span>~/archived/<strong style="color:#93c5fd">ai-saas</strong>-v1</span>
+            </div>
+          </div>
+        </div>
+        <div style="position:relative;">
+          <div class="annotation" style="top:-14px; right:8px;">搜索结果点击即选中</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="callout" style="margin-top:20px;">
+    多级导航：每个文件夹右侧 <code>›</code> 可点击钻入。顶部 "上级" 按钮返回。<br>
+    搜索是全局模糊匹配，输入关键字直接跳到目标，不需要一层层点。
+  </div>
+</div>
+
+<!-- Comparison -->
+<div class="section-title">新旧流程对比</div>
+<div class="comparison">
+  <div class="comparison-grid">
+    <div class="comparison-card">
+      <h3>当前流程 (4 步 + 多次点击)</h3>
+      <div class="flow-steps">
+        <div class="flow-step"><span class="num">1</span> 点击 "+ New" 按钮</div>
+        <div class="flow-step"><span class="num">2</span> 输入 Workspace 名称</div>
+        <div class="flow-step"><span class="num">3</span> 点 "添加 Repo" → 弹出目录选择器 → 导航 → 选择</div>
+        <div class="flow-step"><span class="num">4</span> 回到创建 Dialog → 点 "创建并开始"</div>
+      </div>
+      <div style="margin-top:10px;font-size:10px;color:#666;">
+        中间有 2 个 Dialog 串联，认知负担重
+      </div>
+    </div>
+    <div class="comparison-card new">
+      <h3>新流程 (1 步操作 + 1 步选择)</h3>
+      <div class="flow-steps">
+        <div class="flow-step"><span class="num">1</span> 点击 "+ New" → 直接弹出文件夹选择</div>
+        <div class="flow-step"><span class="num">2</span> 导航/搜索 → 选中文件夹 → 完成</div>
+      </div>
+      <div style="margin-top:12px; padding-top:10px; border-top:1px solid #222;">
+        <div style="font-size:10px;color:#666; margin-bottom:6px;">系统自动完成：</div>
+        <div class="flow-steps" style="gap:4px;">
+          <div class="flow-step" style="color:#555; font-size:10px;">• Workspace 名称 = 文件夹名</div>
+          <div class="flow-step" style="color:#555; font-size:10px;">• 自动绑定为单 Repo</div>
+          <div class="flow-step" style="color:#555; font-size:10px;">• 创建完成后自动跳转进入</div>
+          <div class="flow-step" style="color:#555; font-size:10px;">• 已存在时直接跳转（不重复创建）</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edge cases -->
+<div class="section-title">边界场景处理</div>
+<table class="edge-table">
+  <tr>
+    <td>文件夹已被绑定</td>
+    <td>该路径已属于某 Workspace → 直接跳转进入已有 Workspace，toast 提示 "该项目已在 Workspace「xxx」中"</td>
+  </tr>
+  <tr>
+    <td>名称冲突</td>
+    <td>已有同名 Workspace → 自动追加后缀：<code>ai-saas-app</code> → <code>ai-saas-app-2</code></td>
+  </tr>
+  <tr>
+    <td>多 Repo 需求</td>
+    <td>先用一键创建（单 Repo），进入后在 Workspace 设置中追加更多 Repo。覆盖 80% 单项目场景</td>
+  </tr>
+  <tr>
+    <td>目录导航</td>
+    <td><strong>Electron</strong>：原生 OS 对话框处理（Finder/Explorer 多级导航、搜索、收藏夹）<br>
+        <strong>Web</strong>：DirPickerDialog 逐层浏览 + 全局搜索直达</td>
+  </tr>
+  <tr>
+    <td>取消 / ESC</td>
+    <td>关闭选择器，无任何副作用，回到 Workspace 列表</td>
+  </tr>
+  <tr>
+    <td>空文件夹</td>
+    <td>允许选择空文件夹创建 Workspace（用户可能要新建项目）</td>
+  </tr>
+</table>
+
+<!-- Implementation notes -->
+<div class="section-title">实现要点</div>
+<div style="max-width:700px; margin:0 auto 60px;">
+  <table class="edge-table">
+    <tr>
+      <td>前端改动</td>
+      <td>
+        <code>WorkspacesPage.tsx</code>：<br>
+        • 点击 New → 判断 isElectron<br>
+        • Electron → 通过 IPC 调用 <code>dialog.showOpenDialog</code><br>
+        • Web → 直接打开 DirPickerDialog（跳过 CreateWorkspaceDialog）
+      </td>
+    </tr>
+    <tr>
+      <td>后端复用</td>
+      <td>
+        复用已有 <code>POST /api/workspaces/quick-start</code> 接口：<br>
+        • 传入 repoPath → 自动 find-or-create workspace<br>
+        • 名称取 <code>basename(repoPath)</code>
+      </td>
+    </tr>
+    <tr>
+      <td>删除代码</td>
+      <td>
+        <code>CreateWorkspaceDialog.tsx</code> 可删除（或保留为 "高级创建" 入口）
+      </td>
+    </tr>
+    <tr>
+      <td>Electron IPC</td>
+      <td>
+        新增 IPC handler：<code>ipcMain.handle('pick-directory', () => dialog.showOpenDialog(...))</code>
+      </td>
+    </tr>
+  </table>
+</div>
+
+<script>
+function switchTab(env) {
+  document.querySelectorAll('.env-tab').forEach(t => t.classList.remove('active'))
+  document.querySelectorAll('.env-panel').forEach(p => p.classList.remove('active'))
+  event.target.classList.add('active')
+  document.getElementById('panel-' + env).classList.add('active')
+}
+</script>
+
+<style>
+@keyframes pulse-ring {
+  0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.5); }
+  70% { box-shadow: 0 0 0 6px rgba(59, 130, 246, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+}
+</style>
+
+</body>
+</html>

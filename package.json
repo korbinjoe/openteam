@@ -101,6 +101,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.98.0",
+    "@fontsource/inter": "^5.2.8",
     "better-sqlite3": "^12.8.0",
     "diff": "^5.2.2",
     "monaco-editor": "^0.53.0",

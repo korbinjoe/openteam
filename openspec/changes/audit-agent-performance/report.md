@@ -268,7 +268,7 @@ With adjustment, ui-designer MSS rises from 8.0% to 15.4%.
 | DB metrics (cost, tokens, task_status) | 85 sessions, 6 days (May 25-30) | Pre-DB sessions lack cost/token data |
 | JSONL conversation analysis | 216 sessions, 11 days | Full coverage |
 | Agent identification | 100% for DB sessions, 97% for pre-DB | 4 sessions unidentified |
-| External projects (aone-cloud-cli, etc.) | Not included | Would add ~500 more sessions but different context |
+| External projects | Not included | Would add ~500 more sessions but different context |
 
 The pre-DB period (May 20-24) lacks task_status and cost data because the database was
 created/reset around May 25. The satisfaction analysis (MSS) is based solely on JSONL

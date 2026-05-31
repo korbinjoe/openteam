@@ -2,49 +2,37 @@
 
 **The operating system for AI super-individuals — one person, the output of a whole team.**
 
-Declare agents, models, and skills in a single `openteam.json` and you've got a working AI team. Each agent runs on the CLI of your choice — **Claude Code**, **Codex**, or any backend you plug in — so you keep your existing tools, prompts, and credits.
-
-Dispatch tasks in parallel, walk away, come back to batch-review. One human, the output of a small company.
-
-Watch the video:
-[![Watch the video](https://github.com/user-attachments/assets/5f7b0993-b334-4e62-8114-3a24c6bd7a2c)](https://www.youtube.com/watch?v=VPqUtZZcyZk)
-
-
-## Why OpenTeam?
-
-You already use Claude Code or Codex. But you're stuck running one agent at a time — context-switching, waiting, babysitting. And every "AI team" product locks you into their backend.
-
-OpenTeam flips both:
-
-- **Stand up a team in minutes** — one config file, ready-to-run agents (Lead, Fullstack, Reviewer, …), or define your own
-- **Bring your own AI CLI** — first-class Claude Code & Codex support; add a new backend by implementing two interfaces (`SessionDiscovery` + `OutputParser`)
-- **Walk-away orchestration** — the Lead decomposes tasks into a DAG, dispatches to expert agents in parallel, and drives the workflow to completion while you're away
-
 ```
 You:   "Build the auth module, add tests, and update the docs"
-       ↓ Lead creates a DAG workflow
-       ↓ dispatches to 3 expert agents in parallel
-       ↓ each works in an isolated git worktree
+       ↓ Lead decomposes into a DAG
+       ↓ dispatches 3 expert agents in parallel
+       ↓ each works in its own git worktree
        ↓ you go grab coffee
        ↓ come back, review 3 PRs, ship
 ```
 
-### How It's Different
+One config file. A full AI team. Walk away and come back to finished work.
 
-| | OpenTeam | Cursor/Windsurf | Claude Code | Devin |
-|---|---|---|---|---|
-| Multi-agent parallel | **Yes** | No | No | No |
-| Open source | **Yes** | No | No | No |
-| Runs locally | **Yes** | Partial | Yes | No |
-| Web IDE + terminal | **Yes** | Yes | No | Yes |
-| Provider-agnostic | **Yes** | No | No | No |
-| Walk away & come back | **Yes** | No | No | Yes |
-| DAG workflow engine | **Yes** | No | No | No |
+[![Watch the demo](https://github.com/user-attachments/assets/5f7b0993-b334-4e62-8114-3a24c6bd7a2c)](https://www.youtube.com/watch?v=VPqUtZZcyZk)
+
+---
+
+## Why OpenTeam?
+
+You already use Claude Code or Codex. But you're stuck running **one agent at a time** — context-switching, waiting, babysitting.
+
+OpenTeam gives you a team that works while you don't:
+
+- **Parallel execution** — multiple agents work simultaneously on different parts of your task
+- **Bring your own CLI** — first-class Claude Code & Codex support; add any backend by implementing two interfaces
+- **Walk-away orchestration** — Lead decomposes, dispatches, drives workflow to completion. You come back to results
+- **Skill-powered agents** — not just prompts; agents carry executable skills (browser automation, image generation, code review checklists, war-room coordination)
+
+---
 
 ## Quick Start
 
 ```bash
-# Install
 git clone https://github.com/korbinjoe/openteam.git
 cd openteam && npm install
 
@@ -52,35 +40,69 @@ cd openteam && npm install
 npm run dev
 # → Open http://localhost:13000
 
-# Or run as Electron desktop app
+# Or as Electron desktop app
 npm run dev:electron
 ```
 
 **Prerequisites**: Node.js ≥ 18, npm, and a Claude Code or Codex CLI installed.
 
+---
+
+## How It Works
+
+### 1. Define your team in `openteam.json`
+
+```jsonc
+{
+  "agents": {
+    "list": [
+      { "id": "lead", "name": "Lead", "model": "claude-sonnet-4-6" },
+      { "id": "fullstack-product-engineer", "name": "Fullstack Engineer" },
+      { "id": "code-reviewer", "name": "Code Reviewer" },
+      { "id": "ui-designer", "name": "UI Designer" }
+      // Add your own — just point to a directory with a SOUL.md
+    ]
+  }
+}
+```
+
+### 2. Dispatch a task
+
+Tell the Lead what you need. It decides whether to answer directly, hand off to one expert, or create a multi-step DAG workflow across several agents.
+
+### 3. Walk away
+
+Agents work in isolated git worktrees. The workflow engine handles dependencies, retries, and failure policies. You come back to review results.
+
+---
+
 ## Features
 
-### Orchestration
+### Orchestration Engine
 
-- **Lead-driven DAG workflows** — Lead agent decomposes tasks into a dependency graph, dispatches expert agents in the right order, and advances the workflow automatically
-- **Handoff protocol** — agents hand off work to the right specialist instead of doing everything themselves
-- **Workspace isolation** — each agent works in its own git worktree to avoid conflicts
-- **Heartbeat monitoring** — configurable heartbeat checks keep long-running agents on track
+- **DAG Workflows** — Lead decomposes tasks into dependency graphs and dispatches agents in optimal order
+- **Handoff Protocol** — agents route work to the right specialist automatically
+- **Workspace Isolation** — each agent works in its own git worktree, no merge conflicts
+- **Failure Policies** — per-task `stop`, `skip`, or `retry` with configurable attempts and timeouts
+- **Heartbeat Monitoring** — keeps long-running agents on track
 
 ### Web IDE
 
 - File tree + Monaco editor + multi-tab terminal
 - Built-in browser preview for frontend work
 - Git diff viewer and commit panel
-- Inline code changes review
+- Inline code review for agent changes
 
-### Agent Management
+### War Room
 
-- **War Room (Whiteboard)** — shared context board where agents post goals, findings, and decisions visible to the whole team
-- **DevPanel** — 5-tab observability dashboard: Overview, Agents, Events, Protocol timeline, and Workflow DAG inspector
+A shared context board where agents post goals, decisions, artifacts, and blockers — visible to the whole team. No agent works in a vacuum.
+
+### Observability
+
+- **DevPanel** — 5-tab dashboard: Overview, Agents, Events, Protocol timeline, Workflow DAG inspector
 - **Real-time token tracking** by model and conversation
-- **Permission interception** — approve or reject agent tool calls in real-time
-- **Cron scheduler** — schedule recurring agent tasks with natural language time parsing
+- **Permission interception** — approve or reject agent tool calls live
+- **Cron scheduler** — recurring agent tasks with natural-language time parsing
 
 ### Developer Experience
 
@@ -89,35 +111,57 @@ npm run dev:electron
 - Desktop app via Electron (macOS)
 - CLI mode for headless operation
 
+---
+
 ## Built-in Agent Team
 
-| Agent | Role |
-|-------|------|
-| **Lead** | Intelligent task router — answers simple questions directly, hands off single tasks, or creates DAG workflows for multi-step orchestration |
-| **Fullstack Product Engineer** | End-to-end feature delivery from design to implementation |
-| **Code Review Expert** | Multi-language code review, quality analysis, bug root-cause analysis |
-| **Visual Design Expert** | UI design and implementation with browser-verified screenshot review |
-| **DevOps Expert** | CI/CD, deployment, and infrastructure on modern platforms |
-| **Architecture Review Expert** | Architecture assessment, layering, and dependency governance |
-| **Growth Coach (Sensei)** | Agent team evolution, prompt optimization, performance evaluation |
-| **Image Creator** | AI image generation via Gemini models |
-| **Product Strategist** | Competitive analysis, product research, PRD and wireframes |
+| Agent | What it does |
+|-------|-------------|
+| **Lead** | Routes tasks — answers directly, hands off, or creates DAG workflows |
+| **Fullstack Engineer** | End-to-end feature delivery from design to implementation |
+| **Code Reviewer** | Multi-language code review, quality analysis, root-cause analysis |
+| **UI Designer** | Visual design + implementation with browser-verified screenshots |
+| **DevOps Engineer** | CI/CD, deployment, and infrastructure |
+| **Architect** | Architecture assessment, layering, dependency governance |
+| **Product Strategist** | Competitive analysis, PRDs, wireframes |
+| **Image Creator** | AI image generation via Gemini |
 | **Growth Marketer** | Project promotion and social media content |
+| **Sensei** | Agent team evolution and prompt optimization |
 
-Customize your team in `openteam.json`. Adding a new agent = add an entry to `agents.list` with a workspace directory containing a `SOUL.md`.
+Adding a custom agent = create a directory with a `SOUL.md` and add one entry to `openteam.json`.
 
-## CLI
+---
 
-```bash
-npx openteam serve       # Start as web service (daemon mode)
-npx openteam agents      # List configured agents
-npx openteam workspaces  # Manage workspaces
-npx openteam config      # View/edit configuration
-npx openteam run         # Run a task directly
-npx openteam chat        # Interactive chat mode
-npx openteam daemon      # Manage background daemon
-npx openteam update      # Check for updates
-```
+## Skills System
+
+Agents aren't just prompts — they carry executable skills:
+
+| Skill | Description |
+|-------|-------------|
+| `workflow` | DAG creation, advancement, status tracking |
+| `handoff` | Transfer tasks to the right specialist |
+| `whiteboard` | Read/write shared War Room context |
+| `playwright-cli` | Browser automation and screenshot verification |
+| `image-generator` | AI image generation |
+| `x-promoter` | Social media content creation |
+| `code-reviewer-*` | Language-specific review checklists (React, TypeScript, Node.js) |
+| `api-integrator` | API contract implementation |
+| `product-design` | PRD and wireframe generation |
+| `skill-creator` | Create new skills dynamically |
+
+Skills are composable — any agent can carry any combination. Build your own by dropping a script into the skills directory.
+
+---
+
+## Use Cases
+
+**Solo Founder** — You have a product idea. Tell Lead to "build the landing page, implement the signup API, and write the copy." Three agents work in parallel. You review one PR with all the pieces.
+
+**Open Source Maintainer** — A contributor submits a large PR. Dispatch Code Reviewer across backend, frontend, and config in parallel. Get a structured review report in minutes, not hours.
+
+**Freelancer** — Client wants a feature + tests + docs. Dispatch once, go work on another client. Come back to a complete deliverable.
+
+---
 
 ## Architecture
 
@@ -137,12 +181,12 @@ npx openteam update      # Check for updates
       Workspace)     activity)     storage)
 ```
 
-**Key design decisions**:
+**Design decisions**:
 
-- **JSONL as source of truth** — conversation messages live in JSONL files, not the database
-- **PTY persistence** — terminal sessions persist independently of WebSocket connections
-- **Provider-agnostic** — adding a new CLI provider = implement `SessionDiscovery` + `OutputParser`
-- **DAG workflow engine** — server-driven workflow scheduling with dependency resolution
+- **JSONL as source of truth** — messages live in JSONL files, not the database
+- **PTY persistence** — terminal sessions survive WebSocket disconnects
+- **Provider-agnostic** — new CLI = implement `SessionDiscovery` + `OutputParser`
+- **Server-driven workflows** — dependency resolution, scheduling, and failure handling
 
 ## Tech Stack
 
@@ -156,6 +200,23 @@ npx openteam update      # Check for updates
 | Editor | Monaco Editor |
 | Terminal | xterm.js |
 
+---
+
+## CLI
+
+```bash
+npx openteam serve       # Start as web service
+npx openteam agents      # List configured agents
+npx openteam workspaces  # Manage workspaces
+npx openteam config      # View/edit configuration
+npx openteam run         # Run a task directly
+npx openteam chat        # Interactive chat mode
+npx openteam daemon      # Manage background daemon
+npx openteam update      # Check for updates
+```
+
+---
+
 ## Configuration
 
 Runtime data lives in `~/.openteam/`. Team config in `openteam.json` at the project root.
@@ -167,11 +228,25 @@ Runtime data lives in `~/.openteam/`. Team config in `openteam.json` at the proj
 | `OPENTEAM_HOME` | Data directory | `~/.openteam` |
 | `PORT` | Server port | `13001` |
 
+---
+
+## Roadmap
+
+- [ ] GitHub Actions integration — trigger workflows from CI
+- [ ] Plugin marketplace — share and install community skills
+- [ ] Multi-repo orchestration — agents working across repositories
+- [ ] Voice dispatch — speak tasks, review results on mobile
+- [ ] Cost budgets — per-workflow spending limits with auto-pause
+
+---
+
 ## Contributing
 
 We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 Good first issues are tagged with [`good first issue`](../../labels/good%20first%20issue).
+
+---
 
 ## License
 

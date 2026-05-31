@@ -44,7 +44,7 @@ Skip OpenSpec for:
 
 | Agent | Propose | Apply | Verify |
 |-------|---------|-------|--------|
-| fullstack-product-engineer | Author | Implementor | — |
+| fullstack-engineer | Author | Implementor | — |
 | architect | Reviewer | — | Arch Review |
 | code-reviewer | — | — | Code Review |
 | ui-designer | — | Implementor | UI Review |

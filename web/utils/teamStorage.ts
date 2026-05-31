@@ -61,13 +61,30 @@ export const initDefaultHiredAgents = async (
   if (migrated) return migrated
 
   const { ids, initialized } = await fetchHiredAgents()
-  if (initialized) return ids
+
+  if (!initialized) {
+    const builtinIds = allAgents
+      .filter((a) => a.source === 'builtin')
+      .map((a) => a.id)
+    await putHiredAgents(builtinIds)
+    return builtinIds
+  }
 
   const builtinIds = allAgents
     .filter((a) => a.source === 'builtin')
     .map((a) => a.id)
-  await putHiredAgents(builtinIds)
-  return builtinIds
+  const currentSet = new Set(ids)
+  const allAgentIds = new Set(allAgents.map((a) => a.id))
+  const missing = builtinIds.filter((id) => !currentSet.has(id))
+  const stale = ids.filter((id) => !allAgentIds.has(id))
+
+  if (missing.length > 0 || stale.length > 0) {
+    const updated = ids.filter((id) => !stale.includes(id)).concat(missing)
+    await putHiredAgents(updated)
+    return updated
+  }
+
+  return ids
 }
 
 export const getHiredAgentIds = async (): Promise<string[]> => {
@@ -103,7 +120,7 @@ const AGENT_ORDER_KEY = 'openteam:agent-order'
 
 export const DEFAULT_AGENT_ORDER = [
   'lead',
-  'fullstack-product-engineer',
+  'fullstack-engineer',
   'code-reviewer',
   'ui-designer',
   'devops-engineer',

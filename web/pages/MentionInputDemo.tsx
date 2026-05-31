@@ -24,7 +24,7 @@ const MOCK_FILES: FileItem[] = [
 ]
 
 const MOCK_AGENTS: AgentItem[] = [
-  { kind: 'agent', id: 'fullstack-product-engineer', name: 'Full-stack product engineer' },
+  { kind: 'agent', id: 'fullstack-engineer', name: 'Full-stack product engineer' },
   { kind: 'agent', id: 'code-reviewer', name: 'Code review expert' },
   { kind: 'agent', id: 'ui-designer', name: 'Visual design expert' },
   { kind: 'agent', id: 'architect', name: 'Architecture review expert' },

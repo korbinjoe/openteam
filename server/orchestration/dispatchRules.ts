@@ -32,7 +32,7 @@ export const DISPATCH_RULES: DispatchRule[] = [
     },
   },
   {
-    agentId: 'fullstack-product-engineer',
+    agentId: 'fullstack-engineer',
     keywords: {
       en: ['fix', 'bug', 'debug', 'implement', 'build', 'create', 'add feature', 'refactor', 'update', 'modify', 'change', 'write code'],
       zh: ['修复', '实现', '开发', '创建', '添加', '修改', '重构', '为啥不行', '状态不对', '写代码'],

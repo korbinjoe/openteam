@@ -4,7 +4,7 @@ export const AGENT_EMOJI: Record<string, string> = {
   'architect': '🦅',
   'code-reviewer': '🦅',
   'devops-engineer': '🐻',
-  'fullstack-product-engineer': '🐺',
+  'fullstack-engineer': '🐺',
   'image-creator': '🦎',
   'sensei': '🐙',
   'ui-designer': '🦊',

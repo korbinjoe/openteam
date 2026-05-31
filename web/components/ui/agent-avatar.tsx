@@ -48,7 +48,7 @@ const MONOGRAM_HUES = [210, 250, 280, 320, 0, 25, 45, 90, 160, 190]
 
 const AGENT_COLOR_MAP: Record<string, string> = {
   'lead':                         '#6B8DB5', // 天青 Sky blue
-  'fullstack-product-engineer':   '#C87941', // 琥珀 Amber
+  'fullstack-engineer':   '#C87941', // 琥珀 Amber
   'code-reviewer':                '#5BA0A8', // 碧落 Cerulean
   'ui-designer':                  '#C76B8A', // 海棠 Crabapple
   'devops-engineer':              '#7BA056', // 翠柳 Willow green

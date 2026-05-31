@@ -7,7 +7,7 @@ export type AgentMarkdownTemplate = {
 
 export const AGENTS_MD_TEMPLATES: AgentMarkdownTemplate[] = [
   {
-    id: 'fullstack-product-engineer',
+    id: 'fullstack-engineer',
     title: 'Full-stack Product Engineer',
     description: 'Handles end-to-end delivery from requirements analysis, technical design to frontend/backend development.',
     body: [
@@ -330,7 +330,7 @@ export const SOUL_MD_TEMPLATES: AgentMarkdownTemplate[] = [
     ].join('\n'),
   },
   {
-    id: 'soul-fullstack-product-engineer',
+    id: 'soul-fullstack-engineer',
     title: 'Pragmatic & Efficient',
     description: 'Peer-like tone, only key steps and outputs; proactively appends impact verification on completion',
     body: [

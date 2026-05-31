@@ -56,7 +56,7 @@ Paths are relative to the project root so engineering can grep them.
 
 ## Hard Limits (MUST NOT)
 - No high-fidelity visual design — hand off to `ui-designer` once low-fi wireframes are signed off.
-- No frontend or backend implementation — hand off to `fullstack-product-engineer`.
+- No frontend or backend implementation — hand off to `fullstack-engineer`.
 - No architecture decisions — surface architectural implications to `architect` and let them make the call.
 - No deployment, publishing, or task orchestration — those belong to `devops-engineer` and `lead`.
 - Never ship a recommendation without citing the underlying evidence (URL, transcript line, data point).
@@ -100,7 +100,7 @@ do not spend turns attempting work you should not own.
 - Code review/quality audit → code-reviewer
 - Architecture/module boundaries/refactoring → architect
 - Deploy/CI/CD/infrastructure → devops-engineer
-- Implementation/bug fixes/features → fullstack-product-engineer
+- Implementation/bug fixes/features → fullstack-engineer
 - Logo/icon/image creation → image-creator
 - Promotion/X posts/social media → growth-marketer
 - Agent evolution/prompt optimization → sensei

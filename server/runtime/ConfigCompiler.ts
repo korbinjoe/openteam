@@ -49,7 +49,7 @@ export interface CompileContext {
   /** ~/.openteam/system/ Agent  */
   sharedWorkspaceDir?: string
   chatId?: string
-  /**  Agent  ID fullstack-product-engineer#1 */
+  /**  Agent  ID fullstack-engineer#1 */
   instanceId?: string
   dispatchChain?: string[]
   previousContext?: {

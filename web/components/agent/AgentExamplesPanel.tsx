@@ -25,7 +25,7 @@ const pickBody = (templates: { id: string; body: string }[], id: string, fallbac
 
 const EXAMPLE_BODIES: Record<Tab, string> = {
   'IDENTITY.md': IDENTITY_MD_EXAMPLE,
-  'AGENTS.md': pickBody(AGENTS_MD_TEMPLATES, 'fullstack-product-engineer'),
+  'AGENTS.md': pickBody(AGENTS_MD_TEMPLATES, 'fullstack-engineer'),
   'SOUL.md': pickBody(SOUL_MD_TEMPLATES, 'soul-architect'),
 }
 

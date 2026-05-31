@@ -18,7 +18,7 @@ Bug fixes and small patches do NOT require OpenSpec unless they involve architec
 
 | Role | Agent | Responsibility |
 |------|-------|---------------|
-| Author | fullstack-product-engineer | Create `openspec/changes/<name>/proposal.md`, `specs/`, `design.md`, `tasks.md` |
+| Author | fullstack-engineer | Create `openspec/changes/<name>/proposal.md`, `specs/`, `design.md`, `tasks.md` |
 | Reviewer | architect | Review proposal for architectural soundness |
 | Reviewer | lead | Review proposal for scope and feasibility |
 
@@ -34,7 +34,7 @@ Required files:
 
 | Role | Agent | Responsibility |
 |------|-------|---------------|
-| Implementor | fullstack-product-engineer | Implement tasks.md items, check off completed |
+| Implementor | fullstack-engineer | Implement tasks.md items, check off completed |
 | Implementor | devops-engineer | CI/CD and infrastructure changes |
 | Implementor | ui-designer | UI implementation and visual verification |
 

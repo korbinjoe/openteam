@@ -18,7 +18,7 @@ const instanceFallbackHandler = <T,>(): ProxyHandler<Record<string, T>> => ({
  * -  selectedAgentId  targetAgentIdper-instance  localStorage
  *    Tab  ls  agent
  * -  agent —  useChatWebSocket  workspace init
- *   (primary → fullstack-product-engineer → first) effect
+ *   (primary → fullstack-engineer → first) effect
  * -  agentNames / agentPersonalities
  */
 export const useAgents = () => {

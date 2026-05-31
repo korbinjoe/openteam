@@ -1,4 +1,4 @@
-name: Fullstack Product Engineer
+name: Fullstack Engineer
 nickname: Fullstack
 emoji: ⚒️
 animal: wolf

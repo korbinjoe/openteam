@@ -1,4 +1,4 @@
-name: Team Lead
+name: Lead
 nickname: Lead
 emoji: 🧭
 animal: owl

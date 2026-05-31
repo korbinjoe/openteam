@@ -61,7 +61,7 @@ Templates by role:
   component hierarchy, layout specs, and visual references. Do NOT write
   implementation code (.tsx/.ts/.css/.js) — implementation is a separate
   downstream task."
-- **Implementation** (fullstack-product-engineer): "Deliverables: working
+- **Implementation** (fullstack-engineer): "Deliverables: working
   code files. Reference design artifacts produced by the upstream design
   task in the same directory."
 - **Review** (code-reviewer): "Deliverables: review.md with categorized
@@ -92,7 +92,7 @@ fan-out threshold above → Handoff immediately.
 | Task domain | Target Agent |
 |-------------|-------------|
 | Code review / security audit / review PR | code-reviewer |
-| Implementation / bug fix / feature / refactor | fullstack-product-engineer |
+| Implementation / bug fix / feature / refactor | fullstack-engineer |
 | UI design / styling / visual polish | ui-designer |
 | Architecture / module boundaries / system design | architect |
 | Deploy / CI/CD / infrastructure | devops-engineer |

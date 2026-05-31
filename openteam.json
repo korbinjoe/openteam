@@ -27,7 +27,7 @@
         ],
         "disallowedTools": ["Skill"],
         "subAgentNames": [
-          "fullstack-product-engineer",
+          "fullstack-engineer",
           "ui-designer",
           "devops-engineer",
           "code-reviewer",
@@ -39,10 +39,10 @@
         ]
       },
       {
-        "id": "fullstack-product-engineer",
-        "name": "Fullstack Product Engineer",
+        "id": "fullstack-engineer",
+        "name": "Fullstack Engineer",
         "description": "End-to-end delivery from requirement analysis and technical design to frontend/backend development.",
-        "workspace": "./ai-assets/agents/fullstack-product-engineer",
+        "workspace": "./ai-assets/agents/fullstack-engineer",
         "role": "expert",
         "skills": ["frontend-expert", "api-integrator", "playwright-cli", "whiteboard", "dev-server", "handoff"],
         "allowedTools": ["Read", "Write", "Edit", "Glob", "Grep", "Bash"],
@@ -54,7 +54,7 @@
       },
       {
         "id": "code-reviewer",
-        "name": "Code Review Expert",
+        "name": "Code Reviewer",
         "description": "Code review, quality analysis, and bug root cause analysis. Reviews code for correctness, security, and best practices. Does NOT implement fixes or create designs — hands off to the appropriate specialist.",
         "workspace": "./ai-assets/agents/code-reviewer",
         "role": "expert",
@@ -70,7 +70,7 @@
       },
       {
         "id": "ui-designer",
-        "name": "Visual Design Expert",
+        "name": "UI Designer",
         "description": "Integrated UI design and implementation expert with professional aesthetic judgment. Handles design decisions, code implementation, browser preview verification, and iterative delivery of high-quality UI through screenshot review.",
         "workspace": "./ai-assets/agents/ui-designer",
         "role": "expert",
@@ -78,7 +78,7 @@
       },
       {
         "id": "devops-engineer",
-        "name": "DevOps Expert",
+        "name": "DevOps Engineer",
         "description": "Cloud deployment and CI/CD expert for modern platforms (Vercel, Netlify, GitHub Actions). Handles deployments, preview environments, domain configuration, build pipelines, and infrastructure monitoring.",
         "workspace": "./ai-assets/agents/devops-engineer",
         "role": "expert",
@@ -92,7 +92,7 @@
       },
       {
         "id": "architect",
-        "name": "Architecture Review Expert",
+        "name": "Architect",
         "description": "Architecture guardian who also implements architectural changes. Reviews layering, module boundaries, dependency governance, data flow, and evolvability. Can write code for architectural refactors with self-verification.",
         "workspace": "./ai-assets/agents/architect",
         "role": "expert",
@@ -101,11 +101,11 @@
       },
       {
         "id": "sensei",
-        "name": "Growth Coach",
+        "name": "Agent Sensei",
         "description": "The mentor and brain of the agent team. Creates new agents, drives the evolution system (AgentDNA / EvolutionLog), optimizes prompts, evaluates team performance, and distills best practices.",
         "workspace": "./ai-assets/agents/sensei",
         "role": "expert",
-        "skills": ["handoff"]
+        "skills": ["skill-creator", "whiteboard", "handoff"]
       },
       {
         "id": "image-creator",
@@ -122,7 +122,7 @@
         "description": "Competitive analysis, product research, and product design up to PRD and low-fidelity wireframes. Hands off implementation to engineering and high-fidelity visual design to ui-designer.",
         "workspace": "./ai-assets/agents/product-strategist",
         "role": "expert",
-        "skills": ["playwright-cli", "whiteboard", "handoff"],
+        "skills": ["product-design", "playwright-cli", "whiteboard", "handoff"],
         "allowedTools": ["Read", "Write", "Edit", "Glob", "Grep", "Bash", "WebFetch", "WebSearch", "AskUserQuestion"]
       },
       {

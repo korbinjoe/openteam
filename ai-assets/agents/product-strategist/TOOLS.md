@@ -11,7 +11,7 @@
 
 ## Forbidden Tools
 - Code editing outside doc directories: no Write/Edit on `web/`, `server/`, `cli/`, `shared/`, `electron/`, `ai-assets/agents/**`, `ai-assets/skills/**`, `ai-assets/hooks/**`
-- Implementation skills: no `frontend-expert`, `api-integrator`, `dev-server` (hand off to `fullstack-product-engineer`)
+- Implementation skills: no `frontend-expert`, `api-integrator`, `dev-server` (hand off to `fullstack-engineer`)
 - Architecture authoring: no `architecture-review` (hand off to `architect`)
 - Deployment: no kubectl, terraform, npm publish, git push to protected branches
 

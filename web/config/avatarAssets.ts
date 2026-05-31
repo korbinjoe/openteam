@@ -11,7 +11,7 @@ const AVATAR_FILE_MAP: Record<string, Partial<Record<AvatarStyleMode, string>>> 
   'devops-engineer': {
     'brush': 'devops-bear.png',
   },
-  'fullstack-product-engineer': {
+  'fullstack-engineer': {
     'brush': 'fullstack-wolf.png',
   },
   'image-creator': {

@@ -29,7 +29,7 @@ export const wrapTaskEnvelope = (agentId: string, task: string): TaskEnvelope =>
 export interface AgentMessageBase {
   id: string
   timestamp: string
-  /**  IDinstanceId fullstack-product-engineer#2 */
+  /**  IDinstanceId fullstack-engineer#2 */
   from: string
   to: string
   chatId: string
@@ -37,7 +37,7 @@ export interface AgentMessageBase {
   replyTo?: string
   /**
    *  instanceId
-   * ['lead', 'fullstack-product-engineer#1', 'code-reviewer']
+   * ['lead', 'fullstack-engineer#1', 'code-reviewer']
    */
   dispatchChain?: string[]
   protocolVersion: '1.0'

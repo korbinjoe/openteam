@@ -64,6 +64,16 @@ export class AgentStore extends SqliteBaseStore<Agent> {
   async importBuiltin(agents: Agent[]): Promise<void> {
     const incomingIds = new Set(agents.map((a) => a.id))
     const transaction = this.db.transaction(() => {
+      const staleBuiltins = this.db.prepare(
+        "SELECT id FROM agents WHERE source = 'builtin'"
+      ).all() as Array<{ id: string }>
+      for (const { id } of staleBuiltins) {
+        if (!incomingIds.has(id)) {
+          this.deleteById(id)
+          log.info('Removed stale builtin agent', { agentId: id })
+        }
+      }
+
       for (const agent of agents) {
         const existingById = this.get(agent.id)
         if (existingById) {
@@ -72,17 +82,12 @@ export class AgentStore extends SqliteBaseStore<Agent> {
             this.updateById(agent.id, updated as unknown as Agent)
           }
         } else {
+          const conflictByName = this.getByName(agent.name)
+          if (conflictByName && conflictByName.source === 'builtin') {
+            this.deleteById(conflictByName.id)
+            log.info('Removed renamed builtin agent', { oldId: conflictByName.id, newId: agent.id })
+          }
           this.insertEntity({ ...agent, source: 'builtin' } as unknown as Agent)
-        }
-      }
-
-      const staleBuiltins = this.db.prepare(
-        "SELECT id FROM agents WHERE source = 'builtin'"
-      ).all() as Array<{ id: string }>
-      for (const { id } of staleBuiltins) {
-        if (!incomingIds.has(id)) {
-          this.deleteById(id)
-          log.info('Removed stale builtin agent', { agentId: id })
         }
       }
     })

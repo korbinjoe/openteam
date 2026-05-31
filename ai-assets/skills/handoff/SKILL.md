@@ -38,7 +38,7 @@ handoff, exit cleanly — the target Agent takes over.
 | Code review/quality audit | code-reviewer |
 | Architecture/module boundaries/refactoring | architect |
 | Deploy/CI/CD/infrastructure | devops-engineer |
-| Implementation/bug fixes/features | fullstack-product-engineer |
+| Implementation/bug fixes/features | fullstack-engineer |
 | Logo/icon/image creation | image-creator |
 | Product research/PRD/competitive analysis | product-strategist |
 | Promotion/X posts/social media | growth-marketer |

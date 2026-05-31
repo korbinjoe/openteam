@@ -30,7 +30,7 @@ DAG JSON format:
 ```json
 {
   "tasks": [
-    { "taskId": "t1", "agentId": "fullstack-product-engineer", "description": "Implement feature", "dependsOn": [], "onFailure": "stop" },
+    { "taskId": "t1", "agentId": "fullstack-engineer", "description": "Implement feature", "dependsOn": [], "onFailure": "stop" },
     { "taskId": "t2", "agentId": "code-reviewer", "description": "Review implementation", "dependsOn": ["t1"], "onFailure": "stop" }
   ]
 }

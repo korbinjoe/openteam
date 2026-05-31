@@ -1,7 +1,9 @@
 import { useState } from 'react'
+import { Copy, FileText } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { DevSnapshot, DevSessionSnapshot, DevJsonlMessage, DevRawJsonlContent } from '@/hooks/useDevPanel'
-import { Section } from './helpers'
+import { DevJsonlViewer } from '../DevJsonlViewer'
+import { Section, fmtSize } from './helpers'
 
 interface DevAgentsTabProps {
   snapshot: DevSnapshot
@@ -10,21 +12,55 @@ interface DevAgentsTabProps {
   onRequestRaw: (sessionId: string) => void
 }
 
-const formatBytes = (bytes: number) => {
-  if (bytes < 1024) return `${bytes}B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}KB`
-  return `${(bytes / (1024 * 1024)).toFixed(1)}MB`
-}
-
 const formatCost = (cost: number) => cost < 0.01 ? `$${cost.toFixed(4)}` : `$${cost.toFixed(2)}`
 
-const AgentCard = ({ session }: { session: DevSessionSnapshot }) => {
+const JsonlPathRow = ({ filePath, fileExists, fileSizeBytes }: {
+  filePath: string
+  fileExists: boolean
+  fileSizeBytes: number
+}) => {
+  const [copied, setCopied] = useState(false)
+
+  const handleCopy = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    navigator.clipboard.writeText(filePath).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    })
+  }
+
+  return (
+    <div className="flex items-center gap-1.5 px-3 py-1 bg-zinc-900/80 border-t border-zinc-800/50">
+      <FileText size={10} className="text-zinc-600 shrink-0" />
+      <span className={cn(
+        'text-[9px] font-mono truncate flex-1',
+        fileExists ? 'text-zinc-400' : 'text-red-400/70',
+      )} title={filePath}>
+        {filePath}
+      </span>
+      <span className="text-[9px] text-zinc-600 shrink-0">{fmtSize(fileSizeBytes)}</span>
+      <button
+        onClick={handleCopy}
+        className="text-zinc-600 hover:text-zinc-300 shrink-0 p-0.5"
+        title="Copy JSONL path"
+      >
+        {copied ? <span className="text-green-400 text-[9px]">copied</span> : <Copy size={10} />}
+      </button>
+    </div>
+  )
+}
+
+const AgentCard = ({ session, messages }: {
+  session: DevSessionSnapshot
+  messages: DevJsonlMessage[]
+}) => {
   const [expanded, setExpanded] = useState(false)
+  const [showJsonl, setShowJsonl] = useState(false)
   const totalCost = Object.values(session.activity.modelUsage).reduce((sum, u) => sum + (u.cost ?? 0), 0)
   const totalInput = Object.values(session.activity.modelUsage).reduce((sum, u) => sum + u.input, 0)
   const totalOutput = Object.values(session.activity.modelUsage).reduce((sum, u) => sum + u.output, 0)
 
-  const phaseColor = session.activity.phase === 'running' ? 'text-blue-400' :
+  const phaseColorCls = session.activity.phase === 'running' ? 'text-blue-400' :
     session.activity.phase === 'completed' ? 'text-green-400/60' :
     session.activity.phase === 'waiting_input' || session.activity.phase === 'waiting_confirmation' ? 'text-yellow-400' :
     session.activity.phase === 'failed' ? 'text-red-400' : 'text-zinc-400'
@@ -47,12 +83,24 @@ const AgentCard = ({ session }: { session: DevSessionSnapshot }) => {
           'bg-zinc-500',
         )} />
         <span className="text-[11px] text-zinc-200 font-medium truncate">{session.agentName}</span>
-        <span className={cn('text-[10px] font-mono', phaseColor)}>{session.activity.phase}</span>
+        <span className={cn('text-[10px] font-mono', phaseColorCls)}>{session.activity.phase}</span>
         {session.activity.currentTool && (
           <span className="text-[10px] text-zinc-600 font-mono truncate">→ {session.activity.currentTool}</span>
         )}
+        {messages.length > 0 && (
+          <span className="text-[10px] bg-blue-500/20 text-blue-400 px-1.5 rounded-full font-mono">{messages.length}</span>
+        )}
         <span className="text-[10px] text-zinc-600 ml-auto font-mono shrink-0">{formatCost(totalCost)}</span>
       </div>
+
+      {/* JSONL path — always visible when available */}
+      {session.jsonl && (
+        <JsonlPathRow
+          filePath={session.jsonl.filePath}
+          fileExists={session.jsonl.fileExists}
+          fileSizeBytes={session.jsonl.fileSizeBytes}
+        />
+      )}
 
       {expanded && (
         <div className="px-3 py-2 space-y-2 text-[10px] border-t border-zinc-800">
@@ -121,23 +169,35 @@ const AgentCard = ({ session }: { session: DevSessionSnapshot }) => {
                   <span>Turn: <span className="text-zinc-300">{session.streamJson.turnIndex}</span></span>
                 </>
               )}
-              {session.jsonl && (
-                <>
-                  <span>JSONL: <span className={session.jsonl.fileExists ? 'text-green-400' : 'text-red-400'}>{session.jsonl.fileExists ? 'exists' : 'missing'}</span></span>
-                  <span>Size: <span className="text-zinc-300">{formatBytes(session.jsonl.fileSizeBytes)}</span></span>
-                </>
-              )}
               <span>WS: <span className={session.connectedWs ? 'text-green-400' : 'text-red-400'}>{session.connectedWs ? 'connected' : 'disconnected'}</span></span>
               {session.killReason && <span className="text-red-400">Kill: {session.killReason}</span>}
             </div>
           </div>
+
+          {/* JSONL Messages Viewer */}
+          {messages.length > 0 && (
+            <div>
+              <button
+                onClick={() => setShowJsonl(!showJsonl)}
+                className="text-[10px] font-medium text-zinc-500 uppercase tracking-wider hover:text-zinc-300 flex items-center gap-1"
+              >
+                <FileText size={10} />
+                Messages ({messages.length})
+                <span className="text-zinc-600">{showJsonl ? '▼' : '▶'}</span>
+                {session.streamJson?.alive && (
+                  <span className="text-[9px] text-green-500 animate-pulse ml-1 normal-case">LIVE</span>
+                )}
+              </button>
+              {showJsonl && <DevJsonlViewer messages={messages} />}
+            </div>
+          )}
         </div>
       )}
     </div>
   )
 }
 
-export const DevAgentsTab = ({ snapshot }: DevAgentsTabProps) => {
+export const DevAgentsTab = ({ snapshot, jsonlStreams }: DevAgentsTabProps) => {
   if (snapshot.sessions.length === 0) {
     return (
       <div className="flex items-center justify-center h-32 text-xs text-zinc-600">
@@ -151,7 +211,11 @@ export const DevAgentsTab = ({ snapshot }: DevAgentsTabProps) => {
       <Section title={`Agent Sessions (${snapshot.totalSessions})`}>
         <div className="space-y-2">
           {snapshot.sessions.map((s) => (
-            <AgentCard key={s.sessionId} session={s} />
+            <AgentCard
+              key={s.sessionId}
+              session={s}
+              messages={jsonlStreams[s.sessionId] ?? []}
+            />
           ))}
         </div>
       </Section>

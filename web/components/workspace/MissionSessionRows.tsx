@@ -40,7 +40,7 @@ const INDENT_ADD_AGENT = 'pl-9'  // 36px — peer of agent rows
 // done: green at 40% so completed work recedes.
 export const memberStatusDot = (status: ChatMemberStatus | undefined): string => {
   switch (status) {
-    case 'running': return 'bg-accent-brand relative before:absolute before:inset-0 before:rounded-full before:bg-accent-brand before:animate-ping-soft'
+    case 'running': return 'bg-accent-running relative before:absolute before:inset-0 before:rounded-full before:bg-accent-running before:animate-ping-soft'
     case 'waiting': return 'bg-accent-yellow'
     case 'waiting_input': return 'bg-accent-yellow/60'
     case 'error': return 'bg-accent-red'

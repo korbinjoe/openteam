@@ -45,6 +45,7 @@ export default {
           red:        'rgb(var(--accent-red) / <alpha-value>)',
           orange:     'rgb(var(--accent-orange) / <alpha-value>)',
           purple:     'rgb(var(--accent-purple) / <alpha-value>)',
+          running:    'rgb(var(--accent-running) / <alpha-value>)',
         },
         border: {
           DEFAULT:  'rgb(var(--border-color) / <alpha-value>)',

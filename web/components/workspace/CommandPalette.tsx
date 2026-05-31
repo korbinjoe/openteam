@@ -278,7 +278,7 @@ const PaletteItem = ({ label, sub, status, time, selected, onClick }: {
   const dotColor =
     status === 'error' ? 'bg-accent-red' :
     status === 'waiting' ? 'bg-accent-yellow' :
-    status === 'running' ? 'bg-accent-brand' :
+    status === 'running' ? 'bg-accent-running' :
     'bg-text-muted'
   return (
     <div
@@ -299,7 +299,7 @@ const MemberPaletteItem = ({ label, role, status, time, selected, onClick }: {
   const dotColor =
     status === 'error' ? 'bg-accent-red' :
     status === 'waiting' ? 'bg-accent-yellow' :
-    status === 'running' ? 'bg-accent-brand' :
+    status === 'running' ? 'bg-accent-running' :
     status === 'done' ? 'bg-accent-green' :
     'bg-text-muted'
   return (

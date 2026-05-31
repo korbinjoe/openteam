@@ -115,8 +115,8 @@ const SpanNodeInner = ({ data }: NodeProps) => {
           </span>
           {node.isLive && (
             <span className="relative flex h-2 w-2 shrink-0">
-              <span className="absolute inset-0 rounded-full bg-[rgb(var(--accent-brand))] motion-safe:animate-ping opacity-60" />
-              <span className="relative rounded-full h-2 w-2 bg-[rgb(var(--accent-brand))]" />
+              <span className="absolute inset-0 rounded-full bg-[rgb(var(--accent-running))] motion-safe:animate-ping opacity-60" />
+              <span className="relative rounded-full h-2 w-2 bg-[rgb(var(--accent-running))]" />
             </span>
           )}
         </div>

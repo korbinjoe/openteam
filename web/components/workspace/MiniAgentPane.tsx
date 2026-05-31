@@ -42,7 +42,7 @@ const statusDotColor = (s: AgentStatus): string => {
   if (s === 'error') return 'bg-accent-red'
   if (s === 'waiting') return 'bg-accent-yellow'
   if (s === 'waiting_input') return 'bg-accent-yellow/60'
-  if (s === 'running') return 'bg-accent-brand'
+  if (s === 'running') return 'bg-accent-running'
   return 'bg-text-muted'
 }
 

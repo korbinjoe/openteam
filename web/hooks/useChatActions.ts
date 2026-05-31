@@ -48,6 +48,11 @@ export const useChatActions = ({
   const queuedMessagesRef = useRef<QueuedMessage[]>([])
   queuedMessagesRef.current = queuedMessages
 
+  const expertActivitiesRef = useRef(expertActivities)
+  expertActivitiesRef.current = expertActivities
+  const currentMergedActivityRef = useRef(currentMergedActivity)
+  currentMergedActivityRef.current = currentMergedActivity
+
   const dispatchMessage = useCallback((payload: {
     text: string
     mentions: MentionInfo[]
@@ -132,6 +137,7 @@ export const useChatActions = ({
   const flushNext = useCallback(() => {
     const head = queuedMessagesRef.current[0]
     if (!head) return
+    console.debug('[QueueFlush] flushNext: dispatching to agent=%s text=%s', head.targetAgentId, head.text?.slice(0, 40))
     setQueuedMessages((prev) => prev.slice(1))
     dispatchMessage({
       text: head.text, mentions: head.mentions,
@@ -236,32 +242,50 @@ export const useChatActions = ({
   }, [stopAllExperts, setLoading, setExpertActivities, clearQueue, lockedAgentId])
 
   // Determine if the queue head's target agent is idle and ready to receive.
+  // Uses refs instead of closure state to guarantee fresh reads — avoids stale
+  // closures in the polling interval and batched-update edge cases.
   const canFlushHead = useCallback((): boolean => {
     const head = queuedMessagesRef.current[0]
     if (!head) return false
     const headAgentId = head.targetAgentId ?? head.mentions?.[0]?.id
-    const headActivity = headAgentId ? expertActivities[headAgentId] : currentMergedActivity
+    const activities = expertActivitiesRef.current
+    const headActivity = headAgentId ? activities[headAgentId] : currentMergedActivityRef.current
     const phase = headActivity?.phase
-    if (phase && WORKING_PHASES.has(phase)) return false
-    if (phase === 'waiting_confirmation') return false
+    if (phase && WORKING_PHASES.has(phase)) {
+      console.debug('[QueueFlush] blocked: headAgent=%s phase=%s (WORKING)', headAgentId, phase)
+      return false
+    }
+    if (phase === 'waiting_confirmation') {
+      console.debug('[QueueFlush] blocked: headAgent=%s phase=waiting_confirmation', headAgentId)
+      return false
+    }
+    console.debug('[QueueFlush] canFlush=true headAgent=%s phase=%s hasActivity=%s', headAgentId, phase, !!headActivity)
     return true
-  }, [expertActivities, currentMergedActivity])
+  }, [])
 
   // Flush the queue head whenever its *target agent* is idle. Per-agent gating
   // prevents cross-agent interference: Agent A finishing does not flush a
   // message queued for still-busy Agent B, and vice versa.
   useEffect(() => {
     if (queuedMessages.length === 0) return
-    if (canFlushHead()) flushNext()
+    const can = canFlushHead()
+    console.debug('[QueueFlush] effect fired: queueLen=%d canFlush=%s mergedPhase=%s activities=%o',
+      queuedMessages.length, can, currentMergedActivity?.phase,
+      Object.fromEntries(Object.entries(expertActivities).map(([k, v]) => [k, v.phase])))
+    if (can) flushNext()
   }, [expertActivities, currentMergedActivity?.phase, queuedMessages.length, flushNext, canFlushHead])
 
   // Polling fallback: if the event-driven flush above misses a state transition
   // (e.g., due to batched updates or a reconnect gap), this interval catches it.
+  // canFlushHead is stable (ref-based) so the interval persists without churn.
   useEffect(() => {
     if (queuedMessages.length === 0) return
     const id = setInterval(() => {
       if (queuedMessagesRef.current.length === 0) return
-      if (canFlushHead()) flushNext()
+      if (canFlushHead()) {
+        console.debug('[QueueFlush] polling fallback flushing')
+        flushNext()
+      }
     }, 2000)
     return () => clearInterval(id)
   }, [queuedMessages.length, canFlushHead, flushNext])

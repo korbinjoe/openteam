@@ -12,6 +12,7 @@ import { existsSync, readdirSync, readFileSync } from 'fs'
 import { homedir } from 'os'
 import { join } from 'path'
 import type { ChatStore } from '../stores/ChatStore'
+import type { WorkspaceStore } from '../stores/WorkspaceStore'
 import type { AgentStore } from '../stores/AgentStore'
 import type { SessionRegistry } from '../terminal/SessionRegistry'
 import { parseConversationFile, createParserState, type ParsedMessage } from '../terminal/ConversationParser'
@@ -29,6 +30,7 @@ const log = createLogger('ExpertResume')
 
 export interface ExpertResumeDeps {
   chatStore: ChatStore
+  workspaceStore: WorkspaceStore
   agentStore: AgentStore
   sessionRegistry: SessionRegistry
   store: ExpertSessionStore
@@ -41,7 +43,7 @@ export interface ExpertResumeDeps {
 }
 
 export const createExpertResumeHandler = (deps: ExpertResumeDeps) => {
-  const { chatStore, agentStore, sessionRegistry, store, sendTo, handleStart } = deps
+  const { chatStore, workspaceStore, agentStore, sessionRegistry, store, sendTo, handleStart } = deps
 
   /** Agent spawn key=chatId::agentId → { count, lastFailedAt } */
   const spawnFailures = new Map<string, { count: number; lastFailedAt: number }>()
@@ -287,7 +289,12 @@ export const createExpertResumeHandler = (deps: ExpertResumeDeps) => {
     // so the `cli-init` event in ExpertEventWiring doesn't fire — meaning our
     // command merge there is bypassed. Scan plugins + project commands here and
     // push to every agent we resume.
-    const resumeCwd = sessions[0]?.[1]?.cwd || process.cwd()
+    let resumeCwd = sessions[0]?.[1]?.cwd
+    if (!resumeCwd) {
+      const wsId = chat?.workspaceId
+      if (wsId) resumeCwd = workspaceStore.get(wsId)?.repositories[0]?.path
+    }
+    if (!resumeCwd) resumeCwd = process.cwd()
     const commandsPromise = (async () => {
       const [pluginCmds, projectCmds, userSkills] = await Promise.all([
         scanPluginSlashCommands(),
@@ -379,7 +386,12 @@ export const createExpertResumeHandler = (deps: ExpertResumeDeps) => {
 
     if (toResume.length === 0) return
 
-    const fallbackCwd = chat?.worktreeSessions?.[0]?.worktreePath || process.cwd()
+    let fallbackCwd = chat?.worktreeSessions?.[0]?.worktreePath
+    if (!fallbackCwd) {
+      const wsId = chat?.workspaceId
+      if (wsId) fallbackCwd = workspaceStore.get(wsId)?.repositories[0]?.path
+    }
+    if (!fallbackCwd) fallbackCwd = process.cwd()
 
     log.info('Resuming experts from chat', { count: toResume.length, chatId, connectionId })
     trackEvent('chat', 'chat.resumed', { chatId, connectionId, agentCount: toResume.length })

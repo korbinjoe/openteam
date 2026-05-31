@@ -17,6 +17,7 @@ import type { WebSocket } from 'ws'
 import type { ConfigCompiler } from '../runtime/ConfigCompiler'
 import type { AgentRegistry } from '../config/AgentRegistry'
 import type { ChatStore } from '../stores/ChatStore'
+import type { WorkspaceStore } from '../stores/WorkspaceStore'
 import type { AgentStore } from '../stores/AgentStore'
 import type { TokenUsageStore } from '../stores/TokenUsageStore'
 import type { ExecutionLogStore } from '../stores/ExecutionLogStore'
@@ -64,6 +65,7 @@ export class ExpertHandler {
     private agentRegistry: AgentRegistry,
     private agentStore: AgentStore,
     private chatStore: ChatStore,
+    private workspaceStore: WorkspaceStore,
     private tokenUsageStore: TokenUsageStore,
     private executionLogStore: ExecutionLogStore,
     _unused: unknown,
@@ -115,6 +117,7 @@ export class ExpertHandler {
       agentRegistry,
       agentStore,
       chatStore,
+      workspaceStore: this.workspaceStore,
       tokenUsageStore,
       executionLogStore,
       sessionRegistry,
@@ -132,6 +135,7 @@ export class ExpertHandler {
 
     this.resumeHandler = createExpertResumeHandler({
       chatStore,
+      workspaceStore: this.workspaceStore,
       agentStore,
       sessionRegistry,
       store: this.store,

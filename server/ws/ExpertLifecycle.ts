@@ -18,6 +18,7 @@ import { agentDefToAgent } from '../config/types'
 import type { SessionRegistry } from '../terminal/SessionRegistry'
 import { getServerPort } from '../lib/serverPort'
 import type { ChatStore } from '../stores/ChatStore'
+import type { WorkspaceStore } from '../stores/WorkspaceStore'
 import type { TokenUsageStore } from '../stores/TokenUsageStore'
 import type { ExecutionLogStore } from '../stores/ExecutionLogStore'
 import { ExpertSessionStore, compositeKey } from './ExpertSessionStore'
@@ -45,6 +46,7 @@ export interface ExpertLifecycleDeps {
   agentRegistry: AgentRegistry
   agentStore: AgentStore
   chatStore: ChatStore
+  workspaceStore: WorkspaceStore
   tokenUsageStore: TokenUsageStore
   executionLogStore: ExecutionLogStore
   sessionRegistry: SessionRegistry
@@ -63,7 +65,7 @@ export interface ExpertLifecycleDeps {
 
 export const createExpertLifecycle = (deps: ExpertLifecycleDeps) => {
   const {
-    configCompiler, agentRegistry, agentStore, chatStore, tokenUsageStore,
+    configCompiler, agentRegistry, agentStore, chatStore, workspaceStore, tokenUsageStore,
     executionLogStore, sessionRegistry, store, versionGate, sendTo,
     persistExpertSession, getConnectionChatId, broadcastToChat, globalBroadcast,
     whiteboardManager, onAgentExited,
@@ -208,7 +210,19 @@ export const createExpertLifecycle = (deps: ExpertLifecycleDeps) => {
       const provider = agent.provider || 'claude'
       const streamManager = new StreamJsonManager()
       const sessionId = streamManager.getSessionId()
-      const cwd = payload.cwd || process.cwd()
+
+      let cwd = payload.cwd
+      if (!cwd && chatId) {
+        const chat = chatStore.get(chatId)
+        if (chat?.workspaceId) {
+          const workspace = workspaceStore.get(chat.workspaceId)
+          cwd = workspace?.repositories[0]?.path
+        }
+      }
+      if (!cwd) {
+        log.warn('CWD resolution fell through to process.cwd() — workspace isolation may be broken', { agentId, chatId })
+        cwd = process.cwd()
+      }
 
       if (!isAllowedCwd(cwd)) {
         log.warn('Expert start rejected: cwd outside allowed roots', { agentId, cwd, connectionId })

@@ -80,7 +80,7 @@ const getInitialColorTheme = (): ColorTheme => {
     const stored = localStorage.getItem(COLOR_THEME_KEY)
     if (stored && COLOR_THEMES.some((t) => t.id === stored)) return stored as ColorTheme
   } catch { /* ignore */ }
-  return 'jiqing'
+  return 'tanxiang'
 }
 
 const ThemeContext = createContext<ThemeContextValue | null>(null)

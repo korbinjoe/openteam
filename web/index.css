@@ -51,10 +51,10 @@
   --radius-md:        10px;
   --radius-lg:        14px;
 
-  /* Default brand = Jiqing */
-  --accent-brand:       90 143 202;
-  --accent-brand-light: 130 176 222;
-  --accent-brand-deep:  62 114 172;
+  /* Default brand = Tanxiang (Sandalwood) */
+  --accent-brand:       198 162 118;
+  --accent-brand-light: 222 192 156;
+  --accent-brand-deep:  172 132 88;
 }
 
 :root.light {
@@ -91,14 +91,14 @@
   --code-bg:          rgba(99,102,241,0.06);
   --pre-bg:           rgba(0,0,0,0.03);
 
-  --accent-brand:       52 100 152;
-  --accent-brand-light: 90 143 202;
-  --accent-brand-deep:  38 78 128;
+  --accent-brand:       148 108 62;
+  --accent-brand-light: 172 132 88;
+  --accent-brand-deep:  122 86 42;
 }
 
 /* ─── Brand Color Themes · Chinese Traditional Colors ── */
 
-/* A. Jiqing — clear sky after rain (default) */
+/* A. Jiqing — clear sky after rain */
 :root[data-color-theme="jiqing"] {
   --accent-brand:       90 143 202;
   --accent-brand-light: 130 176 222;
@@ -230,7 +230,7 @@
   --accent-brand-deep:  4 102 96;
 }
 
-/* L. Tanxiang — sandalwood */
+/* L. Tanxiang — sandalwood (default) */
 :root[data-color-theme="tanxiang"] {
   --accent-brand:       198 162 118;
   --accent-brand-light: 222 192 156;

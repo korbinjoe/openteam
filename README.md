@@ -6,8 +6,8 @@ Declare agents, models, and skills in a single `openteam.json` and you've got a 
 
 Dispatch tasks in parallel, walk away, come back to batch-review. One human, the output of a small company.
 
-[![Watch the video](https://img.youtube.com/vi/VPqUtZZcyZk/maxresdefault.jpg)](https://www.youtube.com/watch?v=VPqUtZZcyZk)
-[OpenTeam Demonstration](https://youtu.be/VPqUtZZcyZk)
+[![Watch the video](https://github.com/user-attachments/assets/fa5d504e-1c07-4d9c-a486-a88d1c6eff4e)](https://www.youtube.com/watch?v=VPqUtZZcyZk)
+
 
 ## Why OpenTeam?
 

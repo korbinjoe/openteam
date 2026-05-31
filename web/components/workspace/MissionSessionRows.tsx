@@ -274,7 +274,7 @@ export const AgentRow = ({ agentId, agentName, isLead, chat, member, isSelected 
   // Per-member status when available; fall back to parent chat rollup so legacy
   // payloads (no members[]) still light up.
   const dotClass = member ? memberStatusDot(member.status) : chatStatusDot(chat)
-  const ageInput = member?.lastMessageAt ?? chat.lastMessageAt
+  const ageInput = member?.lastMessageAt || chat.lastMessageAt
 
   // Worker rows: per-agent removal (deletes that agent's session + JSONL).
   // Lead rows: there's no "remove just the lead" operation — semantically

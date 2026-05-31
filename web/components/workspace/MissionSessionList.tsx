@@ -407,7 +407,7 @@ const WorkspaceGroup = ({
           </span>
           <span className="text-[11px] font-medium truncate text-text-secondary">{name}</span>
           {runningCount > 0 && (
-            <span className="w-[6px] h-[6px] rounded-full bg-accent-brand animate-pulse flex-shrink-0" />
+            <span className="w-[6px] h-[6px] rounded-full bg-accent-running relative before:absolute before:inset-0 before:rounded-full before:bg-accent-running before:animate-ping-soft flex-shrink-0" />
           )}
           <span className="ml-auto font-mono text-[10px] text-text-muted tabular-nums transition-opacity duration-100 group-hover:opacity-0">{totalCount}</span>
         </button>

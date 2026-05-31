@@ -310,6 +310,26 @@ export class WSRouter {
           }
         }
         break
+      case 'dev:workflow':
+        if (chatId) {
+          try {
+            const workflowState = this.devInspector.collectWorkflowState(chatId)
+            ws.send(JSON.stringify({ type: 'dev:workflow', payload: workflowState }))
+          } catch (err) {
+            log.error('dev:workflow error', { error: err instanceof Error ? err.message : String(err) })
+          }
+        }
+        break
+      case 'dev:whiteboard':
+        if (chatId) {
+          try {
+            const wbState = this.devInspector.collectWhiteboardState(chatId)
+            ws.send(JSON.stringify({ type: 'dev:whiteboard', payload: wbState }))
+          } catch (err) {
+            log.error('dev:whiteboard error', { error: err instanceof Error ? err.message : String(err) })
+          }
+        }
+        break
     }
   }
 }

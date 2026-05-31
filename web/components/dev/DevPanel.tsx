@@ -1,33 +1,23 @@
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
-import { useTranslation } from 'react-i18next'
 import { X, RefreshCw, GripHorizontal } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useDevPanel, type DevPanelMode } from '@/hooks/useDevPanel'
-import { Section } from './panels/helpers'
-import { DevOverview, DevSessionCard } from './panels/DevSessionCard'
-import { DevPipelinePanel } from './panels/DevPipelinePanel'
-import { DevProtocolTimeline } from './panels/DevProtocolTimeline'
-import { DevRawDataPanel } from './panels/DevRawDataPanel'
+import { useDevPanel } from '@/hooks/useDevPanel'
 import { useDragResizePanel } from './panels/useDragResizePanel'
+import { DevOverviewTab } from './panels/DevOverviewTab'
+import { DevWorkflowTab } from './panels/DevWorkflowTab'
+import { DevAgentsTab } from './panels/DevAgentsTab'
+import { DevProtocolTab } from './panels/DevProtocolTab'
+import { DevEventsTab } from './panels/DevEventsTab'
 
-const MODE_BADGE_STYLE: Record<DevPanelMode, string> = {
-  'local': 'bg-zinc-800 text-zinc-400 border border-zinc-700',
-}
-const MODE_BADGE_PREFIX: Record<DevPanelMode, string> = {
-  'local': '',
-}
-const MODE_BADGE_TITLE: Record<DevPanelMode, string> = {
-  'local': '',
-}
+type DevTab = 'overview' | 'workflow' | 'agents' | 'protocol' | 'events'
 
-type DevTab = 'pipeline' | 'sessions' | 'protocol' | 'raw'
-
-const TAB_ITEMS: Array<{ id: DevTab; label: string; shortLabel: string }> = [
-  { id: 'pipeline', label: 'Pipeline', shortLabel: '▶' },
-  { id: 'sessions', label: 'Sessions', shortLabel: '⚙' },
-  { id: 'protocol', label: 'Protocol', shortLabel: '↕' },
-  { id: 'raw', label: 'Raw Data', shortLabel: '📋' },
+const TAB_ITEMS: Array<{ id: DevTab; label: string }> = [
+  { id: 'overview', label: 'Overview' },
+  { id: 'workflow', label: 'Workflow' },
+  { id: 'agents', label: 'Agents' },
+  { id: 'protocol', label: 'Protocol' },
+  { id: 'events', label: 'Events' },
 ]
 
 interface DevPanelProps {
@@ -40,19 +30,13 @@ interface DevPanelProps {
 const DevPanel = ({ chatId, chatTitle, isOpen, onClose }: DevPanelProps) => {
   const {
     snapshot, events, jsonlStreams, rawJsonlCache,
-    pipeline, timeline,
-    refreshSnapshot, executeAction, clearEvents, requestRawJsonl,
-    showAllProtocol, setShowAllProtocol,
+    pipeline, timeline, workflow, whiteboard,
+    refreshSnapshot, clearEvents, requestRawJsonl,
   } = useDevPanel(chatId, isOpen)
-  const { t } = useTranslation('chat')
   const { layout, handleDragStart, handleResizeStart } = useDragResizePanel()
-  const [activeTab, setActiveTab] = useState<DevTab>('pipeline')
+  const [activeTab, setActiveTab] = useState<DevTab>('overview')
 
   if (!isOpen) return null
-
-  const mode: DevPanelMode = snapshot?.mode ?? 'local'
-  const totalCount = snapshot?.totalSessions ?? 0
-  const sessionsTitle = snapshot ? `Agent Sessions (${totalCount})` : 'Agent Sessions (0)'
 
   const renderTabContent = () => {
     if (!snapshot) {
@@ -64,48 +48,30 @@ const DevPanel = ({ chatId, chatTitle, isOpen, onClose }: DevPanelProps) => {
     }
 
     switch (activeTab) {
-      case 'pipeline':
+      case 'overview':
         return (
-          <>
-            <DevOverview snapshot={snapshot} />
-            <DevPipelinePanel pipeline={pipeline} />
-          </>
-        )
-      case 'sessions':
-        return (
-          <>
-            <DevOverview snapshot={snapshot} />
-            <Section title={sessionsTitle}>
-              {snapshot.sessions.length === 0 ? (
-                <div className="text-xs text-zinc-600 italic py-2">{t('dev.noSession')}</div>
-              ) : (
-                snapshot.sessions.map((s) => (
-                  <DevSessionCard
-                    key={s.sessionId}
-                    session={s}
-                    messages={jsonlStreams[s.sessionId] ?? []}
-                    rawContent={rawJsonlCache[s.sessionId]}
-                    onRequestRaw={requestRawJsonl}
-                    showAllProtocol={showAllProtocol}
-                    onToggleShowAllProtocol={setShowAllProtocol}
-                  />
-                ))
-              )}
-            </Section>
-          </>
-        )
-      case 'protocol':
-        return <DevProtocolTimeline entries={timeline} />
-      case 'raw':
-        return (
-          <DevRawDataPanel
+          <DevOverviewTab
             snapshot={snapshot}
-            events={events}
-            chatId={chatId}
-            onAction={executeAction}
-            onClearEvents={clearEvents}
+            workflow={workflow}
+            whiteboard={whiteboard}
+            pipeline={pipeline}
           />
         )
+      case 'workflow':
+        return <DevWorkflowTab workflow={workflow} />
+      case 'agents':
+        return (
+          <DevAgentsTab
+            snapshot={snapshot}
+            jsonlStreams={jsonlStreams}
+            rawJsonlCache={rawJsonlCache}
+            onRequestRaw={requestRawJsonl}
+          />
+        )
+      case 'protocol':
+        return <DevProtocolTab events={events} timeline={timeline} />
+      case 'events':
+        return <DevEventsTab events={events} onClear={clearEvents} />
     }
   }
 
@@ -131,12 +97,6 @@ const DevPanel = ({ chatId, chatTitle, isOpen, onClose }: DevPanelProps) => {
           <span className="text-xs font-medium text-zinc-200 shrink-0">DevPanel</span>
           {chatTitle && <span className="text-[10px] text-zinc-400 truncate">— {chatTitle}</span>}
           <span className="text-[10px] text-zinc-600 font-mono shrink-0">{chatId.slice(0, 8)}</span>
-          <span
-            className={cn('text-[10px] px-1.5 py-0.5 rounded font-mono shrink-0', MODE_BADGE_STYLE[mode])}
-            title={MODE_BADGE_TITLE[mode]}
-          >
-            {MODE_BADGE_PREFIX[mode]}{mode}
-          </span>
         </div>
         <div className="flex items-center gap-1">
           <button onClick={refreshSnapshot} className="text-zinc-500 hover:text-zinc-300 p-1" title="Refresh">
@@ -155,7 +115,7 @@ const DevPanel = ({ chatId, chatTitle, isOpen, onClose }: DevPanelProps) => {
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={cn(
-              'px-3 py-1.5 text-[11px] font-medium border-b-2 transition-colors',
+              'px-2.5 py-1.5 text-[11px] font-medium border-b-2 transition-colors',
               activeTab === tab.id
                 ? 'text-zinc-200 border-blue-500'
                 : 'text-zinc-500 border-transparent hover:text-zinc-300 hover:border-zinc-700',
@@ -164,7 +124,6 @@ const DevPanel = ({ chatId, chatTitle, isOpen, onClose }: DevPanelProps) => {
             {tab.label}
           </button>
         ))}
-        {/* Pipeline health indicator */}
         {pipeline && (
           <div className="ml-auto pr-2 flex items-center gap-1">
             <div className={cn(
@@ -183,11 +142,8 @@ const DevPanel = ({ chatId, chatTitle, isOpen, onClose }: DevPanelProps) => {
       </div>
 
       {/* Footer */}
-      <div className="px-3 py-1.5 border-t border-zinc-800 text-[10px] text-zinc-600 shrink-0 rounded-b-lg flex items-center justify-between">
-        <span>{t('dev.shortcutHint')}</span>
-        <span className="font-mono text-zinc-500">
-          Mode: {mode}
-        </span>
+      <div className="px-3 py-1.5 border-t border-zinc-800 text-[10px] text-zinc-600 shrink-0 rounded-b-lg">
+        <span>⌘⇧D to toggle</span>
       </div>
 
       {/* Resize handles */}

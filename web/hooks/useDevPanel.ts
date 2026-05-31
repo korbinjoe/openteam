@@ -158,6 +158,55 @@ export interface TimelineEntry {
   detail?: Record<string, unknown>
 }
 
+// ── Workflow Type ────────────────────────────────────────────────────────
+
+export type WorkflowStatus = 'created' | 'running' | 'completed' | 'stopped' | 'suspended'
+export type TaskStatus = 'pending' | 'running' | 'completed' | 'failed' | 'skipped' | 'suspended'
+
+export interface DevWorkflowTask {
+  taskId: string
+  agentId: string
+  description: string
+  status: TaskStatus
+  dependsOn: string[]
+  startedAt: string | null
+  completedAt: string | null
+  durationMs: number | null
+  retryCount: number
+  failureReason: string | null
+}
+
+export interface DevWorkflowPayload {
+  chatId: string
+  workflowId: string | null
+  status: WorkflowStatus | null
+  tasks: DevWorkflowTask[]
+  totalElapsedMs: number | null
+}
+
+// ── Whiteboard Type ─────────────────────────────────────────────────────
+
+export interface WhiteboardEntry {
+  id: string
+  chatId: string
+  seq: number
+  type: 'goal' | 'decision' | 'artifact' | 'progress' | 'open_question' | 'constraint' | 'handoff'
+  by: string
+  summary: string
+  refs?: { files?: string[]; entries?: string[]; mailbox?: string; artifacts?: string[] }
+  tags?: string[]
+  status: 'active' | 'archived' | 'superseded'
+  timestamp: string
+}
+
+export interface DevWhiteboardPayload {
+  chatId: string
+  goal: WhiteboardEntry | null
+  active: WhiteboardEntry[]
+  totalActive: number
+  totalArchived: number
+}
+
 interface DevJsonlMessagesEvent {
   chatId: string
   sessionId: string
@@ -177,6 +226,8 @@ export const useDevPanel = (chatId: string, isOpen: boolean) => {
   const [rawJsonlCache, setRawJsonlCache] = useState<Record<string, DevRawJsonlContent>>({})
   const [pipeline, setPipeline] = useState<PipelineSnapshot | null>(null)
   const [timeline, setTimeline] = useState<TimelineEntry[]>([])
+  const [workflow, setWorkflow] = useState<DevWorkflowPayload | null>(null)
+  const [whiteboard, setWhiteboard] = useState<DevWhiteboardPayload | null>(null)
   const [showAllProtocol, setShowAllProtocolState] = useState<boolean>(() => {
     try {
       return localStorage.getItem(SHOW_ALL_PROTOCOL_KEY) === '1'
@@ -221,6 +272,8 @@ export const useDevPanel = (chatId: string, isOpen: boolean) => {
     wsClient.send('dev:snapshot', { chatId })
     wsClient.send('dev:pipeline', { chatId })
     wsClient.send('dev:timeline', { chatId })
+    wsClient.send('dev:workflow', { chatId })
+    wsClient.send('dev:whiteboard', { chatId })
 
     const handleSnapshot = (data: unknown) => {
       const d = data as DevSnapshot
@@ -296,6 +349,16 @@ export const useDevPanel = (chatId: string, isOpen: boolean) => {
       if (d.chatId === chatId) setTimeline(d.entries)
     }
 
+    const handleWorkflow = (data: unknown) => {
+      const d = data as DevWorkflowPayload
+      if (d.chatId === chatId) setWorkflow(d)
+    }
+
+    const handleWhiteboard = (data: unknown) => {
+      const d = data as DevWhiteboardPayload
+      if (d.chatId === chatId) setWhiteboard(d)
+    }
+
     wsClient.on('dev:snapshot', handleSnapshot)
     wsClient.on('dev:event', handleEvent)
     wsClient.on('dev:jsonl-messages', handleJsonlMessages)
@@ -303,11 +366,15 @@ export const useDevPanel = (chatId: string, isOpen: boolean) => {
     wsClient.on('chat:status-changed', handleChatStatusChanged)
     wsClient.on('dev:pipeline', handlePipeline)
     wsClient.on('dev:timeline', handleTimeline)
+    wsClient.on('dev:workflow', handleWorkflow)
+    wsClient.on('dev:whiteboard', handleWhiteboard)
 
     refreshTimerRef.current = setInterval(() => {
       wsClient.send('dev:snapshot', { chatId })
       wsClient.send('dev:pipeline', { chatId })
       wsClient.send('dev:timeline', { chatId })
+      wsClient.send('dev:workflow', { chatId })
+      wsClient.send('dev:whiteboard', { chatId })
     }, 5000)
 
     return () => {
@@ -319,6 +386,8 @@ export const useDevPanel = (chatId: string, isOpen: boolean) => {
       wsClient.off('chat:status-changed', handleChatStatusChanged)
       wsClient.off('dev:pipeline', handlePipeline)
       wsClient.off('dev:timeline', handleTimeline)
+      wsClient.off('dev:workflow', handleWorkflow)
+      wsClient.off('dev:whiteboard', handleWhiteboard)
       if (refreshTimerRef.current) {
         clearInterval(refreshTimerRef.current)
         refreshTimerRef.current = null
@@ -337,6 +406,8 @@ export const useDevPanel = (chatId: string, isOpen: boolean) => {
     rawJsonlCache,
     pipeline,
     timeline,
+    workflow,
+    whiteboard,
     refreshSnapshot,
     executeAction,
     clearEvents,

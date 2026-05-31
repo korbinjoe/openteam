@@ -216,7 +216,7 @@ const senseiUpgradeService = new SenseiUpgradeService(
 
 import { DevInspector } from './dev/DevInspector'
 const devInspector = process.env.NODE_ENV !== 'production' || process.env.DEV_PANEL === 'true'
-  ? new DevInspector(sessionRegistry, chatStore, expertHandler.getExpertStore())
+  ? new DevInspector(sessionRegistry, chatStore, expertHandler.getExpertStore(), workflowRegistry, whiteboardManager)
   : undefined
 
 import { GitWatchManager } from './git/GitWatchManager'

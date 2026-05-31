@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState, useCallback } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { WorkspaceProvider, useWorkspace } from '../contexts/WorkspaceContext'
 import { buildMissionUrl } from '../components/workspace/urls'
@@ -13,6 +13,7 @@ import AddAgentPicker from '../components/workspace/AddAgentPicker'
 import NewChatFullDialog from '../components/chat/modals/NewChatFullDialog'
 import { persistLastWorkspace } from '../components/workspace/WorkspaceRedirect'
 import useResponsiveLayout from '../components/workspace/useResponsiveLayout'
+import DevPanel from '../components/dev/DevPanel'
 
 const WorkspaceLayoutInner = () => {
   const {
@@ -40,6 +41,15 @@ const WorkspaceLayoutInner = () => {
   const { chats, running, awaitingReview } = useWorkspaceChats(workspaceId)
 
   useResponsiveLayout()
+
+  const [devPanelOpen, setDevPanelOpen] = useState(false)
+  const handleDevPanelClose = useCallback(() => setDevPanelOpen(false), [])
+
+  useEffect(() => {
+    const handleToggle = () => setDevPanelOpen((v) => !v)
+    window.addEventListener('devpanel:toggle', handleToggle)
+    return () => window.removeEventListener('devpanel:toggle', handleToggle)
+  }, [])
 
   // Mirror /chat/:chatId into the global ChatTabContext so ChatInstance can mount
   // when V2 chat-aware panes (S2/S3) start consuming activeTabId.
@@ -163,6 +173,13 @@ const WorkspaceLayoutInner = () => {
         onOpenChange={(open) => (open ? openNewMission() : closeNewMission())}
         currentWorkspaceId={newMissionWorkspaceId ?? workspaceId ?? undefined}
       />
+      {activeChatId && (
+        <DevPanel
+          chatId={activeChatId}
+          isOpen={devPanelOpen}
+          onClose={handleDevPanelClose}
+        />
+      )}
     </div>
   )
 }

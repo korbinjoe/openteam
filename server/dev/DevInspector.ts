@@ -15,6 +15,10 @@ import type { ChatStore } from '../stores/ChatStore'
 import type { ExpertSessionStore } from '../ws/ExpertSessionStore'
 import type { ACPAdapterInspect, ACPUpdateEntry } from '../acp/ACPAgentAdapter'
 import type { ParsedMessage } from '../terminal/ConversationParser'
+import type { WorkflowRegistry } from '../orchestration/WorkflowRegistry'
+import type { WhiteboardManager } from '../whiteboard/WhiteboardManager'
+import type { WhiteboardEntry } from '../../shared/whiteboard-types'
+import type { WorkflowStatus, TaskStatus } from '../../shared/workflow-types'
 import { parseConversationFile } from '../terminal/ConversationParser'
 import { locateCodexRollout } from '../terminal/CodexRolloutLocator'
 import { existsSync, statSync, readFileSync } from 'fs'
@@ -145,6 +149,33 @@ export interface TimelineEntry {
   detail?: Record<string, unknown>
 }
 
+export interface DevWorkflowPayload {
+  chatId: string
+  workflowId: string | null
+  status: WorkflowStatus | null
+  tasks: Array<{
+    taskId: string
+    agentId: string
+    description: string
+    status: TaskStatus
+    dependsOn: string[]
+    startedAt: string | null
+    completedAt: string | null
+    durationMs: number | null
+    retryCount: number
+    failureReason: string | null
+  }>
+  totalElapsedMs: number | null
+}
+
+export interface DevWhiteboardPayload {
+  chatId: string
+  goal: WhiteboardEntry | null
+  active: WhiteboardEntry[]
+  totalActive: number
+  totalArchived: number
+}
+
 export class DevInspector {
   private subscribers = new Map<string, Set<WebSocket>>()
   private hookedSessions = new Set<string>()
@@ -152,6 +183,8 @@ export class DevInspector {
     private sessionRegistry: SessionRegistry,
     private chatStore?: ChatStore,
     private expertStore?: ExpertSessionStore,
+    private workflowRegistry?: WorkflowRegistry,
+    private whiteboardManager?: WhiteboardManager,
   ) {}
 
   private resolveMode(): DevPanelMode {
@@ -694,6 +727,65 @@ export class DevInspector {
 
   collectTimeline(_chatId: string, _taskId?: string, _limit = 100): TimelineEntry[] {
     return []
+  }
+
+  collectWorkflowState(chatId: string): DevWorkflowPayload {
+    if (!this.workflowRegistry) {
+      return { chatId, workflowId: null, status: null, tasks: [], totalElapsedMs: null }
+    }
+    const engines = this.workflowRegistry.findByChatId(chatId)
+    const engine = engines[engines.length - 1]
+    if (!engine) {
+      return { chatId, workflowId: null, status: null, tasks: [], totalElapsedMs: null }
+    }
+    const state = engine.getState()
+    const tasks = state.dag.tasks.map((t) => {
+      const ts = state.tasks[t.taskId]
+      const startedAt = ts?.startedAt ?? null
+      const completedAt = ts?.completedAt ?? null
+      let durationMs: number | null = null
+      if (startedAt && completedAt) {
+        durationMs = new Date(completedAt).getTime() - new Date(startedAt).getTime()
+      } else if (startedAt) {
+        durationMs = Date.now() - new Date(startedAt).getTime()
+      }
+      return {
+        taskId: t.taskId,
+        agentId: t.agentId,
+        description: t.description,
+        status: ts?.status ?? ('pending' as TaskStatus),
+        dependsOn: t.dependsOn,
+        startedAt,
+        completedAt,
+        durationMs,
+        retryCount: ts?.retryCount ?? 0,
+        failureReason: ts?.failureReason ?? null,
+      }
+    })
+    const firstStarted = tasks.map((t) => t.startedAt).filter(Boolean).sort()[0]
+    const totalElapsedMs = firstStarted ? Date.now() - new Date(firstStarted).getTime() : null
+
+    return {
+      chatId,
+      workflowId: engine.workflowId,
+      status: engine.status,
+      tasks,
+      totalElapsedMs,
+    }
+  }
+
+  collectWhiteboardState(chatId: string): DevWhiteboardPayload {
+    if (!this.whiteboardManager) {
+      return { chatId, goal: null, active: [], totalActive: 0, totalArchived: 0 }
+    }
+    const snapshot = this.whiteboardManager.getSnapshot(chatId)
+    return {
+      chatId,
+      goal: snapshot.goal,
+      active: snapshot.active.slice(-20),
+      totalActive: snapshot.active.length,
+      totalArchived: snapshot.archivedCount,
+    }
   }
 
   async executeAction(chatId: string, action: string, params?: Record<string, unknown>): Promise<{ success: boolean; message?: string }> {

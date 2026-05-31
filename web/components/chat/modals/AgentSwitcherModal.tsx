@@ -17,9 +17,9 @@ const MRU_CAP = 10
 const PHASE_COLOR: Record<AgentPhase | 'idle', string> = {
   idle: 'rgb(var(--text-muted))',
   initializing: 'rgb(var(--text-muted))',
-  thinking: 'rgb(var(--accent-brand))',
-  tool_running: 'rgb(var(--accent-green))',
-  responding: 'rgb(var(--accent-purple))',
+  thinking: 'rgb(var(--accent-running))',
+  tool_running: 'rgb(var(--accent-running))',
+  responding: 'rgb(var(--accent-running))',
   waiting_input: 'rgb(var(--text-muted))',
   waiting_confirmation: 'rgb(var(--accent-yellow, --accent-brand))',
   completed: 'rgb(var(--accent-green))',

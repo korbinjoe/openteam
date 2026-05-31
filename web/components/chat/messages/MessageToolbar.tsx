@@ -16,9 +16,9 @@ interface MessageToolbarProps {
 }
 
 const PHASE_DOT_COLORS: Record<string, string> = {
-  thinking: 'rgb(var(--accent-purple))',
+  thinking: 'rgb(var(--accent-running))',
   tool_running: 'rgb(var(--accent-running))',
-  responding: 'rgb(var(--accent-green))',
+  responding: 'rgb(var(--accent-running))',
   completed: 'rgb(var(--accent-green))',
   waiting_input: 'rgb(var(--accent-yellow, 234 179 8))',
   waiting_confirmation: 'rgb(var(--accent-yellow, 234 179 8))',

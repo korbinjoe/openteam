@@ -12,9 +12,9 @@ const PHASE_LABELS: Record<string, string> = {
 }
 
 const PHASE_DOT: Record<string, string> = {
-  working: 'bg-green-400',
-  running: 'bg-green-400',
-  thinking: 'bg-blue-400',
+  working: 'bg-accent-running',
+  running: 'bg-accent-running',
+  thinking: 'bg-accent-running',
   waiting: 'bg-yellow-400',
   'waiting-input': 'bg-yellow-400',
   error: 'bg-red-400',

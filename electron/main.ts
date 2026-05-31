@@ -21,6 +21,9 @@ import { existsSync, readlinkSync } from 'fs'
 import { OPENTEAM_HOME } from '../shared/openteam-home'
 
 const isDev = !app.isPackaged
+if (isDev) {
+  app.setPath('userData', app.getPath('userData') + '-dev')
+}
 let isQuitting = false
 let bootstrapServerPort = PORTS.DEV_SERVER
 

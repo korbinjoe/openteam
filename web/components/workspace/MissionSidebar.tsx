@@ -126,17 +126,15 @@ const MissionSidebar = ({ collapsed }: MissionSidebarProps) => {
       className="bg-bg-secondary border-r border-border-subtle flex flex-col flex-shrink-0 relative"
       style={{ width: sidebarWidth }}
     >
-      {/* Drag strip — macOS Electron traffic-light zone */}
-      {isMacElectron && <div className="h-[30px] flex-shrink-0 -webkit-app-region-drag" />}
-      {/* Header — logo (web only) + collapse + new mission button */}
-      <div className="px-2.5 pt-2 pb-2 border-b border-border-subtle">
+      {/* Header — drag zone (macOS Electron) + toolbar + new mission button */}
+      <div className={cn("px-2.5 pb-2 border-b border-border-subtle", isMacElectron ? "pt-1.5 -webkit-app-region-drag" : "pt-2")}>
         <div
           className="flex items-center gap-2 px-2.5 pb-2"
         >
           {!isElectron && (
             <button
               onClick={() => navigate('/')}
-              className="flex items-center gap-2 rounded-md -ml-1 px-1 py-0.5 hover:bg-bg-hover transition-colors cursor-pointer"
+              className="flex items-center gap-2 rounded-md -ml-1 px-1 py-0.5 hover:bg-bg-hover transition-colors cursor-pointer -webkit-app-region-no-drag"
               title="Back to home"
               aria-label="Back to home"
             >
@@ -149,7 +147,7 @@ const MissionSidebar = ({ collapsed }: MissionSidebarProps) => {
             onClick={() => void handleRescan()}
             disabled={rescanning}
             className={cn(
-              'w-[22px] h-[22px] rounded-md flex items-center justify-center transition-colors text-text-muted hover:bg-bg-hover hover:text-text-secondary',
+              'w-[22px] h-[22px] rounded-md flex items-center justify-center transition-colors text-text-muted hover:bg-bg-hover hover:text-text-secondary -webkit-app-region-no-drag',
               rescanning && 'animate-spin pointer-events-none',
             )}
             title="Refresh external sessions"
@@ -159,7 +157,10 @@ const MissionSidebar = ({ collapsed }: MissionSidebarProps) => {
           </button>
           <button
             onClick={() => setSearchOpen((v) => !v)}
-            className={`w-[22px] h-[22px] rounded-md flex items-center justify-center transition-colors ${searchOpen || query ? 'text-text-primary bg-bg-hover' : 'text-text-muted hover:bg-bg-hover hover:text-text-secondary'}`}
+            className={cn(
+              'w-[22px] h-[22px] rounded-md flex items-center justify-center transition-colors -webkit-app-region-no-drag',
+              searchOpen || query ? 'text-text-primary bg-bg-hover' : 'text-text-muted hover:bg-bg-hover hover:text-text-secondary',
+            )}
             title="Search missions (/)"
             aria-label="Search missions"
             aria-expanded={searchOpen}
@@ -168,7 +169,7 @@ const MissionSidebar = ({ collapsed }: MissionSidebarProps) => {
           </button>
           <button
             onClick={togglePanel}
-            className="w-[22px] h-[22px] rounded-md flex items-center justify-center text-text-muted hover:bg-bg-hover hover:text-text-secondary transition-colors"
+            className="w-[22px] h-[22px] rounded-md flex items-center justify-center text-text-muted hover:bg-bg-hover hover:text-text-secondary transition-colors -webkit-app-region-no-drag"
             title="Collapse sidebar (⌘B)"
             aria-label="Collapse sidebar"
           >
@@ -177,14 +178,14 @@ const MissionSidebar = ({ collapsed }: MissionSidebarProps) => {
         </div>
         <button
           onClick={() => openNewMission()}
-          className="w-full flex items-center gap-2 px-2.5 py-[7px] rounded-md border border-border bg-bg-tertiary hover:bg-bg-hover hover:border-accent-brand/40 transition-colors group"
+          className="w-full flex items-center gap-2 px-2.5 py-[7px] rounded-md border border-border bg-bg-tertiary hover:bg-bg-hover hover:border-accent-brand/40 transition-colors group -webkit-app-region-no-drag"
         >
           <Plus size={14} className="text-text-primary" />
           <span className="text-[13px] font-medium text-text-primary flex-1 text-left">New Mission</span>
           <span className="font-mono text-[11px] text-text-muted">⌘N</span>
         </button>
         {searchOpen && (
-          <div className="relative mt-1.5">
+          <div className="relative mt-1.5 -webkit-app-region-no-drag">
             <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
             <input
               ref={searchInputRef}
